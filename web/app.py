@@ -155,7 +155,10 @@ def replay_list():
     return list(unique.values())
 
 def score_payload(snap):
-    cps=snap.get("checkpoints") or []
+    # A checkpoint without a producing source revision is pre-handoff
+    # validation. Keep it out of the public score once a real post-main row
+    # exists; the page must never blend it into the new benchmark.
+    cps=[row for row in (snap.get("checkpoints") or []) if row.get("source_commit")]
     if not cps: return {"status":"unavailable","message":"No benchmark checkpoint has been recorded in telemetry yet.","commit":snap.get("commit"),"checkpoints":[]}
     latest=dict(cps[-1]); latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
     latest["benchmarkable"]=bool(latest.get("source_commit"))

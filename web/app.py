@@ -12,6 +12,14 @@ if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 os.environ.setdefault("MUJOCO_GL", "egl")
 REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", "/bulk2/runs/dryrun/replays/seed-7c"))
 INSPECTOR_EVALUATION = Path(os.environ.get("DRYRUN_INSPECTOR_EVALUATION", "/bulk2/runs/dryrun/m2/evaluation.json"))
+# Prefer the current rebuild's compact page projection when it exists and is
+# populated.  The old /bulk2 artifact is retained only as a compatibility
+# fallback; it must never hide a newer measured result on the page.
+INSPECTOR_PAGE_CANDIDATES = (
+    Path("/bulk3/runs/dryrun/m2_rebuild/final_model/inspector_page.json"),
+    INSPECTOR_EVALUATION,
+    ROOT / "data" / "inspector_evaluation.json",
+)
 CODEX_LOG = ROOT / "data" / "codex_log.jsonl"
 CODEX_CAST = Path("/bulk2/runs/dryrun/codex-casts/main-001.cast")
 
@@ -88,13 +96,25 @@ def score_payload(snap):
 
 def inspector_payload() -> dict:
     """Read the compact inspector artifact consumed by the page."""
-    path = INSPECTOR_EVALUATION
-    if not path.exists():
-        # Fly serves the measured text artifact committed with the page.  It
-        # avoids importing OpenVINO/CV dependencies just to read metrics.
-        path = ROOT / "data" / "inspector_evaluation.json"
+    path = None
+    metrics = None
+    for candidate in INSPECTOR_PAGE_CANDIDATES:
+        if not candidate.exists():
+            continue
+        try:
+            candidate_metrics = json.loads(candidate.read_text())
+        except Exception:
+            continue
+        # An empty page projection is an incomplete rebuild artifact.  Skip
+        # it rather than replacing a usable prior page payload with blanks.
+        if candidate_metrics.get("confusion") or candidate_metrics.get("auroc") is not None:
+            path, metrics = candidate, candidate_metrics
+            break
+    if path is None:
+        path = INSPECTOR_EVALUATION
     try:
-        metrics = json.loads(path.read_text())
+        if metrics is None:
+            metrics = json.loads(path.read_text())
         metrics["status"] = "ok"
         metrics["source"] = str(path)
         metrics.setdefault("schema", "dryrun.inspector.v1")

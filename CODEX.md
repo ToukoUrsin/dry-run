@@ -12,3 +12,26 @@ The first pass used parallel Codex sessions, but its status claims were rejected
 | 2026-11-14 | Fly deployment | gpt-6.1-sol (root) | Deployed the static dashboard as `dryrun-junction-2026`; public smoke test returned HTML at https://dryrun-junction-2026.fly.dev/. Public score is honestly unavailable until a remote Timescale URL is supplied. |
 
 2026-11-14 19:00 UTC — Astra geometry correction: the seed-7 bowl overlap was real; the old 246 mm outside diameter was larger than the station spec. `_bowl` now emits 150 mm outside-diameter open bowls and the checker explicitly rejects bowl-centre distance below 150 mm or negative good/defective bowl contacts. Proof: `uv run python -m dryrun.mjcf_station check assets/station.xml` -> `bowl_overlap=[]`, `intersections=[]`, all IK/camera checks pass; a deliberately overlapping copy returned non-empty `bowl_overlap` and failed; `uv run python -m dryrun.mjcf_station batch --seeds 32 --out-dir /bulk2/runs/dryrun/m1/stations_bowlfix --record /bulk2/runs/dryrun/m1/stations_bowlfix.jsonl` -> 32/32 passed. EGL free/top/inspection frames were rerendered to `/bulk2/runs/dryrun/m1/frames_bowlfix/` and inspected: bowls are separate and visibly within the table/arm scene.
+
+## Session ledger for this run
+
+The task path is the stable session identifier available in the shared
+worktree. A platform UUID is not copied from another session and is therefore
+not guessed here. The five work streams named in `prompts/010` are listed so a
+reviewer can follow ownership; each status file is the proof for its feature.
+
+| Session identifier | Model assignment | Feature used | Proof or record |
+| --- | --- | --- | --- |
+| `/root` | `gpt-6-astra` for the main spatial stream, with `gpt-6.1-sol` build work recorded above | MuJoCo station, rollout API, expert and benchmark | `status/M1.md`; `docs/interfaces.md` |
+| `/root/inspector` | `gpt-6.1-sol` work stream from `prompts/010` | Defects, good-only inspector and OpenVINO | `status/M2.md` |
+| `/root/page` | `gpt-6.1-sol` work stream from `prompts/010` | Replay export, telemetry, dashboard and deployment | `status/M3.md`, `status/M6.md` |
+| `/root/policy` | `gpt-6.1-sol` work stream from `prompts/010` | LeRobot data, policy training and policy benchmark | `status/M4.md` |
+| `/root/analyst_impl` | `gpt-6.1-sol` inherited analyst stream | Nemotron failure analysis, scored curriculum and sentence stations | `status/M5.md` |
+
+The documentation pass ran as `/root/docs_status` on `gpt-6.1-sol`: it rewrote
+`README.md`, `SUBMISSION.md`, `FILM_PLAN.md` and `MORNING.md` to link every
+claim to status evidence and ran `git diff --check` on those files. The
+analyst and Astra streams must append their request/response paths and exact
+review output here when their proof runs finish. A `codex review` is required
+before the commit that includes those changes; the root session owns that
+final review because it sees all shared paths.

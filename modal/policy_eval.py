@@ -1,6 +1,7 @@
 """Modal ``.map`` evaluator for policy seeds."""
 from __future__ import annotations
 import json, sys
+from pathlib import Path
 import modal
 
 app = modal.App("dryrun-policy-eval")
@@ -13,16 +14,31 @@ image = (modal.Image.debian_slim(python_version="3.12")
          .add_local_file("data/reach_map_polar.json", remote_path="/root/repo/data/reach_map_polar.json"))
 
 
-@app.function(image=image, timeout=1800, cpu=4, gpu="T4", volumes={"/runs": volume})
+@app.function(image=image, timeout=1800, cpu=4, gpu="T4", retries=2, volumes={"/runs": volume})
 def evaluate_seed(seed: int, tier: str = "loose", checkpoint: str = "/runs/act-final-modal.pt", max_steps: int = 1800):
     sys.path.insert(0, "/root/repo")
     import os
     os.environ.setdefault("MUJOCO_GL", "osmesa")
+    # ACT inference is GPU-bound; keep MuJoCo's host-side image conversion
+    # from oversubscribing the four allocated vCPUs on every mapped task.
+    import torch
+    torch.set_num_threads(1)
     from dryrun.policy_benchmark import ACTController
     from dryrun.rollout import run
     controller = ACTController(checkpoint, device="cuda" if __import__("torch").cuda.is_available() else "cpu")
     result = run(int(seed), controller, tier=tier, max_steps=max_steps)
-    return {"seed": int(seed), "tier": tier, "checkpoint": checkpoint, "max_steps": max_steps, "bricks": result["bricks"], "successes": result["successes"], "score": result["score"], "source": "modal-map"}
+    row = {"seed": int(seed), "tier": tier, "checkpoint": checkpoint, "max_steps": max_steps,
+           "bricks": result["bricks"], "successes": result["successes"], "score": result["score"],
+           "source": "modal-map"}
+    # A map can be preempted after some seeds finish. Persist each row before
+    # returning so a rerun can collect the durable rows without guessing which
+    # remote containers completed.
+    row_path = Path(f"/runs/policy-eval/{tier}/seed-{int(seed):04d}.json")
+    row_path.parent.mkdir(parents=True, exist_ok=True)
+    row_path.write_text(json.dumps(row, sort_keys=True) + "\n")
+    volume.commit()
+    row["row_path"] = str(row_path)
+    return row
 
 
 @app.local_entrypoint()

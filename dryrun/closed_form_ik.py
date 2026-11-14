@@ -43,11 +43,11 @@ L3 = np.asarray((0.0611, 0.0181, 0.0), dtype=float)
 # The site and pad midpoint are calibrated against the fingertip collision pads
 # in ``so101_dryrun.xml``.  The previous pads sat near the jaw hinge and opened
 # only 49 mm centre-to-centre; these values describe the relocated tips.
-SITE_FROM_GRIPPER = np.asarray((0.09350864, -0.00786148, 0.02778791), dtype=float)
+SITE_FROM_GRIPPER = np.asarray((0.0895812, -0.00026926, 0.01374718), dtype=float)
 # The pad midpoint is a fixed-pad offset plus a single hinge sinusoid from the
 # moving jaw.  These vectors are calibrated in the gripper body frame from the
 # MJCF, so the exact solver can drive both the open and closed jaw targets.
-PAD_MID_C = np.asarray((0.0605, -0.00719301, 0.01406665), dtype=float)
+PAD_MID_C = np.asarray((0.0542, -0.0000189523497, 0.00860927644), dtype=float)
 PAD_MID_COS = np.asarray((0.0350, 0.00035522, -0.00729135), dtype=float)
 PAD_MID_SIN = np.asarray((0.0073, -0.00170311021, 0.0349585389), dtype=float)
 
@@ -142,16 +142,16 @@ def jaw_vector(q: Iterable[float]) -> np.ndarray:
     q = np.asarray(tuple(q), dtype=float)
     if q.shape != (5,):
         raise ValueError("q must contain shoulder_pan through wrist_roll")
-    return jaw_vector_at_grip(q, grip_q=0.6)
+    return jaw_vector_at_grip(q, grip_q=0.0)
 
 
 # Fixed-to-moving centre vector at the closing opening (gripper q=0.35).
 # This is the quantity whose orientation matters for choosing a brick yaw;
 # it is separate from PAD_MID_* which describes the midpoint target.
-JAW_VECTOR_CLOSED = np.asarray((-0.00818273, 0.01348035, 0.03977816), dtype=float)
+JAW_VECTOR_CLOSED = np.asarray((0.00916239735, -0.000031431633, 0.0335261947), dtype=float)
 
 
-def jaw_vector_at_grip(q: Iterable[float], *, grip_q: float = 0.6) -> np.ndarray:
+def jaw_vector_at_grip(q: Iterable[float], *, grip_q: float = 0.35) -> np.ndarray:
     """Return the fixed-to-moving fingertip vector at a gripper opening."""
 
     q = np.asarray(tuple(q), dtype=float)
@@ -305,7 +305,7 @@ def nearest_symmetric_yaw(yaw: float, size: str, reference: float | None = None)
 
 def wrist_roll_for_brick(
     target: Iterable[float], brick_yaw: float, size: str, *,
-    grip_q: float = 0.6, approach_pitch_max: float = 35.0,
+    grip_q: float = 0.35, approach_pitch_max: float = 35.0,
     reference: float | None = None,
 ) -> float:
     """Choose a wrist roll whose fingertip line crosses the brick's width.

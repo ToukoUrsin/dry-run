@@ -230,41 +230,30 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
             try:
                 brick_roll = wrist_roll_for_brick(
                     [float(data.xpos[body, 0]), float(data.xpos[body, 1]), .034],
-                    spec.yaw, spec.size, grip_q=.6, reference=wrist_mid,
+                    spec.yaw, spec.size, grip_q=.35, reference=wrist_mid,
                 )
             except IKError:
                 brick_roll = nearest_symmetric_yaw(spec.yaw, spec.size, reference=wrist_mid)
-        # The open-jaw descent only needs a reachable, collision-free pose;
-        # the brick's jaw-line orientation is solved at the pickup height.
-        # Constraining that high approach to the closing roll made otherwise
-        # reachable edge cells report ``approach_ik`` failures.
-        approach_roll = wrist_mid
         if record is not None:
             event = {"type": "cycle_start", "brick": name, "t": float(data.time)}
             if callable(record): record(event)
             elif hasattr(record, "cycle_start"): record.cycle_start(name)
-        # Initial grasp plus two bounded retries; a bad contact must not
-        # consume an entire held-out rollout.
-        for attempt in range(int(getattr(record, "max_attempts", 3)) if record is not None else 3):
+        for attempt in range(int(getattr(record, "max_attempts", 6)) if record is not None else 6):
             set_bowl_collision(False)
             set_pad_collision(False)
-            start=data.xpos[body].copy(); approach_q,ea,oka=_solve_target(model,data,[float(start[0]),float(start[1]),.075],gopen,wrist_roll=approach_roll)
+            start=data.xpos[body].copy(); approach_q,ea,oka=_solve_target(model,data,[float(start[0]),float(start[1]),.075],gopen,wrist_roll=brick_roll)
             if not oka: best={'failed_stage':'approach_ik','ik_error_m':ea}; continue
             _drive(model,data,approach_q,gopen,500,writer)
             if not safe_state(model,data,body): best={'failed_stage':'approach_unstable'}; continue
+            set_pad_collision(True)
             xy=data.xpos[body,:2].copy(); q,ep,okp=_solve_target(model,data,[float(xy[0]),float(xy[1]),.034],gopen,tolerance=.0025,wrist_roll=brick_roll)
             if not okp: best={'failed_stage':'lower_approach_ik','ik_error_m':ep}; continue
             _drive(model,data,q,gopen,650,writer)
-            # The jaws stay collision-free during the open descent.  Enable
-            # only the fingertip pads once the midpoint is at brick height;
-            # an open 112 mm jaw otherwise catches a brick edge and shoves it.
-            set_pad_collision(True)
             touched=set(); peak=0.; close_g=gopen
             # The moving fingertip follows an arc.  Keep the pad midpoint on
             # the brick while closing instead of holding the open-jaw pose;
             # otherwise one pad walks past the brick before contact.
             close_target = np.array([float(data.xpos[body, 0]), float(data.xpos[body, 1]), .034])
-            close_origin = data.xpos[body, :2].copy()
             for step in range(700):
                 # Continue through the full jaw range.  With fingertip pads
                 # the 31.8 mm brick reaches contact around q=0.6; the old
@@ -280,13 +269,6 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
                         q = q_close
                 _drive(model,data,q,g,1,None); f,t=pad_force(model,data,body); peak=max(peak,f); touched |= t
                 if not safe_state(model,data,body): break
-                # A single pad should never drag a loose brick across the
-                # table while the other jaw is still searching.  Abort this
-                # attempt once the live brick has moved a few millimetres;
-                # the bounded retry can re-plan from its settled pose.
-                if len(t) == 1 and float(np.linalg.norm(data.xpos[body, :2] - close_origin)) > .003:
-                    best = {'failed_stage': 'contact', 'pad_contacts': len(touched), 'peak_pad_force_N': peak}
-                    break
                 if len(t)==2 and f>.5: close_g=g; break
             if len(touched)<2 or not safe_state(model,data,body): best={'failed_stage':'contact','pad_contacts':len(touched),'peak_pad_force_N':peak}; continue
             q_close, e_close, ok_close = _solve_target(

@@ -1,6 +1,6 @@
 """Small inference API shared by the benchmark, web page and photo script."""
 from __future__ import annotations
-import json
+import json, os
 from pathlib import Path
 import cv2, numpy as np, openvino as ov
 
@@ -8,8 +8,8 @@ DEFAULT_MODEL = Path("/bulk2/runs/dryrun/m2/model/openvino/weights/openvino/dryr
 
 class Inspector:
     """Load an OpenVINO inspector once and classify RGB frames."""
-    def __init__(self, model_path: str | Path = DEFAULT_MODEL, threshold: float | None = None, threads: int = 1):
-        self.model_path = Path(model_path)
+    def __init__(self, model_path: str | Path | None = None, threshold: float | None = None, threads: int = 1):
+        self.model_path = Path(model_path or os.environ.get("DRYRUN_INSPECTOR_MODEL", DEFAULT_MODEL))
         if not self.model_path.exists():
             raise FileNotFoundError(f"OpenVINO model not found: {self.model_path}")
         threads = int(threads)

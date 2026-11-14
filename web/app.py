@@ -79,6 +79,12 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/api/score": return self.send_json(score_payload(snapshot()))
         if path=="/api/telemetry": return self.send_json(snapshot())
         if path=="/api/failures": return self.send_json(snapshot().get("diagnoses", []))
+        if path=="/api/stations":
+            try:
+                from dryrun.telemetry import station_snapshot
+                return self.send_json(station_snapshot())
+            except Exception as exc:
+                return self.send_json({"stations": [], "worker": None, "status": "unavailable", "error": str(exc)})
         if path=="/api/rollouts": return self.send_json(replay_list())
         if path=="/api/replays": return self.send_json(replay_list())
         if path.startswith("/api/replays/"):
@@ -121,12 +127,36 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json({"status":"unavailable","message":"The compressed SO-101 mesh bundle is present in the local run assets."},404)
         self.send_json({"error":"not found"},404)
     def do_POST(self):
+        if self.path == "/api/stations":
+            try:
+                body = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
+                sentence = str(body.get("sentence", "")).strip()
+                from dryrun.telemetry import enqueue_station_request
+                request_id = enqueue_station_request(sentence)
+                return self.send_json({"ok": True, "request_id": request_id, "status": "pending", "worker": "station-worker"}, 202)
+            except Exception as exc:
+                return self.send_json({"error": f"invalid station request: {exc}"}, 400)
         if self.path!="/api/defect": return self.send_json({"error":"not found"},404)
         try:
             body=json.loads(self.rfile.read(int(self.headers.get("Content-Length","0"))))
             body.update({"created_at":time.time(),"status":"queued","verdict":"pending"})
             p=ROOT/"data"/"defects.jsonl"; p.parent.mkdir(exist_ok=True); p.open("a").write(json.dumps(body,separators=(",",":"))+"\n")
             result={"ok":True,"defect_id":f"custom-{int(time.time()*1000)}","verdict":"pending","message":"Saved. A rollout will run when the inspector worker is connected."}
+            # A deployed Modal URL is the preferred live worker. Local
+            # development can opt into the same path with
+            # DRYRUN_LIVE_ROLLOUT=1; Fly remains honest when neither exists.
+            modal_url = os.environ.get("DRYRUN_MODAL_URL")
+            if modal_url and body.get("drawing", "").startswith("data:image"):
+                try:
+                    import urllib.request
+                    req = urllib.request.Request(modal_url, data=json.dumps(body).encode(), headers={"Content-Type":"application/json"}, method="POST")
+                    with urllib.request.urlopen(req, timeout=900) as response:
+                        live = json.loads(response.read())
+                    result.update(live)
+                    result["message"] = "Live Modal inspector and one-brick MuJoCo rollout complete."
+                    return self.send_json(result, 201)
+                except Exception as exc:
+                    result["message"] = "Saved; live Modal worker unavailable: " + str(exc)
             # On the full local box, use the exact render-trained OpenVINO
             # inspector. Fly remains honest when its optional model is absent.
             drawing=body.get("drawing","")
@@ -142,6 +172,10 @@ class Handler(BaseHTTPRequestHandler):
                     decision=Inspector().inspect(frame); heat=Image.fromarray(decision["heatmap"])
                     buf=io.BytesIO(); heat.save(buf,format="PNG")
                     result.update({"verdict":decision["verdict"],"score":decision["score"],"threshold":decision["threshold"],"heatmap":"data:image/png;base64,"+base64.b64encode(buf.getvalue()).decode(),"message":"Inspector result from the rendered custom brick. The live sort is queued."})
+                    if os.environ.get("DRYRUN_LIVE_ROLLOUT") == "1":
+                        from dryrun.live_defect import run_custom_defect
+                        result.update(run_custom_defect(body))
+                        result["message"] = "Live local inspector and one-brick MuJoCo rollout complete."
                 except Exception as exc:
                     result["message"]="Saved; local inspector unavailable: "+str(exc)
             return self.send_json(result,201)

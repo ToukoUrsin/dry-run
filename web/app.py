@@ -83,6 +83,9 @@ def inspector_payload() -> dict:
         metrics = json.loads(path.read_text())
         metrics["status"] = "ok"
         metrics["source"] = str(path)
+        metrics.setdefault("schema", "dryrun.inspector.v1")
+        if "score_histogram" not in metrics:
+            metrics["score_histogram"] = metrics.get("score_histograms", {})
         return metrics
     except Exception as exc:
         return {
@@ -114,6 +117,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json({"stations": [], "worker": None, "status": "ok", "message": "worker offline"})
         if path=="/api/rollouts": return self.send_json(replay_list())
         if path=="/api/replays": return self.send_json(replay_list())
+        if path=="/api/scenes": return self.send_json(replay_list())
         if path.startswith("/api/replays/"):
             try: obj=replay_payload(int(path.rsplit("/",1)[1]))
             except (ValueError,TypeError): obj=None

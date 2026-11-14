@@ -42,6 +42,9 @@ class BrickSpec:
     # default for older inspection fixtures that construct a BrickSpec
     # positionally.
     yaw: float = 0.0
+    # Pile bricks are spawned above the table and settled before the episode;
+    # flat tiers retain the table-height default.
+    z: float = BRICK_H / 2
 
 
 def _xml_escape(s: str) -> str:
@@ -90,6 +93,75 @@ def _rects_overlap(a: tuple[float, float, float, float], b: tuple[float, float, 
     return not (a[2] + margin <= b[0] or b[2] + margin <= a[0] or a[3] + margin <= b[1] or b[3] + margin <= a[1])
 
 
+def _rect_gap(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
+    """Shortest edge-to-edge gap for two non-overlapping rectangles."""
+    dx = max(float(b[0] - a[2]), float(a[0] - b[2]), 0.0)
+    dy = max(float(b[1] - a[3]), float(a[1] - b[3]), 0.0)
+    return math.hypot(dx, dy)
+
+
+def _scene_labels(seed: int, index: int, rng: random.Random) -> tuple[str, str]:
+    defect_rng = random.Random(int(seed) * 65537 + index * 101)
+    defect = "none" if defect_rng.random() < .58 else defect_rng.choice(DEFECTS[1:])
+    return defect, COLORS[(int(seed) + index) % len(COLORS)]
+
+
+def _layout_messy(seed: int, n: int, rng: random.Random) -> list[BrickSpec]:
+    """Place 5--9 flat bricks in one touching cluster with <=12 mm gaps."""
+    # A 40 mm lattice gives 8 mm nominal clearance for 2x2s.  Restricting the
+    # radius keeps the whole cluster inside the measured arm envelope while
+    # leaving enough cells for a 2x4 among the smaller bricks.
+    candidates = [(0.23 + ix * .040, iy * .040)
+                  for ix in range(-2, 3) for iy in range(-2, 3)
+                  if .12 <= math.hypot(0.23 + ix * .040 - .0388, iy * .040) <= .24]
+    for attempt in range(300):
+        order = list(candidates)
+        random.Random(int(seed) * 7919 + attempt * 313).shuffle(order)
+        placed: list[BrickSpec] = []
+        rects: list[tuple[float, float, float, float]] = []
+        for idx in range(n):
+            # Keep one long brick in most scenes, but never let it consume the
+            # full cluster footprint when n is small.
+            size = "2x4" if idx == 0 and n >= 6 else "2x2"
+            found = False
+            for x, y in order:
+                yaw = 0.0 if size == "2x4" else rng.uniform(-math.pi, math.pi)
+                hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
+                cy, sy = math.cos(yaw), math.sin(yaw)
+                bx, by = abs(hx * cy) + abs(hy * sy), abs(hx * sy) + abs(hy * cy)
+                rect = (x - bx, y - by, x + bx, y + by)
+                if any(_rects_overlap(rect, old, margin=0.0) for old in rects):
+                    continue
+                if rects and min(_rect_gap(rect, old) for old in rects) > .012:
+                    continue
+                defect, color = _scene_labels(seed, idx, rng)
+                placed.append(BrickSpec(idx, size, round(x, 4), round(y, 4), defect, color, round(yaw, 6)))
+                rects.append(rect); found = True; break
+            if not found:
+                break
+        if len(placed) == n:
+            return placed
+    raise ValueError(f"could not place messy {n}-brick cluster in seed {seed}")
+
+
+def _layout_pile(seed: int, n: int, rng: random.Random) -> list[BrickSpec]:
+    """Spawn 6--10 bricks 4--12 cm above a 10 cm drop disc."""
+    pan_x = .0388
+    centre = (pan_x + .18, 0.0)
+    placed: list[BrickSpec] = []
+    for idx in range(n):
+        angle = rng.uniform(-math.pi, math.pi)
+        radius = .048 * math.sqrt(rng.random())
+        x = centre[0] + radius * math.cos(angle)
+        y = centre[1] + radius * math.sin(angle)
+        size = "2x4" if rng.random() < .35 else "2x2"
+        yaw = rng.uniform(-math.pi, math.pi)
+        defect, color = _scene_labels(seed, idx, rng)
+        z = BRICK_H / 2 + rng.uniform(.04, .12)
+        placed.append(BrickSpec(idx, size, round(x, 4), round(y, 4), defect, color, round(yaw, 6), round(z, 5)))
+    return placed
+
+
 def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[BrickSpec]:
     """Return the measured loose-tier layout envelope from prompt 019.
 
@@ -100,9 +172,20 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     """
     opts = parse_sentence(sentence)
     rng = random.Random(seed + {"grid": 0, "messy": 100_003, "pile": 200_009, "tray": 300_007}[opts["layout"]])
-    n = int(count) if count is not None else rng.randint(3, 7)
-    if n < 3 or n > 7:
-        raise ValueError("loose scenes contain 3 to 7 bricks")
+    if count is not None:
+        n = int(count)
+    elif opts["layout"] == "messy":
+        n = rng.randint(5, 9)
+    elif opts["layout"] == "pile":
+        n = rng.randint(6, 10)
+    else:
+        n = rng.randint(3, 7)
+    if n < 1 or n > 10 or (count is None and n < 3):
+        raise ValueError("seeded scenes contain 3 to 10 bricks; explicit fixtures may request one")
+    if opts["layout"] == "messy":
+        return _layout_messy(seed, n, rng)
+    if opts["layout"] == "pile":
+        return _layout_pile(seed, n, rng)
     # Prompt 019: radius 0.12--0.24 m and azimuth ±0.85 rad from the pan
     # axis (0.0388, 0). Keep the deterministic candidate lattice dense
     # enough that every seed gets a distinct, well-spaced scene.
@@ -165,7 +248,7 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
                 break
             size = "2x4" if (idx == 0 or (rng.random() < .34 and not any(p.size == "2x4" for p in placed))) else "2x2"
             add_row(row, len(placed), size, used, rects, placed)
-        if len(placed) == n and any(p.size == "2x4" for p in placed) and any(p.size == "2x2" for p in placed):
+        if len(placed) == n and (n == 1 or (any(p.size == "2x4" for p in placed) and any(p.size == "2x2" for p in placed))):
             return placed
     raise ValueError(f"could not place measured {n}-brick scene in seed {seed}")
 
@@ -188,7 +271,7 @@ def _bowl(name: str, x: float, y: float, material: str) -> str:
 def _brick(spec: BrickSpec) -> str:
     hx, hy = ((.032, .016) if spec.size == "2x4" else (.016, .016))
     cols = 4 if spec.size == "2x2" else 8
-    bits = [f'<body name="brick_{spec.index}" pos="{spec.x:.4f} {spec.y:.4f} {BRICK_H/2:.5f}"{_quat_z(float(spec.yaw))}><freejoint/>',
+    bits = [f'<body name="brick_{spec.index}" pos="{spec.x:.4f} {spec.y:.4f} {spec.z:.5f}"{_quat_z(float(spec.yaw))}><freejoint/>',
             f'<geom name="brick_{spec.index}_body" type="box" size="{hx:.4f} {hy:.4f} {BRICK_H/2:.5f}" material="brick_{spec.color}" mass="0.018" friction="0.5 0.01 0.001" condim="4"/>']
     # Stud centres are at the standard 16 mm Duplo pitch.  Missing/chipped
     # studs are represented by absent/reduced collision geometry, not labels.
@@ -264,6 +347,7 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
   <worldbody>
     <light name="key" pos="0.25 -0.45 1.5" dir="-0.2 0.3 -1" directional="true" castshadow="true"/>
   <geom name="table" type="box" pos="0.15 0 -0.045" size="0.62 0.48 0.045" material="table_mat" friction="0.5 0.1 0.02" solref="0.0002 1" solimp="0.99 0.999 0.001"/>
+    {'<geom name="pile_disc" type="cylinder" pos="0.2188 0 0.001" size="0.05 0.001" material="table_mat" friction="0.8 0.1 0.02"/>' if opts["layout"] == "pile" else ''}
     <geom name="table_edge" type="box" pos="0.15 0.47 0.04" size="0.62 0.025 0.08" material="table_mat"/>
     {_bowl("good_bowl", *good, "good_bowl")}
     {_bowl("defective_bowl", *bad, "bad_bowl")}
@@ -275,7 +359,42 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     {''.join(_brick(b) for b in bricks)}
   </worldbody>
 </mujoco>''']
-    return "".join(pieces)
+    xml = "".join(pieces)
+    if opts["layout"] == "pile":
+        xml = _settle_pile_xml(xml)
+    return xml
+
+
+def _settle_pile_xml(xml: str, *, seconds: float = 2.0) -> str:
+    """Settle a dropped pile and bake its 2 s pose into the generated MJCF."""
+    try:
+        model = mujoco.MjModel.from_xml_string(xml)
+    except (mujoco.FatalError, ValueError):
+        # The public generator historically emitted a relative include path;
+        # use an absolute path only for this in-memory settle pass, preserving
+        # the caller's XML contract in the returned document.
+        absolute = str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve())
+        model = mujoco.MjModel.from_xml_string(xml.replace(f'file="{ROBOT_INCLUDE}"', f'file="{absolute}"'))
+    data = mujoco.MjData(model)
+    steps = max(1, int(round(float(seconds) / float(model.opt.timestep))))
+    for _ in range(steps):
+        mujoco.mj_step(model, data)
+    import re
+    out = xml
+    for body in range(model.nbody):
+        name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body) or ""
+        if not name.startswith("brick_") or model.body_jntadr[body] < 0:
+            continue
+        joint = int(model.body_jntadr[body]); adr = int(model.jnt_qposadr[joint])
+        pos = data.qpos[adr:adr + 3]; quat = data.qpos[adr + 3:adr + 7]
+        pos_s = " ".join(f"{float(v):.6f}" for v in pos)
+        quat_s = " ".join(f"{float(v):.8f}" for v in quat)
+        pattern = rf'(<body name="{re.escape(name)}" )pos="[^"]+" quat="[^"]+"'
+        repl = rf'\1pos="{pos_s}" quat="{quat_s}"'
+        out, changed = re.subn(pattern, repl, out, count=1)
+        if changed != 1:
+            raise ValueError(f"could not bake settled pose for {name}")
+    return out
 
 
 def _hinge_ids(model: mujoco.MjModel) -> list[int]:
@@ -314,6 +433,11 @@ def check_station(path: str | Path) -> dict:
     bad_contacts = []
     bowl_overlap = []
     table_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "table")
+    pile_disc_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "pile_disc")
+    support_geom = {table_id}
+    if pile_disc_id >= 0:
+        support_geom.add(pile_disc_id)
+    pile_mode = pile_disc_id >= 0
     brick_geom = set()
     for bi in brick_ids:
         for gi in range(model.body_geomadr[bi], model.body_geomadr[bi] + model.body_geomnum[bi]):
@@ -329,7 +453,8 @@ def check_station(path: str | Path) -> dict:
         bowl_overlap.append({"reason": "bowl_centres_too_close", "distance_m": centre_distance})
     for ci in range(data.ncon):
         c = data.contact[ci]
-        if c.dist < -1e-6 and ((c.geom1 in brick_geom and c.geom2 != table_id) or (c.geom2 in brick_geom and c.geom1 != table_id)):
+        brick_pair = c.geom1 in brick_geom and c.geom2 in brick_geom
+        if c.dist < -1e-6 and not (pile_mode and brick_pair) and ((c.geom1 in brick_geom and c.geom2 not in support_geom) or (c.geom2 in brick_geom and c.geom1 not in support_geom)):
             bad_contacts.append((int(c.geom1), int(c.geom2), float(c.dist)))
         if c.dist < -1e-6 and ((c.geom1 in bowl_geom["good_bowl"] and c.geom2 in bowl_geom["defective_bowl"]) or (c.geom2 in bowl_geom["good_bowl"] and c.geom1 in bowl_geom["defective_bowl"])):
             bowl_overlap.append({"geom1": int(c.geom1), "geom2": int(c.geom2), "dist_m": float(c.dist)})

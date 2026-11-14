@@ -1,3 +1,14 @@
 2026-11-14 post-commit validation at 2e99a05: seed 1 loose (4 bricks) reached grasp/lift then physics reported unstable at t=3.634 s before any present/drop; seed 0 page capture reproduced MeasuredExpert.action current=None during phase transition.
 2026-11-14 controlled MuJoCo check: MeasuredExpert._solve((0.20,-0.10,0.16), pitch=0.9, jaw=-2.3) returned None in 0.465 s although prompt-020 Present A joints forward to TCP (0.171495,-0.100870,0.130010), so the numeric presentation solve cannot be used as evidence.
 2026-11-14 replay-export check at 64c4919: the stale manifests counted `good_bowl` instead of `result.correct` (so defective bricks in the defective bowl were mis-scored); exporter fix is in the page worktree, and those manifests are diagnostic only.
+
+2026-11-14 Prompt 022 pile release audit at commit 64c4919: seed 1003 through
+the public `StationEnv` produced 4/7 correct and 5 physical `grasp` events.
+The trace is `/bulk3/runs/dryrun/audit/pile1003-trace.jsonl`. Brick body 17
+(scene index 5) was stable at the drop pose until the gripper opened: at
+49.400 s it had eight pad contacts and q=0.594; at 49.434 s contacts fell to
+one and the brick acquired lateral velocity; by 49.634 s it was moving at
+2.00 m/s and the environment reported `unstable` at 49.934 s after it left
+the bowl area. This is an honest pile failure from release contact dynamics,
+not a successful drop. The benchmark's `picked_by_contact` field now counts
+unique brick ids from physical `grasp` events (with a legacy flag fallback).

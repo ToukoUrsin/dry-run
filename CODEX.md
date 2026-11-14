@@ -93,3 +93,14 @@ The page is prepared for the measured expert replacement in `prompts/019-grasp-r
 2026-11-14 23:04 UTC — Recipe-compatible station gallery (`/root/analyst_impl`): 36 distinct sentence requests were checked; 32 passed and four rest-intersection rejections were retained. Expert rollout rerun is intentionally pending main’s prompt-021 reference-expert commit. Proof: `/bulk3/runs/dryrun/stations36-reference-check/summary.json`.
 
 2026-11-14 23:05 UTC — Supervisor reference expert handoff (`prompts/021-reference-expert.md`): the earlier measured expert was found broken and its rollout numbers are withdrawn. Main owns the port of the external reference expert and the protected physics files; analyst evidence here does not claim its 382/382 reference result as a repository score.
+
+2026-11-14 23:22 UTC — Reference expert integrated (`64c4919`): the measured
+external recipe in `prompts/019-grasp-recipe-measured.md` and
+`prompts/021-reference/` replaced the slow experimental expert. The station
+camera mount, episode tick limit, fresh presentation render and ground-truth
+correct-bowl scoring were fixed. The repository benchmark API reproduced
+382/382 correct on held-out loose seeds 1000--1079 through the shared
+`StationEnv` reference runner; the supervisor's repository benchmark check is
+203/205 on seeds 0--39. Evidence is kept under
+`/bulk3/runs/dryrun/benchmark/`. This is a measured supervisor prototype
+integrated by Codex, not an independently invented grasp score.

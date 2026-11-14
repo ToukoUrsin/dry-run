@@ -91,8 +91,10 @@ class Recorder:
         self.env = env
         self.model = env.model
         self.data = env.data
+        self.out = out
         self.frames: list[dict[str, Any]] = []
         self.events: list[dict[str, Any]] = []
+        self.inspection_present_frames: list[dict[str, Any]] = []
         self._seen_events: set[tuple[Any, ...]] = set()
         self._last_tick = -1
         self._render_count = 0
@@ -153,6 +155,20 @@ class Recorder:
             added.append(event)
         return added
 
+    def capture_present(self, obs: dict[str, Any], event: dict[str, Any]) -> dict[str, Any] | None:
+        """Persist the fresh >=256 px inspection crop for a present event."""
+        frame = obs.get("inspection")
+        if frame is None:
+            return None
+        brick = int(event.get("brick", -1))
+        pose = str(event.get("pose", "present"))
+        path = self.out / f"present-brick-{brick}-{pose}.png"
+        imageio.imwrite(path, np.asarray(frame, dtype=np.uint8))
+        row = {"brick": brick, "pose": pose, "path": path.name,
+               "shape": list(np.asarray(frame).shape), "t": float(event.get("t", self.data.time))}
+        self.inspection_present_frames.append(row)
+        return row
+
     def close(self) -> None:
         for writer in self._writers.values():
             writer.close()
@@ -173,7 +189,9 @@ def export(
     if tier not in TIERS:
         raise ValueError(f"unknown tier {tier!r}")
     out.mkdir(parents=True, exist_ok=True)
-    env = StationEnv(int(seed), tier=tier, count=count, render_size=64)
+    # Keep the public inspection crop at the measured 256 px contract; the
+    # video writers remain compact for the page.
+    env = StationEnv(int(seed), tier=tier, count=count, render_size=256)
     recorder = Recorder(env, out)
     commit = _commit()
     inspector_status = "not configured"
@@ -187,10 +205,15 @@ def export(
             obs, _, done, info = env.step(action)
             recorder.sample(obs)
             new_events = recorder.events_from(info.get("events", []))
-            if inspector is not None:
-                for event in new_events:
-                    if event["name"] != "present":
-                        continue
+            for event in new_events:
+                if event["name"] == "present":
+                    present = recorder.capture_present(obs, event)
+                    if present is not None:
+                        event["inspection_frame"] = present["path"]
+                        # ``events_from`` stores the same dict in the replay
+                        # list, so the provenance is retained in replay.json.
+                        recorder.events[-1]["inspection_frame"] = present["path"]
+                if inspector is not None and event["name"] == "present":
                     decision = inspector(obs["inspection"])
                     if isinstance(decision, dict):
                         verdict = decision.get("verdict")
@@ -244,6 +267,7 @@ def export(
             "scene": _scene(env.model),
             "frames": recorder.frames,
             "events": recorder.events,
+            "inspection_present_frames": recorder.inspection_present_frames,
             "outcome": outcome,
             "videos": {"top": "top-view.mp4", "inspection": "inspection-camera.mp4", "fps": 10, "source_pose_hz": 30, "frame_stride": 3},
         }

@@ -25,9 +25,18 @@ can be rerun. Open milestones are deliberately called open.
   sentence-to-station machinery and bounded local worker. Their proof is in
   `status/M5.md`; `data/codex_log.jsonl` is the page-readable build ledger.
 
-The expert is being ported from the measured external reference in
-`prompts/021-reference-expert.md`. Earlier expert rollouts are validation traces
-only; M1 does not claim a score until main's port is committed and rerun.
+The loose-tier expert is the measured external reference supplied in
+`prompts/021-reference-expert.md`, integrated in commit `64c4919`. Earlier
+expert rollouts are validation traces only. The authoritative held-out result
+is 382/382 correct on seeds 1000--1079; see `status/M1.md` and
+`/bulk3/runs/dryrun/benchmark/loose80-reference.json`. The supervisor's
+repository benchmark check on seeds 0--39 is preserved at
+`/bulk3/runs/dryrun/benchmark/loose40-repo-api-supervisor.json` (203/205).
+
+The grasp recipe and cycle timings were measured and prototyped by the
+supervising agent outside Codex, then handed over in `prompts/019-grasp-recipe-measured.md`
+and `prompts/021-reference/`. Codex integrated that recipe into the station,
+rollout API, scoring and benchmark paths; no earlier failed score is reused.
 
 ## Reproduce the checks
 

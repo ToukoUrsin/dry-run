@@ -161,11 +161,11 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
     del workdir
     telemetry_enabled = _telemetry_configured()
     capture = _ReplayCapture() if export_dir is not None or telemetry_enabled else None
-    # Benchmark camera pixels are retained in the replay contract, but the
-    # held-out run uses a compact 2 px camera to avoid spending most of the
-    # wall time in EGL while physics remains unchanged.
+    # The no-inspector held-out run uses a compact 2 px camera to avoid
+    # spending most of the wall time in EGL while physics remains unchanged.
+    # Inspector rollouts must retain the measured >=256 px presentation crop.
     r = rollout_run(int(seed), controller, inspector=inspector, tier=tier,
-                    record=capture, render_size=2)
+                    record=capture, render_size=256 if inspector is not None else 2)
     specs = layout_bricks(int(seed), TIERS[tier])
     row = {
         "tier": tier,
@@ -175,7 +175,14 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
         "score": r["score"],
         "false_accepts": len(r.get("false_accepts", [])),
         "false_rejects": len(r.get("false_rejects", [])),
-        "picked_by_contact": sum(int(e.get("picked_by_contact", False)) for e in r.get("events", [])),
+        # StationEnv emits one physical ``grasp`` row when both calibrated
+        # pads load the active brick. Count unique bricks so a retry cannot
+        # inflate this contact metric, while retaining compatibility with
+        # older rows that carried an explicit flag.
+        "picked_by_contact": len({int(e["brick"]) for e in r.get("events", [])
+                                   if e.get("event") == "grasp" and "brick" in e}) or sum(
+            int(bool(e.get("picked_by_contact", False))) for e in r.get("events", [])
+        ),
         "verdicts": sum(1 for e in r.get("events", []) if e.get("event") == "verdict"),
         "scene": [asdict(spec) for spec in specs],
         "events": r.get("events", []),

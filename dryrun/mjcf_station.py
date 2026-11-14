@@ -92,81 +92,65 @@ def _rects_overlap(a: tuple[float, float, float, float], b: tuple[float, float, 
 
 
 def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[BrickSpec]:
-    """Return a seed-driven scene using measured, physically accepted cells.
-
-    Every emitted brick comes from a polar calibration row whose physics
-    pick/lift rate is at least 95%; closed-form IK also checks pickup and
-    presentation heights. A bounded backtrack keeps seeded 3--8 scenes valid
-    when a long footprint consumes a useful cell.
-    """
+    """Return a seeded 3--8 brick scene from measured >=95% cells."""
     opts = parse_sentence(sentence)
     rng = random.Random(seed + {"grid": 0, "messy": 100_003, "pile": 200_009, "tray": 300_007}[opts["layout"]])
     accepted = [dict(row) for size in ("2x2", "2x4") for row in measured_cells(size)
                 if scene_reachable(float(row["x"]), float(row["y"]))]
     if not accepted:
         raise ValueError("measured reach map has no accepted cells")
-    if opts["bowls"] == "behind":
-        bowl_centres = ((.16, .22), (.16, -.22))
-    elif opts["bowls"] == "front":
-        bowl_centres = ((.16, -.22), (.16, .22))
-    else:
-        bowl_centres = ((.16, -.22), (.16, .22))
-    max_count = min(8, len(accepted))
-    # Seeded benchmark scenes default to 3–8 bricks. Explicit smaller counts
-    # remain available for calibration, custom-defect and kinematics fixtures;
-    # the training entry point rejects loose ``count=1`` before it starts.
-    n = int(count) if count is not None else rng.randint(3, max_count)
+    n = int(count) if count is not None else rng.randint(3, min(8, len(accepted)))
     if n < 1 or n > 8:
         raise ValueError("scene count must be between 1 and 8")
-    placed: list[BrickSpec] = []
-    rects: list[tuple[float, float, float, float]] = []
-    used: set[tuple[float, float]] = set()
+    if opts["bowls"] == "behind":
+        bowls = ((.16, .22), (.16, -.22))
+    else:
+        bowls = ((.16, -.22), (.16, .22))
 
-    def place(i: int) -> bool:
-        if i == n:
+    def add_row(row: dict, index: int, size: str, used: set[tuple[float, float]], rects: list[tuple[float, float, float, float]], placed: list[BrickSpec]) -> bool:
+        x, y = round(float(row["x"]), 4), round(float(row["y"]), 4)
+        if (x, y) in used:
+            return False
+        yaws = list(float(v) for v in row.get("tested_yaws_rad", (0.0,)))
+        random.Random(int(seed) * 9176 + index * 131 + int(x * 1000) + int(y * 1000)).shuffle(yaws)
+        hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
+        period = math.pi / 2.0 if size == "2x2" else math.pi
+        branch_rng = random.Random(int(seed) * 9176 + index * 131 + int(x * 1000) + int(y * 1000) + 17)
+        for yaw_base in yaws:
+            yaw = float(yaw_base) + branch_rng.randrange(4 if size == "2x2" else 2) * period
+            cy, sy = math.cos(yaw), math.sin(yaw)
+            bx, by = abs(hx * cy) + abs(hy * sy), abs(hx * sy) + abs(hy * cy)
+            rect = (x - bx, y - by, x + bx, y + by)
+            if any((x - cx) ** 2 + (y - cy) ** 2 < .10 ** 2 for cx, cy in bowls):
+                continue
+            if any(_rects_overlap(rect, old) for old in rects):
+                continue
+            defect_rng = random.Random(int(seed) * 65537 + index * 101)
+            defect = "none" if defect_rng.random() < .58 else defect_rng.choice(DEFECTS[1:])
+            color = COLORS[(int(seed) + index) % len(COLORS)]
+            used.add((x, y)); rects.append(rect)
+            placed.append(BrickSpec(index, size, x, y, defect, color, round(yaw, 6)))
             return True
-        # One long brick exercises the second calibrated footprint. The
-        # remaining bricks use the much wider 2x2 map so eight-brick scenes
-        # do not trigger exponential packing retries.
-        preferred = "2x4" if i == 1 else "2x2"
-        sizes = ("2x4", "2x2") if preferred == "2x4" else ("2x2",)
-        for size in sizes:
-            rows = [row for row in accepted if str(row["size"]) == size]
-            random.Random(int(seed) * 1009 + i * 97 + (0 if size == "2x2" else 1)).shuffle(rows)
-            for row in rows:
-                x, y = round(float(row["x"]), 4), round(float(row["y"]), 4)
-                if (x, y) in used:
-                    continue
-                yaws = list(float(v) for v in row.get("tested_yaws_rad", (0.0,)))
-                random.Random(int(seed) * 9176 + i * 131 + int(x * 1000) + int(y * 1000)).shuffle(yaws)
-                hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
-                for yaw_base in yaws:
-                    # Emit equivalent symmetry branches of a measured yaw:
-                    # 2x2 repeats every 90 degrees and 2x4 every 180.
-                    # Physics calibration is compared modulo that period.
-                    period = math.pi / 2.0 if size == "2x2" else math.pi
-                    branch_rng = random.Random(int(seed) * 9176 + i * 131 + int(x * 1000) + int(y * 1000) + 17)
-                    yaw = float(yaw_base) + branch_rng.randrange(4 if size == "2x2" else 2) * period
-                    cy, sy = math.cos(yaw), math.sin(yaw)
-                    bx, by = abs(hx * cy) + abs(hy * sy), abs(hx * sy) + abs(hy * cy)
-                    rect = (x - bx, y - by, x + bx, y + by)
-                    if any((x - cx) ** 2 + (y - cy) ** 2 < .10 ** 2 for cx, cy in bowl_centres):
-                        continue
-                    if any(_rects_overlap(rect, old) for old in rects):
-                        continue
-                    defect_rng = random.Random(int(seed) * 65537 + i * 101)
-                    defect = "none" if defect_rng.random() < .58 else defect_rng.choice(DEFECTS[1:])
-                    color = COLORS[(int(seed) + i) % len(COLORS)]
-                    used.add((x, y)); rects.append(rect)
-                    placed.append(BrickSpec(i, size, x, y, defect, color, round(yaw, 6)))
-                    if place(i + 1):
-                        return True
-                    placed.pop(); rects.pop(); used.remove((x, y))
         return False
 
-    if not place(0):
-        raise ValueError(f"could not place measured {n}-brick scene in seed {seed}")
-    return placed
+    longs = [row for row in accepted if row["size"] == "2x4"]
+    rng.shuffle(longs)
+    # One long brick proves both measured footprints without constraining the
+    # 2x2 packing; the bounded retries only change seeded candidate order.
+    for long in longs + [None]:
+        for attempt in range(24):
+            used: set[tuple[float, float]] = set(); rects: list[tuple[float, float, float, float]] = []; placed: list[BrickSpec] = []
+            if long is not None and not add_row(long, 1 + attempt, "2x4", used, rects, placed):
+                continue
+            rows2 = [row for row in accepted if row["size"] == "2x2"]
+            random.Random(int(seed) * 7919 + attempt * 313).shuffle(rows2)
+            for row in rows2:
+                if len(placed) >= n:
+                    break
+                add_row(row, len(placed), "2x2", used, rects, placed)
+            if len(placed) == n:
+                return placed
+    raise ValueError(f"could not place measured {n}-brick scene in seed {seed}")
 
 def _bowl(name: str, x: float, y: float, material: str) -> str:
     # 150 mm outside diameter: the real station's bowls are compact enough

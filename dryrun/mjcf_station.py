@@ -81,7 +81,7 @@ def parse_sentence(sentence: str) -> dict[str, str]:
     else:
         bowl_layout = "sides"
     return {
-        "layout": "tray" if "tray" in s else ("pile" if "pile" in s or "messy" in s else "grid"),
+        "layout": "tray" if "tray" in s else ("messy" if "messy" in s else ("pile" if "pile" in s else "grid")),
         "inspection": "left" if "left" in s else ("right" if "right" in s else "front"),
         "bowls": bowl_layout,
     }
@@ -99,17 +99,25 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     presentation heights. A bounded backtrack keeps seeded 3--8 scenes valid
     when a long footprint consumes a useful cell.
     """
-    rng = random.Random(seed)
     opts = parse_sentence(sentence)
+    rng = random.Random(seed + {"grid": 0, "messy": 100_003, "pile": 200_009, "tray": 300_007}[opts["layout"]])
     accepted = [dict(row) for size in ("2x2", "2x4") for row in measured_cells(size)
                 if scene_reachable(float(row["x"]), float(row["y"]))]
     if not accepted:
         raise ValueError("measured reach map has no accepted cells")
-    bowl_centres = ((.16, .22), (.16, -.22))
+    if opts["bowls"] == "behind":
+        bowl_centres = ((.16, .22), (.16, -.22))
+    elif opts["bowls"] == "front":
+        bowl_centres = ((.16, -.22), (.16, .22))
+    else:
+        bowl_centres = ((.16, -.22), (.16, .22))
     max_count = min(8, len(accepted))
+    # Seeded benchmark scenes default to 3–8 bricks. Explicit smaller counts
+    # remain available for calibration, custom-defect and kinematics fixtures;
+    # the training entry point rejects loose ``count=1`` before it starts.
     n = int(count) if count is not None else rng.randint(3, max_count)
-    if n < 3 or n > 8:
-        raise ValueError("scene count must be between 3 and 8")
+    if n < 1 or n > 8:
+        raise ValueError("scene count must be between 1 and 8")
     placed: list[BrickSpec] = []
     rects: list[tuple[float, float, float, float]] = []
     used: set[tuple[float, float]] = set()
@@ -117,10 +125,11 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     def place(i: int) -> bool:
         if i == n:
             return True
-        preferred = ("2x4" if (opts["layout"] == "grid" and i == 1)
-                     else "2x2" if opts["layout"] == "grid"
-                     else ("2x4" if rng.random() < .45 else "2x2"))
-        sizes = (preferred, "2x4" if preferred == "2x2" else "2x2")
+        # One long brick exercises the second calibrated footprint. The
+        # remaining bricks use the much wider 2x2 map so eight-brick scenes
+        # do not trigger exponential packing retries.
+        preferred = "2x4" if i == 1 else "2x2"
+        sizes = ("2x4", "2x2") if preferred == "2x4" else ("2x2",)
         for size in sizes:
             rows = [row for row in accepted if str(row["size"]) == size]
             random.Random(int(seed) * 1009 + i * 97 + (0 if size == "2x2" else 1)).shuffle(rows)
@@ -131,7 +140,12 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
                 yaws = list(float(v) for v in row.get("tested_yaws_rad", (0.0,)))
                 random.Random(int(seed) * 9176 + i * 131 + int(x * 1000) + int(y * 1000)).shuffle(yaws)
                 hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
-                for yaw in yaws:
+                for yaw_base in yaws:
+                    yaw = nearest_symmetric_yaw(
+                        float(yaw_base) + random.Random(int(seed) * 9176 + i * 131 + int(x * 1000) + int(y * 1000) + 17).uniform(-0.12, 0.12),
+                        size,
+                        reference=0.0,
+                    )
                     cy, sy = math.cos(yaw), math.sin(yaw)
                     bx, by = abs(hx * cy) + abs(hy * sy), abs(hx * sy) + abs(hy * cy)
                     rect = (x - bx, y - by, x + bx, y + by)
@@ -205,12 +219,14 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     bricks = layout_bricks(seed, sentence, count)
     # Bowl centres stay inside the SO-101's working envelope.  The sentence
     # changes their arrangement while preserving camera and reach validity.
+    # Both bowls are on reachable, separated drop points; the sentence only
+    # changes which side is labelled good versus defective.
     if opts["bowls"] == "behind":
-        good, bad = (.30, .22), (.30, -.22)
+        good, bad = (.16, .22), (.16, -.22)
     elif opts["bowls"] == "front":
-        good, bad = (.30, -.22), (.30, .22)
+        good, bad = (.16, -.22), (.16, .22)
     else:
-        good, bad = (.30, -.22), (.30, .22)
+        good, bad = (.16, -.22), (.16, .22)
     if opts["inspection"] == "left":
         cam = np.array([-.48, -.23, .34])
     elif opts["inspection"] == "right":

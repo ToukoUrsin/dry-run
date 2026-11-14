@@ -29,7 +29,7 @@ def ik(model, data, target, q):
 
 def _solve_target(model, data, target, grip, *, tolerance=.004, wrist_roll=0.0):
     """Solve physical pad targets with the finite closed-form path."""
-    del model, data, grip  # retained for the rollout call contract
+    del model, data  # retained in the rollout call contract
     pitches = [*range(35, -1, -1), *range(-1, -36, -1)]
     for degrees in pitches:
         try:
@@ -38,6 +38,7 @@ def _solve_target(model, data, target, grip, *, tolerance=.004, wrist_roll=0.0):
                 approach_pitch=float(np.deg2rad(degrees)),
                 wrist_roll=float(wrist_roll),
                 enforce_limits=True,
+                grip_q=float(grip),
             )
         except IKError:
             continue

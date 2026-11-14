@@ -6,6 +6,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 from .mjcf_station import station_xml, ROOT
+from .closed_form_ik import wrist_roll_for_brick
 
 ARM_NAMES=("shoulder_pan","shoulder_lift","elbow_flex","wrist_flex","wrist_roll")
 
@@ -192,8 +193,16 @@ def controls(m,d,targets):
         n=mujoco.mj_id2name(m,mujoco.mjtObj.mjOBJ_ACTUATOR,a)
         if n in targets: d.ctrl[a]=targets[n]
 
-def pad_force(m,d):
-    pads=set(pad_ids(m)); brick=mujoco.mj_name2id(m,mujoco.mjtObj.mjOBJ_BODY,'brick_0'); force=np.zeros(6); total=0.; touched=set()
+def pad_force(m,d,body_id=None):
+    """Return total pad force and the pads touching ``body_id``.
+
+    The calibration helper historically assumed the single fixture was named
+    ``brick_0``.  The seeded rollout has several free bodies, so retaining
+    that implicit id made every brick except index zero look ungraspable.
+    Callers may still omit ``body_id`` for the one-brick calibration trials.
+    """
+    pads=set(pad_ids(m)); brick=(mujoco.mj_name2id(m,mujoco.mjtObj.mjOBJ_BODY,'brick_0')
+                                if body_id is None else int(body_id)); force=np.zeros(6); total=0.; touched=set()
     for i in range(d.ncon):
         c=d.contact[i]; pad = c.geom1 if c.geom1 in pads else (c.geom2 if c.geom2 in pads else -1)
         if pad < 0: continue
@@ -206,8 +215,31 @@ def _trial_once(m,base,pos,yaw,roll_offset=None):
     d=mujoco.MjData(m); d.qpos[:]=base.qpos; d.qvel[:]=0
     bid=mujoco.mj_name2id(m,mujoco.mjtObj.mjOBJ_BODY,'brick_0'); bj=m.body_jntadr[bid]; ba=int(m.jnt_qposadr[bj]); d.qpos[ba:ba+3]=[pos[0],pos[1],.0097]; d.qpos[ba+3:ba+7]=[math.cos(yaw/2),0,0,math.sin(yaw/2)]
     arm=ids(m); grip=mujoco.mj_name2id(m,mujoco.mjtObj.mjOBJ_JOINT,'gripper'); ga=int(m.jnt_qposadr[grip]); gopen=1.7; d.qpos[ga]=gopen; mujoco.mj_forward(m,d)
+    # Only the calibrated fingertip pads are allowed to contact a brick;
+    # collision meshes on the links would push neighbouring loose bricks away
+    # during the straight-down approach.
+    base_body = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, 'base')
+    pads = set(pad_ids(m))
+    for geom_id in range(m.ngeom):
+        body_id = int(m.geom_bodyid[geom_id]); current = body_id; robot = False
+        while current > 0:
+            if current == base_body:
+                robot = True; break
+            current = int(m.body_parentid[current])
+        if robot and geom_id not in pads:
+            m.geom_contype[geom_id] = 0; m.geom_conaffinity[geom_id] = 0
+    mujoco.mj_forward(m,d)
     target=lambda z: np.array([pos[0],pos[1],z])
-    offsets=None if roll_offset is None else (roll_offset,)
+    if roll_offset is None:
+        try:
+            desired_roll = wrist_roll_for_brick(
+                [float(pos[0]), float(pos[1]), .034], float(yaw), "2x2", grip_q=.35
+            )
+            offsets = (desired_roll,)
+        except Exception:
+            offsets = None
+    else:
+        offsets = (roll_offset,)
     qa,ea,oka=solve_restarted(m,d,target(.075),arm,gopen,offsets=offsets)
     if not oka: return failure(pos,yaw,'approach',ea)
     for _ in range(500): controls(m,d,{n:float(q) for n,q in zip(ARM_NAMES,qa)}|{'gripper':gopen}); mujoco.mj_step(m,d)
@@ -227,8 +259,19 @@ def _trial_once(m,base,pos,yaw,roll_offset=None):
     for _ in range(300): controls(m,d,{n:float(q) for n,q in zip(ARM_NAMES,qp2)}|{'gripper':gopen}); mujoco.mj_step(m,d)
     qp=qp2; ep=max(ep,ep2); okp=okp and okp2
     peak=0.; touched=set(); close_g=gopen
+    close_target = np.array([float(d.xpos[bid, 0]), float(d.xpos[bid, 1]), .034])
     for step in range(700):
-        g=gopen+(1.0-gopen)*min(1.,step/500)
+        g=gopen+(-0.15-gopen)*min(1.,step/650)
+        # The fingertip pad moves on the jaw hinge arc.  Re-solve the pad
+        # midpoint while closing so both pads stay centred on the brick.
+        close_target[:2] = d.xpos[bid, :2]
+        if step % 10 == 0:
+            q_close, e_close, ok_close = closed_form_ik(
+                m, d, close_target, g, point="pad_midpoint",
+                wrist_roll=float(qp[-1]), tolerance=.0035,
+            )
+            if ok_close:
+                qp = q_close
         controls(m,d,{n:float(q) for n,q in zip(ARM_NAMES,qp)}|{'gripper':g}); mujoco.mj_step(m,d); f,t=pad_force(m,d); peak=max(peak,f); touched|=t
         if not safe_state(m,d,bid): return failure(pos,yaw,'close_unstable',peak)
         if len(t)==2 and f>0.5:
@@ -237,13 +280,24 @@ def _trial_once(m,base,pos,yaw,roll_offset=None):
         # Closed-loop retry: approach in small jaw increments, stopping on
         # brick-pad contacts rather than forcing a precomputed angle.
         for retry_g in (1.5, 1.3, 1.1, .9, .7):
+            q_retry, e_retry, ok_retry = closed_form_ik(
+                m, d, close_target, retry_g, point="pad_midpoint",
+                wrist_roll=float(qp[-1]), tolerance=.0035,
+            )
+            if ok_retry:
+                qp = q_retry
             for _ in range(120):
                 controls(m,d,{n:float(q) for n,q in zip(ARM_NAMES,qp)}|{'gripper':retry_g}); mujoco.mj_step(m,d); f,t=pad_force(m,d); peak=max(peak,f); touched|=t
                 if not safe_state(m,d,bid): return failure(pos,yaw,'retry_unstable',peak)
             if len(touched)==2:
                 close_g=retry_g; break
     if len(touched) == 2:
-        close_g=min(close_g,0.75)
+        q_close, e_close, ok_close = closed_form_ik(
+            m, d, close_target, close_g, point="pad_midpoint",
+            wrist_roll=float(qp[-1]), tolerance=.0035,
+        )
+        if ok_close:
+            qp = q_close
         for _ in range(120):
             controls(m,d,{n:float(q) for n,q in zip(ARM_NAMES,qp)}|{'gripper':close_g}); mujoco.mj_step(m,d)
             f,t=pad_force(m,d); peak=max(peak,f); touched|=t
@@ -257,11 +311,16 @@ def _trial_once(m,base,pos,yaw,roll_offset=None):
         controls(m,d,{n:float(q) for n,q in zip(ARM_NAMES,lift_q)}|{'gripper':close_g}); mujoco.mj_step(m,d); f,t=pad_force(m,d); peak=max(peak,f); touched|=t
         if not safe_state(m,d,bid): return failure(pos,yaw,'lift_unstable',peak)
     z1=float(d.xpos[bid,2])
-    return {'x':pos[0],'y':pos[1],'yaw':yaw,'ik_ok':[oka,okp,okl],'ik_error_m':[ea,ep,el],'pad_contacts':len(touched),'peak_pad_normal_force_N':round(peak,5),'prelift_z':round(z0,5),'lift_z':round(z1,5),'lifted_10mm':bool(z1>z0+.010),'final_pad_midpoint_error_m':float(np.linalg.norm(pad_mid(m,d)-target(.125))),'failed_stage':None}
+    final_force, final_touched = pad_force(m, d)
+    return {'x':pos[0],'y':pos[1],'yaw':yaw,'ik_ok':[oka,okp,okl],'ik_error_m':[ea,ep,el],'pad_contacts':len(touched),'peak_pad_normal_force_N':round(peak,5),'prelift_z':round(z0,5),'lift_z':round(z1,5),'lifted_10mm':bool(z1>z0+.010),'final_pad_midpoint_error_m':float(np.linalg.norm(pad_mid(m,d)-target(.125))),'close_gripper':round(float(close_g),5),'final_pad_contacts':len(final_touched),'final_pad_force_N':round(float(final_force),5),'final_wrist_roll':round(float(ql[-1]),5),'failed_stage':None}
 
 def trial(m,base,pos,yaw):
     """Retry a symmetric brick with equivalent jaw orientations."""
-    attempts=[_trial_once(m,base,pos,yaw,off) for off in (0.,math.pi/2,-math.pi/2,math.pi)]
+    try:
+        primary = wrist_roll_for_brick([float(pos[0]), float(pos[1]), .034], float(yaw), "2x2", grip_q=.35)
+    except Exception:
+        primary = 0.0
+    attempts=[_trial_once(m,base,pos,yaw,off) for off in (primary, 0., math.pi/2, -math.pi/2, math.pi)]
     for row in attempts:
         if row.get('lifted_10mm'): return row
     def score(row):

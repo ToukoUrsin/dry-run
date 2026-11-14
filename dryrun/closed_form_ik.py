@@ -142,11 +142,28 @@ def jaw_vector(q: Iterable[float]) -> np.ndarray:
     q = np.asarray(tuple(q), dtype=float)
     if q.shape != (5,):
         raise ValueError("q must contain shoulder_pan through wrist_roll")
+    return jaw_vector_at_grip(q, grip_q=0.0)
+
+
+# Fixed-to-moving centre vector at the closing opening (gripper q=0.35).
+# This is the quantity whose orientation matters for choosing a brick yaw;
+# it is separate from PAD_MID_* which describes the midpoint target.
+JAW_VECTOR_CLOSED = np.asarray((0.00916239735, -0.000031431633, 0.0335261947), dtype=float)
+
+
+def jaw_vector_at_grip(q: Iterable[float], *, grip_q: float = 0.35) -> np.ndarray:
+    """Return the fixed-to-moving fingertip vector at a gripper opening."""
+
+    q = np.asarray(tuple(q), dtype=float)
+    if q.shape != (5,):
+        raise ValueError("q must contain shoulder_pan through wrist_roll")
     q0, q1, q2, q3, q4 = q
-    # At the zero pose the pad-centre difference in the gripper frame is the
-    # following calibrated vector.  q1+q2+q3 rotates about the tangential axis;
-    # wrist roll rotates its y/z components about the radial x axis.
-    base = np.asarray((0.0258, 0.00117963, 0.00866767), dtype=float)
+    # At q0..q4=0 the calibrated fingertip vector is JAW_VECTOR_CLOSED.  The
+    # arm pitch and wrist roll rotate that vector into the world radial frame.
+    # The small change over the final squeeze is irrelevant to yaw selection,
+    # while keeping this closed-form branch exact and deterministic.
+    del grip_q
+    base = JAW_VECTOR_CLOSED
     local = _ry(q1 + q2 + q3, _rx_minus(q4, base))
     c, s = math.cos(q0), math.sin(q0)
     return np.asarray((local[0] * c + local[1] * s,
@@ -284,6 +301,60 @@ def nearest_symmetric_yaw(yaw: float, size: str, reference: float | None = None)
         reference = float((JOINT_LIMITS[4, 0] + JOINT_LIMITS[4, 1]) / 2.0)
     k = round((float(reference) - float(yaw)) / period)
     return float(yaw + k * period)
+
+
+def wrist_roll_for_brick(
+    target: Iterable[float], brick_yaw: float, size: str, *,
+    grip_q: float = 0.35, approach_pitch_max: float = 35.0,
+    reference: float | None = None,
+) -> float:
+    """Choose a wrist roll whose fingertip line crosses the brick's width.
+
+    The jaw line is evaluated from the calibrated fingertip geometry rather
+    than assuming that wrist roll equals the brick yaw.  Equivalent brick
+    yaws are compared modulo the footprint's symmetry, so a 2x2 and a 2x4
+    remain physically interchangeable while the selected roll stays near the
+    middle of its actuator range.
+    """
+
+    target = np.asarray(tuple(target), dtype=float)
+    if target.shape != (3,):
+        raise ValueError("target must be three coordinates")
+    if reference is None:
+        reference = float((JOINT_LIMITS[4, 0] + JOINT_LIMITS[4, 1]) / 2.0)
+    # A 2x4 must be crossed across its short side.  A square has two
+    # equivalent jaw lines, so include both before reducing the jaw direction
+    # modulo pi; this keeps the wrist away from a hard stop for unlucky yaw.
+    if size == "2x2":
+        desired_angles = (float(brick_yaw), float(brick_yaw) + math.pi / 2.0)
+    elif size == "2x4":
+        desired_angles = (float(brick_yaw) + math.pi / 2.0,)
+    else:
+        raise ValueError("size must be '2x2' or '2x4'")
+    rolls = np.linspace(JOINT_LIMITS[4, 0] + 1e-5, JOINT_LIMITS[4, 1] - 1e-5, 161)
+    candidates: list[tuple[float, float, float]] = []
+    for wrist_roll in rolls:
+        for degrees in range(int(round(approach_pitch_max)), -1, -1):
+            try:
+                result = ik_pad_pose(
+                    target, approach_pitch=math.radians(degrees),
+                    wrist_roll=float(wrist_roll), grip_q=float(grip_q),
+                    enforce_limits=True,
+                )
+            except IKError:
+                continue
+            v = jaw_vector_at_grip(result.q, grip_q=grip_q)
+            actual = math.atan2(float(v[1]), float(v[0]))
+            # A jaw line has no direction: either pad can be the left pad.
+            diff = min(
+                abs((actual - desired + math.pi / 2.0) % math.pi - math.pi / 2.0)
+                for desired in desired_angles
+            )
+            candidates.append((float(diff), abs(float(wrist_roll) - float(reference)), float(wrist_roll)))
+            break
+    if not candidates:
+        raise IKError("no wrist roll can reach the brick target")
+    return min(candidates)[2]
 
 
 def _normalise_angle(a: float) -> float:

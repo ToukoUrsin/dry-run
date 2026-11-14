@@ -12,7 +12,7 @@ import imageio.v2 as imageio
 from .mjcf_station import station_xml, ROOT, layout_bricks
 from .env import TIERS
 from .grasp_test import ARM_NAMES, ids, pad_force, safe_state
-from .closed_form_ik import IKError, ik_pad_pose, nearest_symmetric_yaw
+from .closed_form_ik import IKError, ik_pad_pose, nearest_symmetric_yaw, wrist_roll_for_brick
 from .defects import INSPECTION_FRAME_SIZE, INSPECTION_PRESENT_POSE, configure_inspection_camera, render_inspection_frame
 
 
@@ -102,11 +102,11 @@ def _record_frame(model, data, action):
         _ACTIVE_RECORD.record(payload)
 
 
-def _record_initial_frame(model, data):
+def _record_initial_frame(model, data, *, force: bool = False):
     """Emit one camera pair before the first arm command when requested."""
     if _ACTIVE_RECORD is None or _ACTIVE_RECORDERS is None:
         return
-    if not bool(getattr(_ACTIVE_RECORD, "capture_initial", False)):
+    if not force and not bool(getattr(_ACTIVE_RECORD, "capture_initial", False)):
         return
     obs = {}
     for cam, renderer in _ACTIVE_RECORDERS.items():
@@ -141,7 +141,7 @@ def _drive(model, data, q, grip, steps, writer):
                 if "_VIDEO" in globals(): _VIDEO.append_data(frame)
 
 
-def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=None):
+def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=None, *, max_cycles=None):
     """Run a contact-only expert, replanning from the live state per brick."""
     global _ACTIVE_RECORD, _ACTIVE_RECORDERS, _ACTIVE_TICK, _ACTIVE_VERDICT
     # Training/photo renders and rollout inspection frames share this fixed
@@ -153,10 +153,11 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
     _ACTIVE_RECORD, _ACTIVE_TICK, _ACTIVE_VERDICT = record, 0, 0
     if record is not None:
         _ACTIVE_RECORDERS = {}
+        record_size = int(getattr(record, "render_size", 64))
         if not bool(getattr(record, "thumbnail_only", False)):
-            _ACTIVE_RECORDERS["top_view"] = mujoco.Renderer(model, 64, 64)
+            _ACTIVE_RECORDERS["top_view"] = mujoco.Renderer(model, record_size, record_size)
             if bool(getattr(record, "include_inspection", True)):
-                _ACTIVE_RECORDERS["inspection_view"] = mujoco.Renderer(model, 64, 64)
+                _ACTIVE_RECORDERS["inspection_view"] = mujoco.Renderer(model, record_size, record_size)
         elif hasattr(record, "__call__"):
             # A benchmark export needs one truthful top-camera thumbnail but
             # does not need to render duplicate pixels at every physics tick.
@@ -180,6 +181,25 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
     bowl_collision = [(i, int(model.geom_contype[i]), int(model.geom_conaffinity[i])) for i in bowl_geoms]
     pad_geoms = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, n) for n in ('fixed_grip_pad', 'moving_grip_pad')]
     pad_collision = [(i, int(model.geom_contype[i]), int(model.geom_conaffinity[i])) for i in pad_geoms]
+    # The official jaw meshes are visual-only in this station.  Keep the two
+    # calibrated fingertip pads as the sole gripper collision surfaces so a
+    # shoulder or wrist mesh cannot shove another loose brick while the expert
+    # approaches its target.
+    base_body = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, 'base')
+    def _is_robot_body(body_id: int) -> bool:
+        current = int(body_id)
+        while current > 0:
+            if current == base_body:
+                return True
+            current = int(model.body_parentid[current])
+        return False
+    arm_collision = []
+    for geom_id in range(model.ngeom):
+        body_id = int(model.geom_bodyid[geom_id])
+        if _is_robot_body(body_id) and geom_id not in pad_geoms:
+            arm_collision.append((geom_id, int(model.geom_contype[geom_id]), int(model.geom_conaffinity[geom_id])))
+            model.geom_contype[geom_id] = 0
+            model.geom_conaffinity[geom_id] = 0
     def set_bowl_collision(enabled):
         for i, ct, ca in bowl_collision:
             model.geom_contype[i] = ct if enabled else 0
@@ -192,25 +212,31 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
     # also writing a low-resolution replay video.
     inspection_renderer = mujoco.Renderer(model, INSPECTION_FRAME_SIZE, INSPECTION_FRAME_SIZE) if inspector is not None else None
     remaining=set(brick_ids)
-    while remaining:
+    processed_cycles = 0
+    while remaining and (max_cycles is None or processed_cycles < int(max_cycles)):
         body=min(remaining,key=lambda b: float(np.linalg.norm(data.xpos[b,:2])))
         remaining.remove(body)
         name=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,body); idx=int(name.split('_')[1])
         spec=specs[idx] if specs is not None and idx < len(specs) else None; start_z=float(data.xpos[body,2]); best=None
-        # The wrist roll is the jaw-yaw branch.  The old path added a
-        # side-dependent +/-1.3 radian bias after choosing the symmetric
-        # branch; that pushed some valid bricks outside the wrist-roll limits
-        # (and made the supposedly measured scene fail before contact).  Pick
-        # the equivalent branch nearest the mechanical midpoint, as the
-        # closed-form solver and reach-map contract specify.
-        brick_roll = 0.0 if spec is None else nearest_symmetric_yaw(
-            spec.yaw, spec.size, reference=wrist_mid
-        )
+        # Choose the wrist roll from the measured fingertip line, then use the
+        # brick symmetry to break equivalent yaw branches.  A raw
+        # ``wrist_roll = brick_yaw`` shortcut does not describe this jaw
+        # geometry and leaves the pads crossing the brick corners.
+        if spec is None:
+            brick_roll = wrist_mid
+        else:
+            try:
+                brick_roll = wrist_roll_for_brick(
+                    [float(data.xpos[body, 0]), float(data.xpos[body, 1]), .034],
+                    spec.yaw, spec.size, grip_q=.35, reference=wrist_mid,
+                )
+            except IKError:
+                brick_roll = nearest_symmetric_yaw(spec.yaw, spec.size, reference=wrist_mid)
         if record is not None:
             event = {"type": "cycle_start", "brick": name, "t": float(data.time)}
             if callable(record): record(event)
             elif hasattr(record, "cycle_start"): record.cycle_start(name)
-        for attempt in range(6):
+        for attempt in range(int(getattr(record, "max_attempts", 6)) if record is not None else 6):
             set_bowl_collision(False)
             set_pad_collision(False)
             start=data.xpos[body].copy(); approach_q,ea,oka=_solve_target(model,data,[float(start[0]),float(start[1]),.075],gopen,wrist_roll=brick_roll)
@@ -222,15 +248,35 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
             if not okp: best={'failed_stage':'lower_approach_ik','ik_error_m':ep}; continue
             _drive(model,data,q,gopen,650,writer)
             touched=set(); peak=0.; close_g=gopen
+            # The moving fingertip follows an arc.  Keep the pad midpoint on
+            # the brick while closing instead of holding the open-jaw pose;
+            # otherwise one pad walks past the brick before contact.
+            close_target = np.array([float(data.xpos[body, 0]), float(data.xpos[body, 1]), .034])
             for step in range(700):
-                g=gopen+(1.-gopen)*min(1.,step/500.)
-                _drive(model,data,q,g,1,None); f,t=pad_force(model,data); peak=max(peak,f); touched |= t
+                # Continue through the full jaw range.  With fingertip pads
+                # the 31.8 mm brick reaches contact around q=0.6; the old
+                # q=1.0 floor stopped before either pad could close on it.
+                g=gopen+(-0.15-gopen)*min(1.,step/650.)
+                close_target = np.array([float(data.xpos[body, 0]), float(data.xpos[body, 1]), .034])
+                if step % 10 == 0:
+                    q_close, e_close, ok_close = _solve_target(
+                        model, data, close_target, g, tolerance=.0035,
+                        wrist_roll=brick_roll,
+                    )
+                    if ok_close:
+                        q = q_close
+                _drive(model,data,q,g,1,None); f,t=pad_force(model,data,body); peak=max(peak,f); touched |= t
                 if not safe_state(model,data,body): break
                 if len(t)==2 and f>.5: close_g=g; break
             if len(touched)<2 or not safe_state(model,data,body): best={'failed_stage':'contact','pad_contacts':len(touched),'peak_pad_force_N':peak}; continue
-            close_g=min(close_g,.75)
+            q_close, e_close, ok_close = _solve_target(
+                model, data, close_target, close_g, tolerance=.0035,
+                wrist_roll=brick_roll,
+            )
+            if ok_close:
+                q = q_close
             for _ in range(120):
-                _drive(model,data,q,close_g,1,None); f,t=pad_force(model,data); peak=max(peak,f); touched |= t
+                _drive(model,data,q,close_g,1,None); f,t=pad_force(model,data,body); peak=max(peak,f); touched |= t
             # The lower pose only establishes both pad contacts.  Lift from
             # the live brick position with a fresh closed-form solve; the
             # previous implementation kept commanding the lower pose, so a
@@ -275,11 +321,14 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
         if best is None: best={'failed_stage':'no_attempt'}
         best.setdefault('picked_by_contact',False); best.setdefault('pad_contacts',0); best.setdefault('peak_pad_force_N',0.0); best.setdefault('final_xyz',[round(float(v),4) for v in data.xpos[body]]); best.setdefault('in_bowl',False); best.setdefault('success',False)
         cycle_ok = bool(best.get("success", False))
+        if record is not None and bool(getattr(record, "capture_event", False)):
+            _record_initial_frame(model, data, force=True)
         events.append({'brick':name,'t':float(data.time),'defect':spec.defect if spec else 'unknown',**best})
         if record is not None:
             event = {"type": "cycle_end", "brick": name, "success": cycle_ok, "t": float(data.time)}
             if callable(record): record(event)
             elif hasattr(record, "cycle_end"): record.cycle_end(cycle_ok)
+        processed_cycles += 1
     if inspection_renderer is not None: inspection_renderer.close()
     if _ACTIVE_RECORDERS:
         for renderer in _ACTIVE_RECORDERS.values(): renderer.close()

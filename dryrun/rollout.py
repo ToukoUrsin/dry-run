@@ -24,7 +24,7 @@ def _record(record, payload):
     elif callable(record): record(payload)
     else: raise TypeError("record must be callable or expose record(payload)")
 
-def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, tier: str | None = None, max_steps: int = 1800, count: int | None = None, render_size: int = 64):
+def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, tier: str | None = None, max_steps: int = 1800, max_cycles: int | None = None, count: int | None = None, render_size: int = 64):
     """Run one scene; expert and learned paths expose the same observations."""
     tier = tier or "loose"
     if tier not in TIERS: raise ValueError(f"unknown tier {tier}")
@@ -33,7 +33,7 @@ def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, t
         xml = Path("/tmp") / f"dryrun_rollout_{int(seed)}_{tier}.xml"
         xml.write_text(station_xml(int(seed), sentence, count=count, robot_include=str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve())))
         model = mujoco.MjModel.from_xml_path(str(xml)); data = mujoco.MjData(model); mujoco.mj_forward(model, data)
-        result = expert_rollout(model, data, int(seed), specs=layout_bricks(int(seed), sentence, count=count), inspector=inspector, record=record)
+        result = expert_rollout(model, data, int(seed), specs=layout_bricks(int(seed), sentence, count=count), inspector=inspector, record=record, max_cycles=max_cycles)
         result.update({"seed": int(seed), "tier": tier, "steps": int(round(float(data.time) * 30.0)), "observations": {"top": (64, 64, 3), "inspection": (64, 64, 3), "joints": (6,)}})
         return result
     env = StationEnv(seed, tier=tier, render_size=render_size); obs = env.reset()

@@ -8,7 +8,7 @@ from dryrun.env import TIERS
 from dryrun.mjcf_station import layout_bricks
 
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_loose_seed_controls_a_real_multi_brick_scene():

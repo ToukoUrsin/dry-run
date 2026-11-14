@@ -78,8 +78,8 @@ def evaluate(checkpoint: str | Path, seeds: int = 200, workers: int = 8, control
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--controller", choices=("policy", "expert"), default="policy"); ap.add_argument("--checkpoint", type=Path, required=False, default=Path("/bulk2/runs/dryrun/m4/act-final.pt")); ap.add_argument("--seeds", type=int, default=200); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--out", type=Path, default=Path("/bulk2/runs/dryrun/m4/policy-benchmark.json")); a = ap.parse_args()
-    result = evaluate(a.checkpoint, a.seeds, a.workers, a.controller); a.out.parent.mkdir(parents=True, exist_ok=True); a.out.write_text(json.dumps(result, indent=2)); print(json.dumps({k: v for k, v in result.items() if k != "tiers"}, indent=2)); print(json.dumps({k: {x: v[x] for x in ("seeds", "bricks", "successes", "score")} for k, v in result["tiers"].items()}, indent=2))
+    ap = argparse.ArgumentParser(); ap.add_argument("--controller", choices=("policy", "expert"), default="policy"); ap.add_argument("--checkpoint", type=Path, required=False, default=Path("/bulk2/runs/dryrun/m4/act-final.pt")); ap.add_argument("--seeds", type=int, default=200); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-steps", type=int, default=1800); ap.add_argument("--out", type=Path, default=Path("/bulk2/runs/dryrun/m4/policy-benchmark.json")); a = ap.parse_args()
+    result = evaluate(a.checkpoint, a.seeds, a.workers, a.controller, max_steps=a.max_steps); result["max_steps"] = a.max_steps; a.out.parent.mkdir(parents=True, exist_ok=True); a.out.write_text(json.dumps(result, indent=2)); print(json.dumps({k: v for k, v in result.items() if k != "tiers"}, indent=2)); print(json.dumps({k: {x: v[x] for x in ("seeds", "bricks", "successes", "score")} for k, v in result["tiers"].items()}, indent=2))
 
 
 if __name__ == "__main__": main()

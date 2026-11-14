@@ -65,6 +65,7 @@ def page_payload(metrics: dict, *, source: str | Path | None = None) -> dict:
         "per_defect_recall": recalls,
         "latency": latency,
         "score_histograms": hist,
+        "score_histogram": hist,
         # Explicit aliases make the contract convenient for small clients and
         # preserve the names used by the original evaluation artifact.
         "per_type": per_type,
@@ -88,6 +89,7 @@ def load_page_json(path: str | Path = "/bulk2/runs/dryrun/m2/evaluation.json") -
             "message": "No inspector evaluation artifact has been recorded.",
             "confusion": {}, "per_defect_recall": {}, "latency": {},
             "score_histograms": {"edges": [], "bins": [], "counts": [], "per_type": {}},
+            "score_histogram": {"edges": [], "bins": [], "counts": [], "per_type": {}},
         }
     try:
         metrics = json.loads(path.read_text())
@@ -97,6 +99,7 @@ def load_page_json(path: str | Path = "/bulk2/runs/dryrun/m2/evaluation.json") -
             "source": str(path), "message": f"Could not read inspector evaluation: {exc}",
             "confusion": {}, "per_defect_recall": {}, "latency": {},
             "score_histograms": {"edges": [], "bins": [], "counts": [], "per_type": {}},
+            "score_histogram": {"edges": [], "bins": [], "counts": [], "per_type": {}},
         }
     result = page_payload(metrics, source=path)
     result["status"] = "ok"

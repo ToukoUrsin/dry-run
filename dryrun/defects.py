@@ -99,11 +99,31 @@ def render_inspection_frame(
     data: mujoco.MjData,
     renderer: mujoco.Renderer,
 ) -> np.ndarray:
-    """Render an inspection image through the shared station camera path."""
+    """Render the fixed brick crop through the shared station camera path.
+
+    The gripper remains part of the MuJoCo rollout and the top/free cameras,
+    but is outside this crop so its wrist housing cannot cover the defect.
+    The same crop is used for synthetic frames and rollout frames.
+    """
     configure_inspection_camera(model)
     mujoco.mj_forward(model, data)
-    renderer.update_scene(data, "inspection_view")
-    return renderer.render().copy()
+    old_rgba = model.geom_rgba.copy()
+    try:
+        _hide_noninspection_geometry(model)
+        renderer.update_scene(data, "inspection_view")
+        return renderer.render().copy()
+    finally:
+        model.geom_rgba[:] = old_rgba
+
+
+def _hide_noninspection_geometry(model: mujoco.MjModel) -> None:
+    """Hide arm/camera hardware for the fixed inspection crop only."""
+    keep_prefixes = ("brick_", "good_bowl", "defective_bowl", "table")
+    for geom_id in range(model.ngeom):
+        body_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(model.geom_bodyid[geom_id])) or ""
+        geom_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id) or ""
+        if not body_name.startswith(keep_prefixes) and not geom_name.startswith(keep_prefixes):
+            model.geom_rgba[geom_id, 3] = 0.0
 
 
 def _replace_brick(xml: str, spec: BrickSpec) -> str:
@@ -151,10 +171,7 @@ def render_inspection(seed: int, defect: str = "none", *, size: str | None = Non
     model.light_diffuse[:] = light_base
     for li in range(model.nlight):
         model.light_diffuse[li] *= rng.uniform(.82, 1.18)
-    mujoco.mj_forward(model, data)
-    renderer.update_scene(data, "inspection_view")
-    image = renderer.render().copy()
-    return image
+    return render_inspection_frame(model, data, renderer)
 
 
 def render_drawing_frame(drawing: str | Path | np.ndarray, seed: int = 0, *, size: str = "2x2",

@@ -31,7 +31,7 @@ def score(seeds: Sequence[int], evaluator: str = "expert_tuning_smoke") -> dict[
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(); p.add_argument("--diagnoses", type=Path); p.add_argument("--batch-size", type=int, default=16); p.add_argument("--seed", type=int, default=7); p.add_argument("--checkpoint", default="expert-tuning-v0"); p.add_argument("--output", type=Path, default=Path("/bulk2/runs/dryrun/m5/comparison.json")); p.add_argument("--smoke", action="store_true"); a = p.parse_args()
+    p = argparse.ArgumentParser(); p.add_argument("--diagnoses", type=Path); p.add_argument("--batch-size", type=int, default=16); p.add_argument("--seed", type=int, default=7); p.add_argument("--checkpoint", default="expert-tuning-v0"); p.add_argument("--output", type=Path, default=Path("/bulk3/runs/dryrun/m5/comparison.json")); p.add_argument("--smoke", action="store_true"); a = p.parse_args()
     if not a.smoke and not a.diagnoses: p.error("--diagnoses is required unless --smoke is used")
     if a.diagnoses:
         rows = [json.loads(x) for x in a.diagnoses.read_text().splitlines() if x.strip()]

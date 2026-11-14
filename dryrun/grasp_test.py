@@ -260,8 +260,15 @@ def _trial_once(m,base,pos,yaw,roll_offset=None):
     qp=qp2; ep=max(ep,ep2); okp=okp and okp2
     peak=0.; touched=set(); close_g=gopen
     close_target = np.array([float(d.xpos[bid, 0]), float(d.xpos[bid, 1]), .034])
-    for step in range(700):
-        g=gopen+(-0.15-gopen)*min(1.,step/650)
+    # The measured recipe closes to q=.50 (contact arrives near q=.60) and
+    # never drives the old overclosed stop.  Keep retries on the open side of
+    # the contact point so a missed contact becomes a bounded miss.
+    close_goal = 0.50
+    # The gripper servo has a finite response; synchronise the arm pose with a
+    # slow 1.4 s close so the pad midpoint does not walk away from the brick
+    # while the hinge is moving.
+    for step in range(1500):
+        g=gopen+(close_goal-gopen)*min(1.,step/1400)
         # The fingertip pad moves on the jaw hinge arc.  Re-solve the pad
         # midpoint while closing so both pads stay centred on the brick.
         close_target[:2] = d.xpos[bid, :2]
@@ -279,7 +286,7 @@ def _trial_once(m,base,pos,yaw,roll_offset=None):
     if len(touched) < 2:
         # Closed-loop retry: approach in small jaw increments, stopping on
         # brick-pad contacts rather than forcing a precomputed angle.
-        for retry_g in (1.5, 1.3, 1.1, .9, .7):
+        for retry_g in (0.50, 0.48, 0.46, 0.44):
             q_retry, e_retry, ok_retry = closed_form_ik(
                 m, d, close_target, retry_g, point="pad_midpoint",
                 wrist_roll=float(qp[-1]), tolerance=.0035,

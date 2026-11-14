@@ -35,6 +35,13 @@ def scene_specs(records: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for record in records:
         diagnosis = record.get("diagnosis", record.get("analysis", record))
+        # Provider prediction JSONL commonly carries an ``id`` and model
+        # metadata beside the diagnosis fields.  Keep validation strict for
+        # the diagnosis itself while ignoring that row envelope.
+        if "diagnosis" not in record and "analysis" not in record:
+            diagnosis = {key: record[key] for key in
+                         ("failure_stage", "cause", "frame", "scene_features", "next_scenes")
+                         if key in record}
         validate_diagnosis(diagnosis)
         for scene in diagnosis["next_scenes"]:
             row = {k: scene[k] for k in SCENE_FIELDS}
@@ -73,13 +80,57 @@ def compare_batches(suggested: Sequence[Mapping[str, Any]], random_batch: Sequen
     return compare_curriculum(suggested, random_batch, train_and_score, checkpoint, output)
 
 
+def expert_tuning_score(batch: Sequence[Mapping[str, Any]], checkpoint: str) -> Mapping[str, Any]:
+    """Measure a scene batch with the real MuJoCo expert on the tuning set.
+
+    This is intentionally separate from the held-out benchmark and from the
+    old tier-weight proxy.  The expert is evaluated on the generated station
+    for each scene, with a bounded 3--8 brick count.  ``_eval_seed`` is an
+    internal comparison key; callers can give both batches the same seeds for
+    a paired, equal-size measurement.
+    """
+    from .rollout import run
+
+    rows: list[dict[str, Any]] = []
+    total_bricks = total_successes = 0
+    for index, scene in enumerate(batch):
+        tier = str(scene.get("tier", "loose"))
+        if tier not in {"loose", "messy", "pile"}:
+            raise ValueError(f"unsupported tuning tier: {tier}")
+        count = max(3, min(8, int(scene.get("brick_count", 3))))
+        seed = int(scene.get("_eval_seed", 50000 + index))
+        result = run(seed, "expert", tier=tier, count=count, render_size=16)
+        bricks = int(result.get("bricks", count))
+        successes = int(result.get("successes", 0))
+        total_bricks += bricks
+        total_successes += successes
+        rows.append({"index": index, "seed": seed, "tier": tier,
+                     "requested_bricks": count, "bricks": bricks,
+                     "successes": successes,
+                     "score": round(successes / max(1, bricks), 6),
+                     "steps": int(result.get("steps", 0)),
+                     "scene": {key: value for key, value in scene.items()
+                               if not str(key).startswith("_")}})
+    return {"evaluator": "mujoco_expert_tuning", "checkpoint": checkpoint,
+            "score": round(total_successes / max(1, total_bricks), 6),
+            "successes": total_successes, "bricks": total_bricks,
+            "scenes": len(rows), "rows": rows}
+
+
 def main() -> None:
     import argparse
-    p = argparse.ArgumentParser(); p.add_argument("--diagnoses", type=Path, required=True); p.add_argument("--size", type=int, default=16); p.add_argument("--seed", type=int, default=7); p.add_argument("--out", type=Path, default=Path("/bulk2/runs/dryrun/m5/curriculum.json")); a = p.parse_args()
+    p = argparse.ArgumentParser(); p.add_argument("--diagnoses", type=Path, required=True); p.add_argument("--size", type=int, default=16); p.add_argument("--seed", type=int, default=7); p.add_argument("--out", type=Path, default=Path("/bulk3/runs/dryrun/m5/curriculum.json")); p.add_argument("--measured-expert", action="store_true", help="run both batches through MuJoCo expert tuning rollouts"); a = p.parse_args()
     suggested = load_scenes(a.diagnoses)
     suggested = suggested[:a.size]
     if len(suggested) != a.size: raise SystemExit(f"need {a.size} generated scenes, found {len(suggested)}")
     random_batch = random_specs(a.size, a.seed)
+    # Pair the two batches on the same evaluation seeds.  This is a tuning
+    # comparison, never the held-out benchmark.
+    suggested = [dict(scene, _eval_seed=50000 + i) for i, scene in enumerate(suggested)]
+    random_batch = [dict(scene, _eval_seed=50000 + i) for i, scene in enumerate(random_batch)]
+    if a.measured_expert:
+        result = compare_batches(suggested, random_batch, "expert-tuning-v0", expert_tuning_score, a.out)
+        print(json.dumps(result, indent=2)); return
     # The policy session replaces this hook.  This smoke evaluator is a stable
     # expert tuning score, explicitly labelled so it cannot be mistaken for a
     # held-out policy result.

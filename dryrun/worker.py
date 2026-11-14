@@ -15,7 +15,7 @@ from . import telemetry
 from .stations import generate_and_check, summary
 
 
-def run_once(*, url: str | None = None, out_dir: str | Path = "/bulk2/runs/dryrun/m5/worker") -> dict:
+def run_once(*, url: str | None = None, out_dir: str | Path = "/bulk3/runs/dryrun/m5/worker") -> dict:
     name = "station-worker"
     telemetry.worker_heartbeat(name, "online", {"pid": __import__("os").getpid()}, url=url)
     claimed = telemetry.claim_station_request(url=url)
@@ -41,7 +41,7 @@ def main() -> None:
     p.add_argument("--once", action="store_true")
     p.add_argument("--interval", type=float, default=5.0)
     p.add_argument("--url", default=None)
-    p.add_argument("--out-dir", default="/bulk2/runs/dryrun/m5/worker")
+    p.add_argument("--out-dir", default="/bulk3/runs/dryrun/m5/worker")
     args = p.parse_args()
     while True:
         print(json.dumps(run_once(url=args.url, out_dir=args.out_dir), sort_keys=True), flush=True)

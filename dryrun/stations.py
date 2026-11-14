@@ -3,21 +3,18 @@
 A sentence is compiled by :func:`dryrun.mjcf_station.station_xml`; this module
 runs the same acceptance gate used by the page session and keeps every rejected
 station with a machine-readable reason.  Accepted stations can be sent through
-the normal contact-physics expert API (``dryrun.render.rollout``).
+the public contact-physics expert API (``dryrun.rollout.run``).
 """
 from __future__ import annotations
 
 import argparse
 import json
-import os
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Sequence
+from typing import Sequence
 
-import mujoco
-
-from .mjcf_station import ROOT, check_station, layout_bricks, rejection_reason, station_xml
+from .mjcf_station import ROOT, check_station, rejection_reason, station_xml
 
 # Four spatially meaningful phrasings for each of the three layout/bowl/camera
 # choices produce 36 distinct natural-language station requests.  The parser
@@ -63,14 +60,14 @@ def run_expert(xml_path: Path, seed: int, sentence: str, count: int | None = Non
     do not have a renderer, while ``--expert`` proves the integration in the
     same environment used by the benchmark.
     """
-    from .render import rollout
+    from .rollout import run as rollout_run
 
-    model = mujoco.MjModel.from_xml_path(str(xml_path))
-    data = mujoco.MjData(model)
-    mujoco.mj_forward(model, data)
-    specs = layout_bricks(seed, sentence, count)
     started = time.perf_counter()
-    result = rollout(model, data, seed, specs=specs)
+    # Run the exact checked MJCF through the same public boundary as the
+    # benchmark.  ``station_path`` prevents silent regeneration of a tier
+    # scene from the seed.
+    result = rollout_run(seed, "expert", tier="loose", sentence=sentence,
+                         station_path=xml_path, count=count)
     result = {
         "seed": int(seed),
         "bricks": int(result.get("bricks", 0)),
@@ -85,8 +82,8 @@ def run_expert(xml_path: Path, seed: int, sentence: str, count: int | None = Non
 def generate_and_check(
     sentences: Sequence[str] = SENTENCES,
     *,
-    out_dir: str | Path = "/bulk2/runs/dryrun/m5/stations",
-    record: str | Path | None = "/bulk2/runs/dryrun/m5/stations.jsonl",
+    out_dir: str | Path = "/bulk3/runs/dryrun/m5/stations",
+    record: str | Path | None = "/bulk3/runs/dryrun/m5/stations.jsonl",
     seed_start: int = 9000,
     count: int | None = 3,
     expert: bool = False,
@@ -162,12 +159,12 @@ def summary(rows: Sequence[StationAttempt]) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate and validate stations from plain sentences")
-    parser.add_argument("--out-dir", default="/bulk2/runs/dryrun/m5/stations")
-    parser.add_argument("--record", default="/bulk2/runs/dryrun/m5/stations.jsonl")
+    parser.add_argument("--out-dir", default="/bulk3/runs/dryrun/m5/stations")
+    parser.add_argument("--record", default="/bulk3/runs/dryrun/m5/stations.jsonl")
     parser.add_argument("--seed-start", type=int, default=9000)
     parser.add_argument("--count", type=int, default=3)
     parser.add_argument("--limit", type=int, default=None, help="only for a smoke run; default is all 36 sentences")
-    parser.add_argument("--expert", action="store_true", help="run accepted stations through render.rollout")
+    parser.add_argument("--expert", action="store_true", help="run accepted stations through rollout.run")
     args = parser.parse_args()
     sentences = SENTENCES if args.limit is None else SENTENCES[: max(0, args.limit)]
     rows = generate_and_check(

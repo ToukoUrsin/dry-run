@@ -1,0 +1,2 @@
+2026-11-14 post-commit validation at 2e99a05: seed 1 loose (4 bricks) reached grasp/lift then physics reported unstable at t=3.634 s before any present/drop; seed 0 page capture reproduced MeasuredExpert.action current=None during phase transition.
+2026-11-14 controlled MuJoCo check: MeasuredExpert._solve((0.20,-0.10,0.16), pitch=0.9, jaw=-2.3) returned None in 0.465 s although prompt-020 Present A joints forward to TCP (0.171495,-0.100870,0.130010), so the numeric presentation solve cannot be used as evidence.

@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import xml.etree.ElementTree as ET
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
@@ -68,8 +69,10 @@ def _size_xml(path: Path, size: str) -> None:
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--xml", default="/bulk2/runs/dryrun/m1/reach_map.xml")
-    p.add_argument("--out", default="/bulk2/runs/dryrun/m1/reach_map_polar.jsonl")
+    p.add_argument("--xml", default="/bulk3/runs/dryrun/m1/reach_map.xml")
+    p.add_argument("--out", default="/bulk3/runs/dryrun/m1/reach_map_polar.jsonl")
+    p.add_argument("--map-json", type=Path,
+                   help="also write the grouped polar map consumed by dryrun.reach")
     p.add_argument("--workers", type=int, default=32)
     p.add_argument("--radii", type=int, default=15, help="number of radii from 0.08 to 0.36 m")
     p.add_argument("--angles", type=int, default=32, help="number of full-pan angular cells")
@@ -88,15 +91,41 @@ def main():
                 y = float(SHOULDER[1] + radius * math.sin(theta))
                 for yi in range(8):
                     poses.append((round(x, 5), round(y, 5), round(yi * math.pi / 4, 6)))
-        with ProcessPoolExecutor(max_workers=min(a.workers, 32), initializer=_init, initargs=(str(xml), size)) as pool:
+        worker_count = min(int(a.workers), int(os.cpu_count() or 1), 32)
+        with ProcessPoolExecutor(max_workers=worker_count, initializer=_init, initargs=(str(xml), size)) as pool:
             rows = list(pool.map(_one, poses, chunksize=1))
         all_rows.extend(rows)
     out = Path(a.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text("".join(json.dumps(r, separators=(",", ":")) + "\n" for r in all_rows))
+    if a.map_json is not None:
+        cells = []
+        grouped = {}
+        for row in all_rows:
+            key = (row["size"], round(float(row["x"]), 5), round(float(row["y"]), 5))
+            grouped.setdefault(key, []).append(row)
+        for (size, x, y), group in sorted(grouped.items()):
+            cells.append({
+                "size": size, "x": x, "y": y,
+                "radius_m": round(float(math.hypot(x - float(SHOULDER[0]), y - float(SHOULDER[1]))), 6),
+                "theta_rad": round(float(math.atan2(y - float(SHOULDER[1]), x - float(SHOULDER[0]))), 6),
+                "tested_yaws_rad": sorted(round(float(r["yaw"]), 6) for r in group),
+                "pick_rate": round(sum(bool(r.get("pass")) for r in group) / len(group), 6),
+                "trials": len(group),
+                "passes": sum(bool(r.get("pass")) for r in group),
+                "source": str(out),
+            })
+        a.map_json.parent.mkdir(parents=True, exist_ok=True)
+        a.map_json.write_text(json.dumps({
+            "version": "polar-pick-v2", "pan_center_m": [round(float(SHOULDER[0]), 7), round(float(SHOULDER[1]), 7)],
+            "radius_range_m": [0.08, 0.36], "pan_range_rad": [-1.919862, 1.919862],
+            "yaw_trials": 8, "sizes": list(a.sizes), "threshold": 0.95,
+            "calibration": "physics pick and 10mm lift; grouped from the complete JSONL output",
+            "cells": cells,
+        }, indent=2) + "\n")
     print(json.dumps({
         "tested": len(all_rows),
-        "workers": min(a.workers, 32),
+        "workers": min(a.workers, int(os.cpu_count() or 1), 32),
         "sizes": list(a.sizes),
         "radii": a.radii,
         "angles": a.angles,

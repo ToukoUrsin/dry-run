@@ -102,6 +102,13 @@ def validate_diagnosis(value: Any, allowed_frames: Sequence[str] | None = None) 
                 x = scene.get(field)
                 if not isinstance(x, (int, float)) or isinstance(x, bool) or not lo <= float(x) <= hi: errors.append(f"next_scenes[{i}].{field} invalid")
             if not isinstance(scene.get("positions"), list) or not scene.get("positions"): errors.append(f"next_scenes[{i}].positions invalid")
+            else:
+                for j, point in enumerate(scene["positions"]):
+                    if (not isinstance(point, (list, tuple)) or len(point) < 2 or
+                            not all(isinstance(v, (int, float)) and not isinstance(v, bool) for v in point[:2])):
+                        errors.append(f"next_scenes[{i}].positions[{j}] invalid")
+                    elif not (0.16 <= float(point[0]) <= 0.36 and -0.16 <= float(point[1]) <= 0.16):
+                        errors.append(f"next_scenes[{i}].positions[{j}] outside generator reach envelope")
             if not isinstance(scene.get("lighting"), str) or not scene.get("lighting", "").strip(): errors.append(f"next_scenes[{i}].lighting invalid")
     if errors: raise ValueError("; ".join(errors))
     return json.loads(json.dumps(dict(value)))
@@ -124,19 +131,42 @@ def select_frames(frames: Sequence[Frame | Mapping[str, Any]], failure_index: in
     return window[:count]
 
 
+def frames_for_version(frames: Sequence[Frame | Mapping[str, Any]], version: str) -> list[Frame]:
+    """Choose the evidence envelope for one analyst ablation.
+
+    The ablation table is meaningful only when the request actually changes:
+    v1 uses one top frame, v2 uses both cameras without the observation-chain
+    instruction, v3 adds that instruction, and v4 adds format examples.
+    """
+    if version == "v1-one-frame":
+        converted = [f if isinstance(f, Frame) else Frame(str(f["path"]), str(f.get("camera", "top")), float(f.get("t", i))) for i, f in enumerate(frames)]
+        if not converted:
+            raise ValueError("at least one camera frame is required")
+        tops = [f for f in converted if f.camera.lower().startswith("top")]
+        return [tops[len(tops) // 2] if tops else converted[len(converted) // 2]]
+    return select_frames(frames)
+
+
 def _image_payload(frame: Frame) -> dict[str, Any]:
     return {"type": "image_url", "image_url": {"url": "data:image/png;base64," + base64.b64encode(Path(frame.path).read_bytes()).decode("ascii")}}
 
 
 def build_request(inp: FailureInput, *, version: str = "v4-both-chain-fewshot") -> dict[str, Any]:
     """Build an OpenAI-compatible camera-only request."""
-    frames = select_frames(inp.frames)
-    text = ("You are a failure analyst for a vision-only brick sorting robot. Inspect the supplied top and inspection frames. "
-            "Write a short observation chain internally, then return ONLY one JSON object. "
+    frames = frames_for_version(inp.frames, version)
+    if version == "v1-one-frame":
+        evidence = "Inspect the one supplied top-camera frame and make a direct visual diagnosis; refer to it as <image 1>. "
+    elif version == "v2-both-cameras":
+        evidence = "Inspect the supplied top and inspection frames and make a direct visual diagnosis without an observation chain. "
+    else:
+        evidence = "Inspect the supplied top and inspection frames. Write a short observation chain internally before the verdict. "
+    text = ("You are a failure analyst for a vision-only brick sorting robot. " + evidence +
+            "Return ONLY one JSON object. "
             "Use exactly these fields: failure_stage (one of the allowed stages), cause (one plain sentence), "
             "frame (one supplied frame path), scene_features (object), and next_scenes (one or more objects). "
             "Each next_scenes object must contain tier (loose, messy or pile), brick_count (integer 3-12), "
-            "spacing (number 0-1), yaw_spread (number 0-3.142), positions (non-empty array), and lighting (string). "
+            "spacing (number 0-1), yaw_spread (number 0-3.142), positions (non-empty array of metre coordinates "
+            "with x in 0.16-0.36 and y in -0.16-0.16), and lighting (string). "
             "failure_stage must be one of: approach, ik_fail, grasp, miss, slip, knocked_neighbour, inspection, "
             "wrong_bowl, inspector_false_accept, drop, unstable. "
             f"Analyst version: {version}. Do not use simulator state, event labels, or hidden object metadata.")
@@ -151,7 +181,11 @@ def build_request(inp: FailureInput, *, version: str = "v4-both-chain-fewshot") 
         for example in examples:
             messages.extend([{"role": "user", "content": [{"type": "text", "text": "Example camera-only failure; return the strict schema."}]}, {"role": "assistant", "content": json.dumps(example, separators=(",", ":"))}])
     messages.append({"role": "user", "content": [{"type": "text", "text": text}] + [_image_payload(f) for f in frames]})
-    return {"model": MODEL, "temperature": 0, "max_tokens": 6000,
+    # Nemotron spends completion tokens on hidden reasoning before emitting
+    # the JSON object.  Keep enough headroom for that chain and the strict
+    # response; pacing belongs to NemotronClient so parallel callers do not
+    # turn a valid request into a provider 429.
+    return {"model": MODEL, "temperature": 0, "max_tokens": 4000,
             "messages": messages,
             "response_format": {"type": "json_object"},
             "metadata": {"analyst_version": version, "rollout_id": inp.rollout_id,
@@ -163,12 +197,28 @@ def _content_text(raw: Mapping[str, Any]) -> str:
     content = message.get("content", "")
     if isinstance(content, list): content = "".join(p.get("text", "") for p in content if isinstance(p, Mapping))
     text = str(content or message.get("reasoning_content", "")).strip()
-    return re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.I).strip()
+    text = re.sub(r"^```(?:json)?\s*|\s*```$", "", text, flags=re.I).strip()
+    # Some provider responses put the final object in reasoning_content even
+    # when content is null. Recover only a complete object with the required
+    # top-level keys; never turn an earlier format example into a diagnosis.
+    try:
+        parsed = json.loads(text)
+        return json.dumps(parsed, separators=(",", ":"))
+    except json.JSONDecodeError:
+        decoder = json.JSONDecoder()
+        for start in (m.start() for m in re.finditer(r"\{", text)):
+            try:
+                parsed, _ = decoder.raw_decode(text[start:])
+            except json.JSONDecodeError:
+                continue
+            if isinstance(parsed, Mapping) and set(DIAGNOSIS_SCHEMA["required"]).issubset(parsed):
+                return json.dumps(parsed, separators=(",", ":"))
+    return text
 
 
 class NemotronClient:
     """Rate-limited NVIDIA client with invalid-response retries."""
-    def __init__(self, key: str | None = None, out_dir: str | Path = "/bulk2/runs/dryrun/m5/diagnoses", max_retries: int = 4, min_interval: float = 1.6):
+    def __init__(self, key: str | None = None, out_dir: str | Path = "/bulk3/runs/dryrun/m5/diagnoses", max_retries: int = 4, min_interval: float = 1.6):
         self.key = key or os.environ.get("NVIDIA_API_KEY")
         if not self.key: raise RuntimeError("NVIDIA_API_KEY is not injected; run through hsec")
         self.out_dir, self.max_retries, self.min_interval, self._last_call = Path(out_dir), max_retries, min_interval, 0.0
@@ -186,7 +236,7 @@ class NemotronClient:
                 req = Request(ENDPOINT, data=json.dumps(body).encode(), headers={"Authorization": "Bearer " + self.key, "Content-Type": "application/json"})
                 with urlopen(req, timeout=120) as response: raw = json.loads(response.read())
                 self._last_call = time.monotonic(); (folder / f"raw_response_{attempt}.json").write_text(json.dumps(raw, indent=2))
-                selected = select_frames(inp.frames)
+                selected = frames_for_version(inp.frames, version)
                 diagnosis = validate_diagnosis(json.loads(_content_text(raw)), [f.path for f in selected])
                 # Models sometimes refer to multimodal parts as ``<image 4>``;
                 # persist the concrete path so the page can render the frame.
@@ -261,10 +311,18 @@ def score_labelled_file(labels_path: str | Path, predictions_path: str | Path) -
 
 def score_diagnoses(labels: Sequence[Mapping[str, Any]], predictions: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
     """Score exact stage and cause accuracy against event-log labels."""
-    n = min(len(labels), len(predictions))
+    # Provider retries complete out of order and may leave unresolved rows;
+    # align by rollout id whenever both files carry it so a missing response
+    # can never shift every subsequent label.
+    if labels and predictions and all("id" in row for row in labels) and all("id" in row for row in predictions):
+        by_id = {str(row["id"]): row for row in predictions}
+        pairs = [(label, by_id[str(label["id"])]) for label in labels if str(label["id"]) in by_id]
+    else:
+        pairs = list(zip(labels, predictions))
+    n = len(pairs)
     if n == 0: return {"n": 0, "stage_accuracy": 0.0, "cause_accuracy": 0.0, "accuracy": 0.0}
     stage = cause = 0
-    for label, pred in zip(labels[:n], predictions[:n]):
+    for label, pred in pairs:
         p = pred.get("diagnosis", pred); stage += int(p.get("failure_stage") == label.get("failure_stage")); cause += int(p.get("cause") == label.get("cause"))
     return {"n": n, "stage_accuracy": round(stage / n, 6), "cause_accuracy": round(cause / n, 6), "accuracy": round((stage + cause) / (2 * n), 6)}
 
@@ -302,7 +360,7 @@ def store_diagnosis(result: Mapping[str, Any], inp: FailureInput, writer: Callab
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description=__doc__); p.add_argument("--frame", type=Path, action="append", required=True); p.add_argument("--seed", type=int, default=7); p.add_argument("--rollout-id", default=None); p.add_argument("--out", type=Path, default=Path("/bulk2/runs/dryrun/m5/diagnoses")); p.add_argument("--scene-features", default='{"tier":"pile","brick_count":8,"spacing":0.01,"yaw_spread":3.14,"lighting":"key light"}')
+    p = argparse.ArgumentParser(description=__doc__); p.add_argument("--frame", type=Path, action="append", required=True); p.add_argument("--seed", type=int, default=7); p.add_argument("--rollout-id", default=None); p.add_argument("--out", type=Path, default=Path("/bulk3/runs/dryrun/m5/diagnoses")); p.add_argument("--scene-features", default='{"tier":"pile","brick_count":8,"spacing":0.01,"yaw_spread":3.14,"lighting":"key light"}')
     a = p.parse_args(); frames = tuple(Frame(str(x), "top" if i % 2 == 0 else "inspection", i / 30) for i, x in enumerate(a.frame)); inp = FailureInput(a.rollout_id or f"seed-{a.seed}", frames, json.loads(a.scene_features)); print(json.dumps(NemotronClient(out_dir=a.out).analyse(inp), indent=2))
 
 

@@ -6,7 +6,6 @@ from pathlib import Path
 
 from dryrun.env import TIERS
 from dryrun.mjcf_station import _brick, layout_bricks, BrickSpec
-from dryrun.reach import measured_pick_ok, scene_reachable
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -28,10 +27,14 @@ def test_loose_seed_controls_a_real_multi_brick_scene():
         for scene in scenes
     }
     assert len(positions) >= 18
-    assert all(
-        measured_pick_ok(b.x, b.y, b.size, b.yaw) and scene_reachable(b.x, b.y)
-        for scene in scenes for b in scene
-    ), "seeded scenes must use measured >=95% cells and reachable presentation poses"
+    # Prompt 019 replaces the withdrawn reach-map fixture with the measured
+    # recipe envelope; the expert planner performs the clear-grasp and IK gate.
+    for scene in scenes:
+        for brick in scene:
+            radius = ((brick.x - 0.0388) ** 2 + brick.y ** 2) ** 0.5
+            azimuth = __import__("math").atan2(brick.y, brick.x - 0.0388)
+            assert 0.12 - 1e-4 <= radius <= 0.24 + 1e-4
+            assert abs(azimuth) <= 0.851
 
 
 def test_every_tier_is_seeded_and_multi_brick():

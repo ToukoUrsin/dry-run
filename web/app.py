@@ -12,6 +12,16 @@ if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 os.environ.setdefault("MUJOCO_GL", "egl")
 RUNS = Path("/bulk3/runs/dryrun")
 REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", str(RUNS / "_b2/replays/seed-7c")))
+BENCHMARK_TIERS = Path(os.environ.get("DRYRUN_BENCHMARK_TIERS", str(RUNS / "benchmark/tier-summary-64c.json")))
+# The page's scene is exported from the compiled MuJoCo station model.  Keep a
+# small compatibility list for older deployments while allowing Fly to mount
+# the exact release artifact by secret.
+VIEWER_SCENE = Path(os.environ.get("DRYRUN_VIEWER_SCENE", str(RUNS / "page-assets/so101-mujoco.glb")))
+VIEWER_SCENE_CANDIDATES = (
+    VIEWER_SCENE,
+    RUNS / "page-assets/so101-mujoco.glb",
+    RUNS / "page-assets/so101.glb",
+)
 INSPECTOR_EVALUATION = Path(os.environ.get("DRYRUN_INSPECTOR_EVALUATION", str(RUNS / "_b2/m2/evaluation.json")))
 # Prefer the current rebuild's compact page projection when it exists and is
 # populated.  The archived `_b2` artifact is retained only as a compatibility
@@ -83,6 +93,12 @@ def codex_payload() -> dict:
         "cast_path": str(CODEX_CAST) if CODEX_CAST.is_file() else None,
         "message": "Codex log loaded." if entries else "No Codex log is connected.",
     }
+
+def benchmark_tiers() -> dict:
+    try:
+        return json.loads(BENCHMARK_TIERS.read_text())
+    except Exception:
+        return {"status": "unavailable", "tiers": [], "message": "No tier benchmark artifact is connected."}
 
 def snapshot() -> dict:
     try:
@@ -209,6 +225,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed=urlparse(self.path); path=unquote(parsed.path)
         if path=="/api/score": return self.send_json(score_payload(snapshot()))
+        if path=="/api/benchmark-tiers": return self.send_json(benchmark_tiers())
         if path=="/api/codex": return self.send_json(codex_payload())
         if path=="/api/telemetry": return self.send_json(snapshot())
         if path=="/api/failures": return self.send_json(snapshot().get("diagnoses", []))
@@ -261,9 +278,9 @@ class Handler(BaseHTTPRequestHandler):
         if path in ("/","/index.html"):
             return self.send_bytes((WEB/"index.html").read_bytes(),"text/html; charset=utf-8")
         if path=="/favicon.svg": return self.send_bytes(b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12253d"/><path d="M8 22 16 7l8 15-8-4z" fill="#a7e34b"/></svg>',"image/svg+xml")
-        if path=="/so101.glb":
-            candidate=RUNS / "page-assets/so101.glb"
-            if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"model/gltf-binary")
+        if path in ("/mujoco-station.glb", "/so101.glb"):
+            for candidate in VIEWER_SCENE_CANDIDATES:
+                if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"model/gltf-binary")
             try:
                 encoded=(_embedded_replay(7) or {}).get("mesh_data")
                 if encoded:

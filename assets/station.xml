@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <mujoco model="dryrun_station_seed_7">
   <compiler angle="radian" autolimits="true"/>
-  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81" cone="elliptic" impratio="10" noslip_iterations="3"/>
   <include file="SO101/Simulation/SO101/so101_dryrun.xml"/>
   <visual><headlight diffuse="0.8 0.8 0.8" ambient="0.35 0.35 0.35" specular="0.1 0.1 0.1"/><global offwidth="960" offheight="720"/></visual>
   <asset>

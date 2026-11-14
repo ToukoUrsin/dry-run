@@ -135,7 +135,7 @@ def _brick(spec: BrickSpec) -> str:
     hx, hy = ((.032, .016) if spec.size == "2x4" else (.016, .016))
     cols = 4 if spec.size == "2x2" else 8
     bits = [f'<body name="brick_{spec.index}" pos="{spec.x:.4f} {spec.y:.4f} {BRICK_H/2:.5f}"><freejoint/>',
-            f'<geom name="brick_{spec.index}_body" type="box" size="{hx:.4f} {hy:.4f} {BRICK_H/2:.5f}" material="brick_{spec.color}" mass="0.018" friction="1.2 0.2 0.05"/>']
+            f'<geom name="brick_{spec.index}_body" type="box" size="{hx:.4f} {hy:.4f} {BRICK_H/2:.5f}" material="brick_{spec.color}" mass="0.018" friction="1.8 0.01 0.001" condim="4"/>']
     # Stud centres are at the standard 16 mm Duplo pitch.  Missing/chipped
     # studs are represented by absent/reduced collision geometry, not labels.
     stud_i = 0
@@ -185,7 +185,7 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     pieces = [f'''<?xml version="1.0" encoding="UTF-8"?>
 <mujoco model="dryrun_station_seed_{seed}">
   <compiler angle="radian" autolimits="true"/>
-  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81" cone="elliptic" impratio="10" noslip_iterations="3"/>
   <include file="{_xml_escape(robot_include)}"/>
   <visual><headlight diffuse="0.8 0.8 0.8" ambient="0.35 0.35 0.35" specular="0.1 0.1 0.1"/><global offwidth="960" offheight="720"/></visual>
   <asset>

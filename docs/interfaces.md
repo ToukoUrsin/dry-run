@@ -86,3 +86,7 @@ Analyst scene batches are JSONL objects of the form
 `source` is `nemotron` or `random`; unknown keys are rejected. Nemotron and
 equal-size random batches are trained from the same starting checkpoint and
 scored on the fixed held-out set.
+
+## Analyst/session request
+
+For the loose tier, please expose a deterministic measured-reach placement (the main expert's 10/10 single-brick gate) through `layout_bricks(..., tier="loose")` or an equivalent sentence contract. The benchmark currently passes `count=1` for loose, but the shared grid candidate order still selects marginal cells; keep the station owner as the source of truth and record rejected placements.

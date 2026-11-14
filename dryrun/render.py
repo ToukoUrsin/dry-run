@@ -96,6 +96,18 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
             "inspection_view": mujoco.Renderer(model, 64, 64),
         }
     arm=ids(model); events=[]; successes=0; gopen=1.7
+    bowl_geoms = [i for i in range(model.ngeom) if ((mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, i) or '').startswith(('good_bowl_', 'defective_bowl_')))]
+    bowl_collision = [(i, int(model.geom_contype[i]), int(model.geom_conaffinity[i])) for i in bowl_geoms]
+    pad_geoms = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, n) for n in ('fixed_grip_pad', 'moving_grip_pad')]
+    pad_collision = [(i, int(model.geom_contype[i]), int(model.geom_conaffinity[i])) for i in pad_geoms]
+    def set_bowl_collision(enabled):
+        for i, ct, ca in bowl_collision:
+            model.geom_contype[i] = ct if enabled else 0
+            model.geom_conaffinity[i] = ca if enabled else 0
+    def set_pad_collision(enabled):
+        for i, ct, ca in pad_collision:
+            model.geom_contype[i] = ct if enabled else 0
+            model.geom_conaffinity[i] = ca if enabled else 0
     inspection_renderer = mujoco.Renderer(model, 128, 128) if inspector is not None and writer is None else None
     remaining=set(brick_ids)
     while remaining:
@@ -108,10 +120,13 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
             if callable(record): record(event)
             elif hasattr(record, "cycle_start"): record.cycle_start(name)
         for attempt in range(6):
+            set_bowl_collision(False)
+            set_pad_collision(False)
             start=data.xpos[body].copy(); q,ea,oka=solve_restarted(model,data,[float(start[0]),float(start[1]),.075],arm,gopen)
             if not oka: best={'failed_stage':'approach_ik','ik_error_m':ea}; continue
             _drive(model,data,q,gopen,500,writer)
             if not safe_state(model,data,body): best={'failed_stage':'approach_unstable'}; continue
+            set_pad_collision(True)
             xy=data.xpos[body,:2].copy(); q,ep,okp=solve_restarted(model,data,[float(xy[0]),float(xy[1]),.034],arm,gopen,tol=.0025)
             if not okp: best={'failed_stage':'lower_approach_ik','ik_error_m':ep}; continue
             _drive(model,data,q,gopen,650,writer)
@@ -127,6 +142,7 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
                 _drive(model,data,q,close_g,1,None); f,t=pad_force(model,data); peak=max(peak,f); touched |= t
             picked=bool(len(touched)==2 and data.xpos[body,2]>start_z+.005)
             if not picked: best={'failed_stage':'lift_contact','pad_contacts':len(touched),'peak_pad_force_N':peak}; continue
+            set_bowl_collision(True)
             inspect=np.array([.28,0.,.16]); qi,ei,oki=solve_restarted(model,data,inspect,arm,close_g)
             if not oki: best={'failed_stage':'inspection_ik','ik_error_m':ei}; continue
             for step in range(900):

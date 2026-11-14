@@ -1,45 +1,59 @@
-"""One rollout path shared by expert, learned policy and demo recording."""
+"""Single rollout entry point for the expert, learned policy and demos."""
 from __future__ import annotations
-from collections.abc import Callable
 from typing import Any
-
 import numpy as np
-
-from .env import StationEnv
+from .env import StationEnv, TIERS
+from pathlib import Path
+import mujoco
+from .mjcf_station import ROOT, layout_bricks, station_xml
+from .render import rollout as expert_rollout
 
 EVENT_NAMES = ("reach", "grasp", "lift", "present", "verdict", "drop", "miss", "slip", "ik_fail", "unstable")
 
-
-def _action(controller: Any, env: StationEnv, obs: dict[str, np.ndarray]) -> np.ndarray:
-    if controller is None or controller == "expert":
-        return env.expert_action()
-    if hasattr(controller, "act"):
-        return np.asarray(controller.act(obs), dtype=np.float32)
+def _call(controller, obs, env):
+    if controller is None or controller == "expert": return env.expert_action()
+    if hasattr(controller, "act"): return controller.act(obs)
     if callable(controller):
-        try:
-            return np.asarray(controller(obs), dtype=np.float32)
-        except TypeError:
-            return np.asarray(controller(env, obs), dtype=np.float32)
-    raise TypeError("controller must be 'expert', callable, or expose act(obs)")
+        try: return controller(obs)
+        except TypeError: return controller(env, obs)
+    raise TypeError("controller must be 'expert', callable, or expose act(observation)")
 
+def _record(record, payload):
+    if record is None: return
+    if hasattr(record, "record"): record.record(payload)
+    elif callable(record): record(payload)
+    else: raise TypeError("record must be callable or expose record(payload)")
 
-def run(seed: int, controller: Any = "expert", inspector: Callable | None = None, record: Callable | None = None, *, tier: str | None = None, max_steps: int = 1800) -> dict[str, Any]:
-    env = StationEnv(seed, tier=tier)
-    obs = env.reset()
-    if record:
-        record({"t": 0.0, "obs": obs, "action": None, "events": []})
-    for step_index in range(max_steps):
-        action = _action(controller, env, obs)
-        obs, reward, done, info = env.step(action)
-        events = list(info.get("events", []))
-        if inspector and any(e.get("name") in {"present", "verdict"} for e in events):
-            decision = inspector(obs["inspection"])
-            env._emit("verdict", env._active, decision=decision)
-            events = list(env._events[-8:])
-        if record:
-            record({"t": float(env.data.time), "step": step_index + 1, "obs": obs, "action": np.asarray(action, dtype=np.float32), "events": events})
-        if done:
-            break
-    result = env.result()
-    result.update({"seed": int(seed), "tier": tier or "loose", "steps": step_index + 1, "events": list(env._events), "observations": {k: tuple(v.shape) for k, v in obs.items()}})
+def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, tier: str | None = None, max_steps: int = 1800, count: int | None = None):
+    """Run one scene; expert and learned paths expose the same observations."""
+    tier = tier or "loose"
+    if tier not in TIERS: raise ValueError(f"unknown tier {tier}")
+    if controller is None or controller == "expert":
+        sentence = TIERS[tier]
+        xml = Path("/tmp") / f"dryrun_rollout_{int(seed)}_{tier}.xml"
+        xml.write_text(station_xml(int(seed), sentence, count=count, robot_include=str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve())))
+        model = mujoco.MjModel.from_xml_path(str(xml)); data = mujoco.MjData(model); mujoco.mj_forward(model, data)
+        return expert_rollout(model, data, int(seed), specs=layout_bricks(int(seed), sentence, count=count), inspector=inspector, record=record)
+    env = StationEnv(seed, tier=tier); obs = env.reset()
+    _record(record, {"type": "cycle_start", "brick": None, "task": f"sort {tier}"})
+    verdict = 0; steps = 0
+    for steps in range(1, max_steps + 1):
+        action = np.asarray(_call(controller, obs, env), dtype=np.float32).reshape(-1)
+        if action.shape != (6,): raise ValueError("controller must return six joint targets")
+        obs, _, done, info = env.step(action)
+        if steps == 300:
+            env._event("present", env._active)
+            if inspector is not None:
+                decision = inspector(obs["inspection"])
+                label = decision.get("verdict", decision) if isinstance(decision, dict) else decision
+                verdict = 1 if str(label).lower() in {"good", "+1", "1"} else (-1 if str(label).lower() in {"defective", "-1"} else 0)
+                env._event("verdict", env._active, verdict=label)
+        _record(record, {"t": float(env.data.time), "step": steps, "observation": obs, "action": action, "verdict": verdict, "events": info.get("events", [])})
+        if done: break
+    result = env.result(); success = bool(result.get("good_bowl") or result.get("wrong_bowl"))
+    _record(record, {"type": "cycle_end", "success": success})
+    result.update({"seed": int(seed), "tier": tier, "steps": steps, "bricks": len(env.brick_ids), "successes": len(result.get("good_bowl", [])), "score": len(result.get("good_bowl", [])) / max(1, len(env.brick_ids))})
+    env.close()
     return result
+
+__all__ = ["run", "EVENT_NAMES"]

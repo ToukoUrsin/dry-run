@@ -43,13 +43,22 @@ app = modal.App("dryrun-live-defect")
 @app.function(image=image, timeout=900, scaledown_window=60)
 @modal.fastapi_endpoint(method="POST")
 def live_defect(payload: dict):
-    """Inspect a user drawing and return a real one-brick MuJoCo replay."""
+    """Inspect a user drawing; optionally append a one-brick MuJoCo replay.
+
+    The default request is the fast draw/inspect path (rendered RGB, score,
+    heat map and verdict).  Set ``{"rollout": true}`` when the page needs the
+    recorded replay as well.  Keeping the rollout opt-in makes the inspector
+    response scale-to-zero friendly and keeps local inspection below two
+    seconds after the model has warmed.
+    """
     sys.path.insert(0, "/root")
     os.environ.setdefault("MUJOCO_GL", "egl")
     os.environ.setdefault("DRYRUN_INSPECTOR_MODEL", "/root/model/dryrun_inspector.xml")
-    from dryrun.live_defect import run_custom_defect
+    from dryrun.live_defect import inspection_json, inspect_custom_defect, run_custom_defect
 
-    return run_custom_defect(payload, out_root="/tmp/dryrun-live")
+    if bool(payload.get("rollout", False)):
+        return run_custom_defect(payload, out_root="/tmp/dryrun-live")
+    return inspection_json(inspect_custom_defect(payload))
 
 
 if __name__ == "__main__":

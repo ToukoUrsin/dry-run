@@ -24,7 +24,86 @@ DEFECT_TYPES = ("scribble", "dot", "sticker", "chipped_stud", "missing_stud", "d
 SEEN_FOR_THRESHOLD = ("scribble", "dot", "sticker", "discolouring")
 HELD_OUT_TYPES = ("chipped_stud", "missing_stud")
 COLORS = ("red", "blue", "yellow", "green")
+# The expert and the synthetic renderer share this measured presentation
+# envelope.  The point is the gripper/brick target, not the brick's initial
+# table pose.  ``solve_restarted`` reaches this target on the vendored SO-101
+# model (2.7 mm residual in the station check).
+INSPECTION_PRESENT_POSE = np.array((0.28, 0.0, 0.16), dtype=np.float64)
+INSPECTION_CAMERA_POSITION = np.array((0.28, -0.10, 0.23), dtype=np.float64)
+INSPECTION_CAMERA_DISTANCE_M = float(np.linalg.norm(INSPECTION_CAMERA_POSITION - INSPECTION_PRESENT_POSE))
+INSPECTION_CAMERA_FOVY_DEG = 34.0
+INSPECTION_FRAME_SIZE = 384
 _POOLS: dict[tuple[str, str, str, int, int], tuple[mujoco.MjModel, mujoco.MjData, mujoco.Renderer, np.ndarray, np.ndarray]] = {}
+
+
+def _camera_quat(camera: np.ndarray, target: np.ndarray) -> np.ndarray:
+    """Return a MuJoCo camera quaternion looking at ``target``."""
+    forward = np.asarray(target, dtype=np.float64) - np.asarray(camera, dtype=np.float64)
+    forward /= np.linalg.norm(forward)
+    up = np.array((0.0, 0.0, 1.0), dtype=np.float64)
+    # Keep the top face upright while avoiding a singular cross product for a
+    # future near-vertical station variant.
+    if abs(float(np.dot(forward, up))) > 0.97:
+        up = np.array((0.0, 1.0, 0.0), dtype=np.float64)
+    xaxis = np.cross(forward, up)
+    xaxis /= np.linalg.norm(xaxis)
+    yaxis = np.cross(-forward, xaxis)
+    yaxis /= np.linalg.norm(yaxis)
+    rotation = np.column_stack((xaxis, yaxis, -forward))
+    quat = np.empty(4, dtype=np.float64)
+    mujoco.mju_mat2Quat(quat, rotation.ravel())
+    return quat
+
+
+def configure_inspection_camera(
+    model: mujoco.MjModel,
+    *,
+    target: np.ndarray | None = None,
+    camera_position: np.ndarray | None = None,
+    fovy: float = INSPECTION_CAMERA_FOVY_DEG,
+) -> dict[str, float | list[float]]:
+    """Place the station camera at the shared fixed close-up envelope.
+
+    The camera is a body in the MJCF, so moving it after load also moves the
+    mount.  Mount geoms are visual station hardware and are disabled for
+    collision after the move; otherwise the close camera would become an
+    accidental obstacle during the real rollout.  Callers must run
+    ``mj_forward`` after this function before reading camera poses.
+    """
+    target = np.asarray(INSPECTION_PRESENT_POSE if target is None else target, dtype=np.float64)
+    camera_position = np.asarray(INSPECTION_CAMERA_POSITION if camera_position is None else camera_position, dtype=np.float64)
+    if target.shape != (3,) or camera_position.shape != (3,):
+        raise ValueError("inspection target and camera position must be 3-vectors")
+    distance = float(np.linalg.norm(camera_position - target))
+    if not 0.10 <= distance <= 0.15:
+        raise ValueError(f"inspection camera must be 10-15 cm from present pose, got {distance:.4f} m")
+    cid = model.camera("inspection_view").id
+    mount = model.body("inspection_camera_mount").id
+    model.body_pos[mount] = camera_position
+    model.cam_pos[cid] = np.zeros(3, dtype=np.float64)
+    model.cam_quat[cid] = _camera_quat(camera_position, target)
+    model.cam_fovy[cid] = float(fovy)
+    for geom_id in range(model.body_geomadr[mount], model.body_geomadr[mount] + model.body_geomnum[mount]):
+        model.geom_contype[geom_id] = 0
+        model.geom_conaffinity[geom_id] = 0
+    return {
+        "present_pose": [float(v) for v in target],
+        "camera_position": [float(v) for v in camera_position],
+        "distance_m": distance,
+        "fovy_deg": float(fovy),
+    }
+
+
+def render_inspection_frame(
+    model: mujoco.MjModel,
+    data: mujoco.MjData,
+    renderer: mujoco.Renderer,
+) -> np.ndarray:
+    """Render an inspection image through the shared station camera path."""
+    configure_inspection_camera(model)
+    mujoco.mj_forward(model, data)
+    renderer.update_scene(data, "inspection_view")
+    return renderer.render().copy()
 
 
 def _replace_brick(xml: str, spec: BrickSpec) -> str:

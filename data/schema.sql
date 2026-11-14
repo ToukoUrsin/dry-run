@@ -73,6 +73,24 @@ CREATE TABLE IF NOT EXISTS failure_diagnoses (
 );
 CREATE INDEX IF NOT EXISTS failure_diagnoses_created_idx ON failure_diagnoses (created_at DESC);
 
+CREATE TABLE IF NOT EXISTS station_requests (
+  request_id BIGSERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  sentence TEXT NOT NULL CHECK (char_length(sentence) BETWEEN 1 AND 300),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','running','accepted','rejected','error')),
+  result JSONB,
+  error TEXT,
+  started_at TIMESTAMPTZ,
+  finished_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS station_requests_status_idx ON station_requests (status, created_at);
+CREATE TABLE IF NOT EXISTS worker_heartbeat (
+  worker_name TEXT PRIMARY KEY,
+  seen_at TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL,
+  detail JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+
 CREATE MATERIALIZED VIEW IF NOT EXISTS benchmark_checkpoint
 WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', finished_at) AS bucket, checkpoint,

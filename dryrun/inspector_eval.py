@@ -5,6 +5,103 @@ from pathlib import Path
 import cv2, numpy as np, openvino as ov
 from .defects import DEFECT_TYPES, HELD_OUT_TYPES, SEEN_FOR_THRESHOLD
 
+
+def _score_histograms(rows: list[dict], bins: int = 20) -> dict:
+    """Return compact, deterministic score histograms for the evidence page."""
+    scores = [float(r["score"]) for r in rows if np.isfinite(float(r["score"]))]
+    if not scores:
+        edges = np.linspace(0.0, 1.0, bins + 1)
+    else:
+        lo, hi = min(scores), max(scores)
+        # A constant score still needs non-zero-width bins for JSON consumers.
+        if hi <= lo:
+            pad = max(1e-6, abs(lo) * 1e-3)
+            lo, hi = lo - pad, hi + pad
+        edges = np.linspace(lo, hi, bins + 1)
+
+    def counts(subset: list[dict]) -> list[int]:
+        values = [float(r["score"]) for r in subset if np.isfinite(float(r["score"]))]
+        return np.histogram(values, bins=edges)[0].astype(int).tolist()
+
+    types = {typ: counts([r for r in rows if r["type"] == typ])
+             for typ in ["good", *DEFECT_TYPES]}
+    return {
+        "edges": [float(x) for x in edges],
+        "bins": [float(x) for x in edges[:-1]],
+        "counts": counts(rows),
+        "per_type": types,
+    }
+
+
+def page_payload(metrics: dict, *, source: str | Path | None = None) -> dict:
+    """Project evaluation metrics into the stable page/API contract.
+
+    The full evaluation retains model-specific fields for analysis.  The page
+    only needs this compact shape: confusion counts, recall by defect,
+    measured CPU latency, and score histograms.  ``source`` is included so a
+    badge can identify the artifact that produced the numbers.
+    """
+    per_type = metrics.get("per_type") or {}
+    latency = metrics.get("latency", metrics.get("latency_cpu", {})) or {}
+    recalls = metrics.get("per_defect_recall")
+    if recalls is None:
+        recalls = {
+            typ: float(row.get("recall", 0.0))
+            for typ, row in per_type.items()
+            if typ != "good"
+        }
+    hist = metrics.get("score_histograms")
+    if hist is None:
+        # Older artifacts did not persist individual scores.  Keep the key and
+        # an honest empty shape instead of inventing a distribution.
+        hist = {"edges": [], "bins": [], "counts": [], "per_type": {}}
+    return {
+        "schema": "dryrun.inspector.v1",
+        "source": str(source) if source is not None else metrics.get("source"),
+        "n": int(metrics.get("n", 0)),
+        "auroc": metrics.get("auroc"),
+        "threshold": metrics.get("threshold"),
+        "confusion": metrics.get("confusion", {}),
+        "per_defect_recall": recalls,
+        "latency": latency,
+        "score_histograms": hist,
+        # Explicit aliases make the contract convenient for small clients and
+        # preserve the names used by the original evaluation artifact.
+        "per_type": per_type,
+        "held_out": metrics.get("held_out", {}),
+        "openvino_version": metrics.get("openvino_version"),
+    }
+
+
+def load_page_json(path: str | Path = "/bulk2/runs/dryrun/m2/evaluation.json") -> dict:
+    """Load an evaluation artifact and return page-ready JSON.
+
+    This helper is intentionally read-only; the web process can expose the
+    result without importing the database or scanning image files.
+    """
+    path = Path(path)
+    if not path.exists():
+        return {
+            "schema": "dryrun.inspector.v1",
+            "status": "unavailable",
+            "source": str(path),
+            "message": "No inspector evaluation artifact has been recorded.",
+            "confusion": {}, "per_defect_recall": {}, "latency": {},
+            "score_histograms": {"edges": [], "bins": [], "counts": [], "per_type": {}},
+        }
+    try:
+        metrics = json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "schema": "dryrun.inspector.v1", "status": "unavailable",
+            "source": str(path), "message": f"Could not read inspector evaluation: {exc}",
+            "confusion": {}, "per_defect_recall": {}, "latency": {},
+            "score_histograms": {"edges": [], "bins": [], "counts": [], "per_type": {}},
+        }
+    result = page_payload(metrics, source=path)
+    result["status"] = "ok"
+    return result
+
 def _score(infer, inp, path: Path) -> tuple[float, np.ndarray]:
     b = cv2.imread(str(path)); rgb = cv2.cvtColor(b, cv2.COLOR_BGR2RGB); x = cv2.resize(rgb, (256, 256), interpolation=cv2.INTER_AREA).transpose(2, 0, 1)[None].astype(np.float32) / 255
     out = infer.infer({inp: x}); return float(np.asarray(out["pred_score"]).reshape(-1)[0]), np.asarray(out["anomaly_map"]).reshape(256, 256)

@@ -113,6 +113,49 @@ def record_diagnosis(diagnosis: Mapping, *, url: str | None = None) -> str:
         conn.commit()
     return rid
 
+def enqueue_station_request(sentence: str, *, url: str | None = None) -> int:
+    """Queue a sentence for the local Astra station worker."""
+    sentence = str(sentence).strip()
+    if not 1 <= len(sentence) <= 300:
+        raise ValueError("sentence must contain 1 to 300 characters")
+    _require_db()
+    with psycopg.connect(url or db_url()) as conn:
+        row = conn.execute("INSERT INTO station_requests (sentence) VALUES (%s) RETURNING request_id", (sentence,)).fetchone()
+        conn.commit()
+    return int(row[0])
+
+def station_snapshot(*, url: str | None = None) -> dict:
+    """Return the station gallery and worker heartbeat for the page."""
+    _require_db()
+    with psycopg.connect(url or db_url()) as conn:
+        rows = conn.execute("SELECT request_id,created_at,sentence,status,result,error,finished_at FROM station_requests ORDER BY created_at DESC LIMIT 200").fetchall()
+        heartbeat = conn.execute("SELECT worker_name,seen_at,status,detail FROM worker_heartbeat ORDER BY seen_at DESC LIMIT 1").fetchone()
+    gallery = [{"request_id": r[0], "created_at": r[1].isoformat() if hasattr(r[1], "isoformat") else r[1], "sentence": r[2], "status": r[3], "result": r[4], "error": r[5], "finished_at": r[6].isoformat() if hasattr(r[6], "isoformat") else r[6]} for r in rows]
+    worker = None if heartbeat is None else {"worker_name": heartbeat[0], "seen_at": heartbeat[1].isoformat() if hasattr(heartbeat[1], "isoformat") else heartbeat[1], "status": heartbeat[2], "detail": heartbeat[3]}
+    return {"stations": gallery, "worker": worker}
+
+def worker_heartbeat(name: str, status: str, detail: Mapping | None = None, *, url: str | None = None) -> None:
+    _require_db()
+    with psycopg.connect(url or db_url()) as conn:
+        conn.execute("""INSERT INTO worker_heartbeat (worker_name,seen_at,status,detail) VALUES (%s,now(),%s,%s)
+                       ON CONFLICT (worker_name) DO UPDATE SET seen_at=EXCLUDED.seen_at,status=EXCLUDED.status,detail=EXCLUDED.detail""", (name, status, Jsonb(dict(detail or {}))))
+        conn.commit()
+
+def claim_station_request(*, url: str | None = None) -> tuple[int, str] | None:
+    _require_db()
+    with psycopg.connect(url or db_url()) as conn:
+        row = conn.execute("""WITH next AS (SELECT request_id FROM station_requests WHERE status='pending' ORDER BY created_at FOR UPDATE SKIP LOCKED LIMIT 1)
+                             UPDATE station_requests s SET status='running',started_at=now() FROM next WHERE s.request_id=next.request_id RETURNING s.request_id,s.sentence""").fetchone()
+        conn.commit()
+    return None if row is None else (int(row[0]), str(row[1]))
+
+def finish_station_request(request_id: int, status: str, result: Mapping | None = None, error: str | None = None, *, url: str | None = None) -> None:
+    if status not in {"accepted", "rejected", "error"}: raise ValueError("invalid station status")
+    _require_db()
+    with psycopg.connect(url or db_url()) as conn:
+        conn.execute("UPDATE station_requests SET status=%s,result=%s,error=%s,finished_at=now() WHERE request_id=%s", (status, Jsonb(dict(result or {})) if result is not None else None, error, int(request_id)))
+        conn.commit()
+
 def refresh(url: str | None = None) -> None:
     _require_db()
     with psycopg.connect(url or db_url(), autocommit=True) as conn:
@@ -147,7 +190,16 @@ def dashboard_snapshot(url: str | None = None) -> dict:
         checkpoints = [{"checkpoint": r[0], "bricks": r[1], "correct": r[2], "drops": r[3], "false_accepts": r[4], "false_rejects": r[5], "cycle_time_s": r[6], "rollouts": r[7]} for r in summary]
     before, after = [int(x or 0) for x in compression]
     diagnoses = [{"created_at": r[0].isoformat() if hasattr(r[0], "isoformat") else r[0], "rollout_id": r[1], "model": r[2], "version": r[3], "frame_paths": r[4], "failure_stage": r[5], "cause": r[6], "frame": r[7], "scene_features": r[8], "next_scenes": r[9]} for r in diagnosis_rows]
-    return {"status":"ok","source":"timescale","rollups":rows,"checkpoints":checkpoints,"diagnoses":diagnoses,"raw_rows":raw_count,"result_rows":result_count,"compression_enabled":bool(hypertable and hypertable[0]),"uncompressed_bytes":before,"compressed_bytes":after,"compression_ratio":round(before/after,3) if after else None,"latest_rollout_at":latest_rollout.isoformat() if hasattr(latest_rollout,"isoformat") else latest_rollout,"query_ms":{"rollup_aggregate":round(aggregate_ms,3),"checkpoint_aggregate":round(summary_ms,3)},"snapshot_at":datetime.now(timezone.utc).isoformat()}
+    # Station requests are an optional analyst-session extension. Keep the
+    # telemetry dashboard readable against a cloud schema created before that
+    # extension; an absent queue means an honest empty station gallery.
+    try:
+        stations = station_snapshot(url=url)
+    except Exception as exc:
+        if psycopg is None or not isinstance(exc, psycopg.errors.UndefinedTable):
+            raise
+        stations = {"stations": [], "worker": None}
+    return {"status":"ok","source":"timescale","rollups":rows,"checkpoints":checkpoints,"diagnoses":diagnoses,"stations":stations["stations"],"worker":stations["worker"],"raw_rows":raw_count,"result_rows":result_count,"compression_enabled":bool(hypertable and hypertable[0]),"uncompressed_bytes":before,"compressed_bytes":after,"compression_ratio":round(before/after,3) if after else None,"latest_rollout_at":latest_rollout.isoformat() if hasattr(latest_rollout,"isoformat") else latest_rollout,"query_ms":{"rollup_aggregate":round(aggregate_ms,3),"checkpoint_aggregate":round(summary_ms,3)},"snapshot_at":datetime.now(timezone.utc).isoformat()}
 
 def counts(url: str | None = None) -> dict:
     snap = dashboard_snapshot(url); return {"telemetry_rows":snap["raw_rows"],"result_rows":snap["result_rows"],"aggregate_rows":len(snap["rollups"]),"compression":"enabled"}

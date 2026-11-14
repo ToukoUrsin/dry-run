@@ -1,31 +1,60 @@
-"""Run the learned image+joint policy in MuJoCo on held-out seeds."""
+"""Closed-loop policy evaluation through :mod:`dryrun.rollout`."""
+from __future__ import annotations
+import argparse, json
 from pathlib import Path
-import argparse, json, time
-import numpy as np
-import mujoco
-import torch
-from .train_policy import VisionStatePolicy, ROOT as RUN_ROOT
-from .mjcf_station import station_xml, layout_bricks, ROOT
+import numpy as np, torch
+from .train_policy import load_policy
+from .rollout import run
 
-def one(model_policy, seed):
-    sentence="good and defective bowls on the sides, inspection camera in front"
-    xml=Path('/tmp') / f'dryrun_policy_{seed}.xml'
-    xml.write_text(station_xml(seed,sentence,robot_include=str((ROOT/'assets/SO101/Simulation/SO101/so101_dryrun.xml').resolve())))
-    model=mujoco.MjModel.from_xml_path(str(xml)); data=mujoco.MjData(model); renderer=mujoco.Renderer(model,64,64)
-    image=torch.zeros(1,3,64,64)
-    for step in range(1800):
-        if step % 10 == 0:
-            renderer.update_scene(data,'top_view'); image=torch.from_numpy(renderer.render().transpose(2,0,1)).float().unsqueeze(0)/255
-        state=torch.from_numpy(np.asarray(data.qpos[:6],dtype=np.float32)).unsqueeze(0)
-        with torch.no_grad(): action=model_policy(state,image).numpy()[0]
-        data.ctrl[:6]=np.clip(action,model.actuator_ctrlrange[:,0],model.actuator_ctrlrange[:,1]); mujoco.mj_step(model,data)
-    specs=layout_bricks(seed,sentence); successes=0
-    for spec in specs:
-        bid=model.body(f'brick_{spec.index}').id; pos=data.xpos[bid]; target=np.array([.35,-.30 if spec.defect=='none' else .30]); successes += int(np.linalg.norm(pos[:2]-target)<.14 and pos[2]<.10)
-    return {'seed':seed,'bricks':len(specs),'successes':successes,'score':successes/len(specs)}
+
+class ACTController:
+    def __init__(self, checkpoint):
+        self.policy = load_policy(checkpoint)
+
+    def act(self, obs):
+        top = torch.from_numpy(np.asarray(obs["top"]).transpose(2, 0, 1)).float().unsqueeze(0) / 255.0
+        inspection = torch.from_numpy(np.asarray(obs["inspection"]).transpose(2, 0, 1)).float().unsqueeze(0) / 255.0
+        joints = torch.from_numpy(np.asarray(obs["joints"], dtype=np.float32)).reshape(1, 6)
+        verdict = torch.as_tensor(obs.get("verdict", [0]), dtype=torch.float32).reshape(1, 1)
+        with torch.no_grad():
+            action = self.policy.select_action({"observation.images.top": top, "observation.images.inspection": inspection, "observation.state": torch.cat([joints, verdict], dim=1)})
+        return action.detach().cpu().numpy().reshape(6)
+
+
+def one(seed, tier, controller, checkpoint):
+    policy = ACTController(checkpoint) if controller == "policy" else "expert"
+    return run(seed, policy, tier=tier)
+
+
+def evaluate(checkpoint: str | Path, seeds: int = 200, workers: int = 8, controller: str = "policy"):
+    if seeds == 200:
+        groups = {"loose": list(range(0, 80)), "messy": list(range(80, 150)), "pile": list(range(150, 200))}
+    else:
+        groups = {"loose": list(range(seeds))}
+    # ACT is loaded once per worker invocation in the serial path. Threads
+    # keep the expensive MuJoCo rendering parallel without duplicating files.
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    all_rows = {}
+    for tier, values in groups.items():
+        rows = []
+        if controller == "policy":
+            # n_action_steps=1 leaves no stateful action queue between calls.
+            controller_obj = ACTController(checkpoint)
+            def task(seed): return run(seed, controller_obj, tier=tier)
+        else:
+            def task(seed): return one(seed, tier, "expert", checkpoint)
+        with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
+            futures = [pool.submit(task, seed) for seed in values]
+            for future in as_completed(futures): rows.append(future.result())
+        bricks = sum(r["bricks"] for r in rows); successes = sum(r["successes"] for r in rows)
+        all_rows[tier] = {"seeds": len(rows), "bricks": bricks, "successes": successes, "score": successes / bricks if bricks else 0.0, "rows": sorted(rows, key=lambda x: x["seed"])}
+    total_bricks = sum(v["bricks"] for v in all_rows.values()); total_successes = sum(v["successes"] for v in all_rows.values())
+    return {"controller": controller, "checkpoint": str(checkpoint), "held_out_seeds": seeds, "tiers": all_rows, "score": total_successes / total_bricks if total_bricks else 0.0}
+
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--seeds',type=int,default=10);p.add_argument('--out',type=Path,default=Path('/bulk2/runs/dryrun/m4/policy-benchmark.json'));a=p.parse_args()
-    policy=VisionStatePolicy();ckpt=torch.load(RUN_ROOT/'policy.pt',map_location='cpu',weights_only=False);policy.load_state_dict(ckpt['state_dict']);policy.eval()
-    rows=[one(policy,s) for s in range(a.seeds)]; out={'checkpoint':str(RUN_ROOT/'policy.pt'),'seeds':a.seeds,'bricks':sum(x['bricks'] for x in rows),'successes':sum(x['successes'] for x in rows),'score':sum(x['successes'] for x in rows)/sum(x['bricks'] for x in rows),'rows':rows};a.out.write_text(json.dumps(out,indent=2));print(json.dumps(out,indent=2))
-if __name__=='__main__':main()
+    ap = argparse.ArgumentParser(); ap.add_argument("--controller", choices=("policy", "expert"), default="policy"); ap.add_argument("--checkpoint", type=Path, required=False, default=Path("/bulk2/runs/dryrun/m4/act-final.pt")); ap.add_argument("--seeds", type=int, default=200); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--out", type=Path, default=Path("/bulk2/runs/dryrun/m4/policy-benchmark.json")); a = ap.parse_args()
+    result = evaluate(a.checkpoint, a.seeds, a.workers, a.controller); a.out.parent.mkdir(parents=True, exist_ok=True); a.out.write_text(json.dumps(result, indent=2)); print(json.dumps({k: v for k, v in result.items() if k != "tiers"}, indent=2)); print(json.dumps({k: {x: v[x] for x in ("seeds", "bricks", "successes", "score")} for k, v in result["tiers"].items()}, indent=2))
+
+
+if __name__ == "__main__": main()

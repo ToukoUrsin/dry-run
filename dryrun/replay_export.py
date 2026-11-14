@@ -71,9 +71,9 @@ class Recorder:
 
 def _set_ctrl(model,data,q,grip): controls(model,data,{n:float(v) for n,v in zip(ARM_NAMES,q)}|{"gripper":float(grip)})
 
-def export(seed:int, out:Path, checkpoint="expert", sentence="good and defective bowls on the sides, inspection camera in front"):
+def export(seed:int, out:Path, checkpoint="expert", sentence="good and defective bowls on the sides, inspection camera in front", count: int | None = None):
     out.mkdir(parents=True,exist_ok=True); xml=out/f"station-{seed}.xml"
-    xml.write_text(station_xml(seed,sentence,robot_include=str((ROOT/'assets/SO101/Simulation/SO101/so101_dryrun.xml').resolve())))
+    xml.write_text(station_xml(seed,sentence,count=count,robot_include=str((ROOT/'assets/SO101/Simulation/SO101/so101_dryrun.xml').resolve())))
     model=mujoco.MjModel.from_xml_path(str(xml)); data=mujoco.MjData(model); mujoco.mj_forward(model,data)
     writers={}
     for key,filename in (("top_view","top-view.mp4"),("inspection_view","inspection-camera.mp4")):
@@ -82,7 +82,7 @@ def export(seed:int, out:Path, checkpoint="expert", sentence="good and defective
         writers[key]=renderer
     recorder=Recorder(model,data,writers); recorder.sample(force=True)
     brick_ids=[i for i in range(model.nbody) if (mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,i) or "").startswith("brick_")]
-    specs=layout_bricks(seed,sentence); arm=ids(model); q=np.zeros(5); opened=1.7; successes=0; drops=0; failures=[]; start_time=time.perf_counter()
+    specs=layout_bricks(seed,sentence,count=count); arm=ids(model); q=np.zeros(5); opened=1.7; successes=0; drops=0; failures=[]; start_time=time.perf_counter()
     def step(n,qtarget,grip):
         nonlocal q
         for _ in range(n):

@@ -13,14 +13,33 @@ from typing import Any, Callable, Mapping, Sequence
 
 from .nemotron import SCENE_FIELDS, compare_curriculum, validate_diagnosis
 
+def _generator_positions(value: Any) -> list[list[float]]:
+    """Convert camera-pixel coordinates to the generator's metre envelope."""
+    if not isinstance(value, list) or not value:
+        raise ValueError("positions must be a non-empty list")
+    out = []
+    for point in value:
+        if not isinstance(point, (list, tuple)) or len(point) < 2:
+            raise ValueError("each position needs x and y")
+        x, y = float(point[0]), float(point[1])
+        if max(abs(x), abs(y)) > 1.0:
+            x, y = 0.12 + 0.36 * x / 1000.0, y / 1000.0 - 0.5
+        if not 0.12 <= x <= 0.52 or not -0.30 <= y <= 0.30:
+            raise ValueError(f"position outside generator reach envelope: {(x, y)}")
+        out.append([round(x, 4), round(y, 4)])
+    return out
+
 
 def scene_specs(records: Sequence[Mapping[str, Any]]) -> list[dict[str, Any]]:
     """Extract and validate all Nemotron-generated scene specs."""
     out: list[dict[str, Any]] = []
     for record in records:
-        diagnosis = record.get("diagnosis", record)
+        diagnosis = record.get("diagnosis", record.get("analysis", record))
         validate_diagnosis(diagnosis)
-        out.extend({k: scene[k] for k in SCENE_FIELDS} for scene in diagnosis["next_scenes"])
+        for scene in diagnosis["next_scenes"]:
+            row = {k: scene[k] for k in SCENE_FIELDS}
+            row["positions"] = _generator_positions(row["positions"])
+            out.append(row)
     return out
 
 
@@ -57,7 +76,7 @@ def compare_batches(suggested: Sequence[Mapping[str, Any]], random_batch: Sequen
 def main() -> None:
     import argparse
     p = argparse.ArgumentParser(); p.add_argument("--diagnoses", type=Path, required=True); p.add_argument("--size", type=int, default=16); p.add_argument("--seed", type=int, default=7); p.add_argument("--out", type=Path, default=Path("/bulk2/runs/dryrun/m5/curriculum.json")); a = p.parse_args()
-    suggested = scene_specs([json.loads(x) for x in a.diagnoses.read_text().splitlines() if x.strip()])
+    suggested = load_scenes(a.diagnoses)
     suggested = suggested[:a.size]
     if len(suggested) != a.size: raise SystemExit(f"need {a.size} generated scenes, found {len(suggested)}")
     random_batch = random_specs(a.size, a.seed)

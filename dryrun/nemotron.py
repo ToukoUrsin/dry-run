@@ -83,7 +83,8 @@ def validate_diagnosis(value: Any, allowed_frames: Sequence[str] | None = None) 
     if value.get("failure_stage") not in ALLOWED_STAGES: errors.append("invalid failure_stage")
     if not _one_sentence(value.get("cause")): errors.append("cause must be one plain sentence")
     if not isinstance(value.get("frame"), str) or not value.get("frame", "").strip(): errors.append("frame must be text")
-    if allowed_frames is not None and value.get("frame") not in set(allowed_frames): errors.append("frame is not one of the supplied camera frames")
+    if allowed_frames is not None and value.get("frame") not in set(allowed_frames) and not re.fullmatch(r"<image [1-8]>", str(value.get("frame", ""))):
+        errors.append("frame is not one of the supplied camera frames or image index")
     if not isinstance(value.get("scene_features"), Mapping): errors.append("scene_features must be an object")
     scenes = value.get("next_scenes")
     if not isinstance(scenes, list) or not (1 <= len(scenes) <= 32):
@@ -131,10 +132,27 @@ def build_request(inp: FailureInput, *, version: str = "v4-both-chain-fewshot") 
     """Build an OpenAI-compatible camera-only request."""
     frames = select_frames(inp.frames)
     text = ("You are a failure analyst for a vision-only brick sorting robot. Inspect the supplied top and inspection frames. "
-            "Write a short observation chain before the verdict, then return ONLY JSON matching the schema. "
+            "Write a short observation chain internally, then return ONLY one JSON object. "
+            "Use exactly these fields: failure_stage (one of the allowed stages), cause (one plain sentence), "
+            "frame (one supplied frame path), scene_features (object), and next_scenes (one or more objects). "
+            "Each next_scenes object must contain tier (loose, messy or pile), brick_count (integer 3-12), "
+            "spacing (number 0-1), yaw_spread (number 0-3.142), positions (non-empty array), and lighting (string). "
+            "failure_stage must be one of: approach, ik_fail, grasp, miss, slip, knocked_neighbour, inspection, "
+            "wrong_bowl, inspector_false_accept, drop, unstable. "
             f"Analyst version: {version}. Do not use simulator state, event labels, or hidden object metadata.")
-    return {"model": MODEL, "temperature": 0, "max_tokens": 1800,
-            "messages": [{"role": "user", "content": [{"type": "text", "text": text}] + [_image_payload(f) for f in frames]}],
+    messages: list[dict[str, Any]] = []
+    if "fewshot" in version:
+        # Two tiny format examples improve consistency without smuggling any
+        # simulator labels into the actual camera request.
+        examples = [
+            {"failure_stage": "slip", "cause": "The gripper lost contact with the brick.", "frame": "<image 2>", "scene_features": {"visible": "brick below open jaws"}, "next_scenes": [{"tier": "messy", "brick_count": 6, "spacing": 0.01, "yaw_spread": 1.57, "positions": [[0.22, 0.0]], "lighting": "overhead"}]},
+            {"failure_stage": "wrong_bowl", "cause": "The brick was released into the wrong bowl.", "frame": "<image 5>", "scene_features": {"visible": "brick above red bowl"}, "next_scenes": [{"tier": "pile", "brick_count": 8, "spacing": 0.005, "yaw_spread": 2.4, "positions": [[0.25, 0.02]], "lighting": "side light"}]},
+        ]
+        for example in examples:
+            messages.extend([{"role": "user", "content": [{"type": "text", "text": "Example camera-only failure; return the strict schema."}]}, {"role": "assistant", "content": json.dumps(example, separators=(",", ":"))}])
+    messages.append({"role": "user", "content": [{"type": "text", "text": text}] + [_image_payload(f) for f in frames]})
+    return {"model": MODEL, "temperature": 0, "max_tokens": 6000,
+            "messages": messages,
             "response_format": {"type": "json_object"},
             "metadata": {"analyst_version": version, "rollout_id": inp.rollout_id,
                          "frames": [asdict(f) for f in frames], "schema": DIAGNOSIS_SCHEMA}}
@@ -168,7 +186,15 @@ class NemotronClient:
                 req = Request(ENDPOINT, data=json.dumps(body).encode(), headers={"Authorization": "Bearer " + self.key, "Content-Type": "application/json"})
                 with urlopen(req, timeout=120) as response: raw = json.loads(response.read())
                 self._last_call = time.monotonic(); (folder / f"raw_response_{attempt}.json").write_text(json.dumps(raw, indent=2))
-                diagnosis = validate_diagnosis(json.loads(_content_text(raw)), [f.path for f in select_frames(inp.frames)])
+                selected = select_frames(inp.frames)
+                diagnosis = validate_diagnosis(json.loads(_content_text(raw)), [f.path for f in selected])
+                # Models sometimes refer to multimodal parts as ``<image 4>``;
+                # persist the concrete path so the page can render the frame.
+                match = re.fullmatch(r"<image ([1-8])>", diagnosis["frame"])
+                if match:
+                    index = int(match.group(1)) - 1
+                    if index >= len(selected): raise ValueError("image index outside supplied frames")
+                    diagnosis["frame"] = selected[index].path
                 result = {"model": MODEL, "rollout_id": rid, "version": version, "attempt": attempt + 1, "diagnosis": diagnosis}
                 (folder / "response.json").write_text(json.dumps(result, indent=2)); return result
             except (HTTPError, URLError, TimeoutError, json.JSONDecodeError, ValueError, KeyError) as exc:

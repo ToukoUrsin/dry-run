@@ -77,7 +77,7 @@ def _rects_overlap(a: tuple[float, float, float, float], b: tuple[float, float, 
 
 def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[BrickSpec]:
     rng = random.Random(seed)
-    n = count if count is not None else rng.randint(3, 12)
+    n = count if count is not None else rng.randint(3, 8)
     opts = parse_sentence(sentence)
     # Candidate cells leave a 3 mm gap between rigid bodies at rest.  A tray is
     # deliberately regular; a pile is a shuffled, dense arrangement without
@@ -85,13 +85,19 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     # The real SO-101's useful workspace is biased to +x from its base.  Keep
     # every generated start in that envelope so the reach checker exercises
     # real IK rather than accepting an unreachable layout.
-    candidates = [(x, y) for y in np.arange(-.24, .241, .056) for x in np.arange(.14, .441, .072)]
+    # Conservative interior of the measured reach map (15x15x8 run, 32
+    # workers).  The outer table cells are retained in the map as rejected
+    # evidence but are not used for benchmark scenes.
+    candidates = [(x, y) for y in np.arange(-.156, .157, .052) for x in np.arange(.168, .361, .048)]
+    if opts["layout"] == "grid":
+        # Loose tier: regular, flat cells with a full arm-width corridor.
+        candidates = [(x, y) for y in (-.12, -.04, .04, .12) for x in (.18, .22, .26)]
     if parse_sentence(sentence)["bowls"] == "behind":
-        bowl_centres = ((.16, .30), (.36, .30))
+        bowl_centres = ((.16, .22), (.36, .22))
     elif parse_sentence(sentence)["bowls"] == "front":
-        bowl_centres = ((.16, -.30), (.36, -.30))
+        bowl_centres = ((.16, -.22), (.36, -.22))
     else:
-        bowl_centres = ((.35, -.30), (.35, .30))
+        bowl_centres = ((.36, -.18), (.36, .18))
     if opts["layout"] == "pile":
         rng.shuffle(candidates)
     elif opts["layout"] == "tray":
@@ -101,13 +107,15 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     placed: list[BrickSpec] = []
     rects: list[tuple[float, float, float, float]] = []
     for i in range(n):
-        size = "2x4" if rng.random() < .45 else "2x2"
+        size = "2x2" if opts["layout"] == "grid" else ("2x4" if rng.random() < .45 else "2x2")
         # Keep 2x4 bodies along x; this makes the generated geometry easy to
         # inspect and leaves enough room for all twelve bricks.
         hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
         for x, y in candidates:
             r = (x - hx, y - hy, x + hx, y + hy)
-            near_bowl = any((x - bx) ** 2 + (y - by) ** 2 < .18 ** 2 for bx, by in bowl_centres)
+            # The actual bowl wall is 66 mm from its centre; keep a 34 mm
+            # margin for a 2x4 brick rather than rejecting a broad empty area.
+            near_bowl = any((x - bx) ** 2 + (y - by) ** 2 < .10 ** 2 for bx, by in bowl_centres)
             if not near_bowl and not any(_rects_overlap(r, old) for old in rects):
                 rects.append(r)
                 defect = "none" if rng.random() < .58 else rng.choice(DEFECTS[1:])
@@ -171,11 +179,11 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     # Bowl centres stay inside the SO-101's working envelope.  The sentence
     # changes their arrangement while preserving camera and reach validity.
     if opts["bowls"] == "behind":
-        good, bad = (.16, .30), (.36, .30)
+        good, bad = (.16, .22), (.36, .22)
     elif opts["bowls"] == "front":
-        good, bad = (.16, -.30), (.36, -.30)
+        good, bad = (.16, -.22), (.36, -.22)
     else:
-        good, bad = (.35, -.30), (.35, .30)
+        good, bad = (.36, -.18), (.36, .18)
     if opts["inspection"] == "left":
         cam = np.array([-.48, -.23, .34])
     elif opts["inspection"] == "right":
@@ -187,7 +195,7 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     pieces = [f'''<?xml version="1.0" encoding="UTF-8"?>
 <mujoco model="dryrun_station_seed_{seed}">
   <compiler angle="radian" autolimits="true"/>
-  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81" cone="elliptic" impratio="10" noslip_iterations="3"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81" cone="elliptic" impratio="10" noslip_iterations="3" iterations="100" ls_iterations="50"/>
   <include file="{_xml_escape(robot_include)}"/>
   <visual><headlight diffuse="0.8 0.8 0.8" ambient="0.35 0.35 0.35" specular="0.1 0.1 0.1"/><global offwidth="960" offheight="720"/></visual>
   <asset>
@@ -200,7 +208,7 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
   </asset>
   <worldbody>
     <light name="key" pos="0.25 -0.45 1.5" dir="-0.2 0.3 -1" directional="true" castshadow="true"/>
-    <geom name="table" type="box" pos="0.15 0 -0.045" size="0.62 0.48 0.045" material="table_mat" friction="0.8 0.1 0.02"/>
+  <geom name="table" type="box" pos="0.15 0 -0.045" size="0.62 0.48 0.045" material="table_mat" friction="0.8 0.1 0.02" solref="0.0002 1" solimp="0.99 0.999 0.001"/>
     <geom name="table_edge" type="box" pos="0.15 0.47 0.04" size="0.62 0.025 0.08" material="table_mat"/>
     {_bowl("good_bowl", *good, "good_bowl")}
     {_bowl("defective_bowl", *bad, "bad_bowl")}

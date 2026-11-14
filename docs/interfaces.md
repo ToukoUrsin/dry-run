@@ -58,6 +58,18 @@ diagnosis.
 keeps every XML and rejection reason in its JSONL record, and optionally sends
 accepted stations through the shared `dryrun.render.rollout` expert API.
 
+The page's `POST /api/stations` accepts a sentence of at most 300 characters
+and inserts `station_requests`; it never treats the sentence as a command.
+`dryrun.worker --once` claims one pending request, writes the station gallery
+record and expert result, and updates `worker_heartbeat`. The page reads these
+rows through `GET /api/stations` and labels the worker online or offline.
+
+For the workspace views, the page consumes `diagnoses`, `stations`, and
+`worker` from the aggregate snapshot. Replay files remain under the run
+volume; only compact scene/result rows belong in the database. The current
+deployment keeps honest recorded/offline states when a live worker or remote
+database is absent.
+
 ## Rollout API (main, published 2026-11-14)
 
 `dryrun.env.StationEnv(seed, tier=None)` is the public MuJoCo environment. `reset()` returns an observation. `step(action)` accepts six finite joint position targets in the order shoulder pan, shoulder lift, elbow flex, wrist flex, wrist roll, gripper, advances the 2 ms simulator at the public 30 Hz boundary, and returns `(observation, reward, done, info)`. `observe()` returns exactly `{"top": uint8[H,W,3], "inspection": uint8[H,W,3], "joints": float32[6]}`. `expert_action()` may read simulator truth and returns one six-target action. `result()` returns good-bowl, wrong-bowl, dropped brick ids and cycle times.

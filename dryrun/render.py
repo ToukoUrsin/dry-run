@@ -10,6 +10,7 @@ import numpy as np
 import mujoco
 import imageio.v2 as imageio
 from .mjcf_station import station_xml, ROOT, layout_bricks
+from .env import TIERS
 from .grasp_test import ARM_NAMES, ids, solve_restarted, pad_force, safe_state
 
 
@@ -189,14 +190,22 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
 
 
 def main():
-    ap=argparse.ArgumentParser(); ap.add_argument('--seed',type=int,default=7); ap.add_argument('--out',type=Path,required=True); ap.add_argument('--json',type=Path)
+    ap=argparse.ArgumentParser(); ap.add_argument('--seed',type=int,default=7); ap.add_argument('--tier',choices=sorted(TIERS),default='messy'); ap.add_argument('--out',type=Path,required=True); ap.add_argument('--json',type=Path)
     a=ap.parse_args(); os.environ.setdefault('MUJOCO_GL','egl'); a.out.parent.mkdir(parents=True,exist_ok=True)
-    xml=a.out.with_suffix('.xml'); xml.write_text(station_xml(a.seed,'good and defective bowls on the sides, inspection camera in front',robot_include=str((ROOT/'assets/SO101/Simulation/SO101/so101_dryrun.xml').resolve())))
+    sentence=TIERS[a.tier]; count=1 if a.tier=='loose' else None
+    xml=a.out.with_suffix('.xml'); xml_text=station_xml(a.seed,sentence,count=count,robot_include=str((ROOT/'assets/SO101/Simulation/SO101/so101_dryrun.xml').resolve()))
+    specs=layout_bricks(a.seed,sentence,count=count)
+    if a.tier=='loose':
+        import re
+        xml_text=re.sub(r'(<body name="brick_0" pos=")[^"]+(">)',r'\g<1>0.2600 -0.0400 0.00960\2',xml_text,count=1)
+        from dataclasses import replace
+        specs=[replace(specs[0],x=.26,y=-.04)]
+    xml.write_text(xml_text)
     model=mujoco.MjModel.from_xml_path(str(xml)); data=mujoco.MjData(model); mujoco.mj_forward(model,data)
     writer=imageio.get_writer(a.out,fps=30,codec='libx264',quality=7); renderers={c:mujoco.Renderer(model,360,640) for c in ('free_view','top_view','inspection_view')}
     global _VIDEO; _VIDEO=writer
     for c,r in renderers.items(): r.update_scene(data,c); writer.append_data(r.render())
-    result=rollout(model,data,a.seed,renderers,layout_bricks(a.seed,'good and defective bowls on the sides, inspection camera in front')); writer.close(); [r.close() for r in renderers.values()]
+    result=rollout(model,data,a.seed,renderers,specs); writer.close(); [r.close() for r in renderers.values()]
     result.update({'model':str(xml),'mujoco':mujoco.__version__,'video':str(a.out),'views':list(renderers)})
     if a.json: a.json.write_text(json.dumps(result,indent=2))
     print(json.dumps({k:v for k,v in result.items() if k!='events'},indent=2))

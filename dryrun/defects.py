@@ -98,6 +98,7 @@ def render_inspection_frame(
     model: mujoco.MjModel,
     data: mujoco.MjData,
     renderer: mujoco.Renderer,
+    focus_body: int | str | None = None,
 ) -> np.ndarray:
     """Render the fixed brick crop through the shared station camera path.
 
@@ -109,20 +110,35 @@ def render_inspection_frame(
     mujoco.mj_forward(model, data)
     old_rgba = model.geom_rgba.copy()
     try:
-        _hide_noninspection_geometry(model)
+        _hide_noninspection_geometry(model, focus_body=focus_body)
         renderer.update_scene(data, "inspection_view")
         return renderer.render().copy()
     finally:
         model.geom_rgba[:] = old_rgba
 
 
-def _hide_noninspection_geometry(model: mujoco.MjModel) -> None:
+def _hide_noninspection_geometry(
+    model: mujoco.MjModel, *, focus_body: int | str | None = None
+) -> None:
     """Hide arm/camera hardware for the fixed inspection crop only."""
-    keep_prefixes = ("brick_", "good_bowl", "defective_bowl", "table")
+    # The crop contains the held brick and a neutral table/background only;
+    # bowls belong to the top-camera context and otherwise make train and
+    # rollout crops depend on the station sentence.
+    focus_name = None
+    if focus_body is not None:
+        if isinstance(focus_body, str):
+            focus_name = focus_body
+        else:
+            focus_name = mujoco.mj_id2name(
+                model, mujoco.mjtObj.mjOBJ_BODY, int(focus_body)
+            )
     for geom_id in range(model.ngeom):
         body_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(model.geom_bodyid[geom_id])) or ""
         geom_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id) or ""
-        if not body_name.startswith(keep_prefixes) and not geom_name.startswith(keep_prefixes):
+        keep = body_name == "table" or geom_name == "table"
+        if body_name.startswith("brick_") or geom_name.startswith("brick_"):
+            keep = focus_name is None or body_name == focus_name
+        if not keep:
             model.geom_rgba[geom_id, 3] = 0.0
 
 
@@ -209,10 +225,13 @@ def render_drawing_frame(drawing: str | Path | np.ndarray, seed: int = 0, *, siz
         }
         if brick_geoms:
             renderer.enable_segmentation_rendering()
+            old_rgba = model.geom_rgba.copy()
             try:
+                _hide_noninspection_geometry(model)
                 renderer.update_scene(data, "inspection_view")
                 segmentation = renderer.render()
             finally:
+                model.geom_rgba[:] = old_rgba
                 renderer.disable_segmentation_rendering()
             mask = np.isin(segmentation[..., 0], tuple(brick_geoms))
             ys, xs = np.where(mask)

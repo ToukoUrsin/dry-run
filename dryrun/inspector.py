@@ -23,6 +23,7 @@ class Inspector:
         # model where possible so a future export with another fixed size does
         # not silently reshape its anomaly map incorrectly.
         ps = self.input.partial_shape
+        self.batch_size = int(ps[0].get_length()) if len(ps) == 4 and ps[0].is_static else 1
         self.input_height = int(ps[2].get_length()) if len(ps) == 4 and ps[2].is_static else 256
         self.input_width = int(ps[3].get_length()) if len(ps) == 4 and ps[3].is_static else 256
         self.score_output = self.compiled.output("pred_score")
@@ -55,9 +56,13 @@ class Inspector:
         """Return score, verdict and a uint8 heat map for an RGB frame."""
         frame = self._rgb_input(frame)
         h, w = frame.shape[:2]; x = cv2.resize(frame, (self.input_width, self.input_height), interpolation=cv2.INTER_AREA).transpose(2, 0, 1)[None]
+        if self.batch_size > 1: x = np.repeat(x, self.batch_size, axis=0)
         outputs = self.request.infer({self.input: x})
         score = float(np.asarray(outputs[self.score_output]).reshape(-1)[0])
-        amap = np.asarray(outputs[self.heatmap_output]).squeeze()
+        amap = np.asarray(outputs[self.heatmap_output])
+        if amap.ndim == 4: amap = amap[0, 0]
+        elif amap.ndim == 3: amap = amap[0]
+        amap = np.squeeze(amap)
         if amap.ndim != 2:
             raise RuntimeError(f"unexpected anomaly_map shape: {np.asarray(outputs[self.heatmap_output]).shape}")
         amap = cv2.resize(amap.astype(np.float32), (w, h), interpolation=cv2.INTER_LINEAR)

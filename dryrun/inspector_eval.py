@@ -106,8 +106,24 @@ def load_page_json(path: str | Path = "/bulk2/runs/dryrun/m2/evaluation.json") -
     return result
 
 def _score(infer, inp, path: Path) -> tuple[float, np.ndarray]:
-    b = cv2.imread(str(path)); rgb = cv2.cvtColor(b, cv2.COLOR_BGR2RGB); x = cv2.resize(rgb, (256, 256), interpolation=cv2.INTER_AREA).transpose(2, 0, 1)[None].astype(np.float32) / 255
-    out = infer.infer({inp: x}); return float(np.asarray(out["pred_score"]).reshape(-1)[0]), np.asarray(out["anomaly_map"]).reshape(256, 256)
+    b = cv2.imread(str(path)); rgb = cv2.cvtColor(b, cv2.COLOR_BGR2RGB)
+    frame = cv2.resize(rgb, (256, 256), interpolation=cv2.INTER_AREA).transpose(2, 0, 1).astype(np.float32) / 255
+    # Some Anomalib exports retain the training datamodule batch (the selected
+    # PatchCore is batch 2).  Repeat the single evaluation frame to satisfy
+    # that static input and read the first independent result.  This keeps the
+    # per-image rows and threshold semantics unchanged while allowing the
+    # evaluator to validate every exported model shape.
+    shape = [int(d) for d in inp.shape]
+    batch = max(1, int(shape[0]))
+    x = np.repeat(frame[None], batch, axis=0)
+    out = infer.infer({inp: x})
+    scores = np.asarray(out["pred_score"]).reshape(-1)
+    amap = np.asarray(out["anomaly_map"])
+    if amap.ndim == 4:
+        amap = amap[0, 0]
+    elif amap.ndim == 3:
+        amap = amap[0]
+    return float(scores[0]), amap.reshape(256, 256)
 
 def _rows(compiled, data: Path, split: str) -> list[dict]:
     infer = compiled.create_infer_request(); inp = compiled.input(0); rows = []

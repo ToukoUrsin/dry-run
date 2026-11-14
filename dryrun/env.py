@@ -4,7 +4,8 @@ from pathlib import Path
 from typing import Any
 import numpy as np
 import mujoco
-from .grasp_test import ARM_NAMES, ids, qadr, solve_restarted
+from .grasp_test import ARM_NAMES, ids, qadr
+from .closed_form_ik import IKError, ik_pad_pose
 from .mjcf_station import ROOT, station_xml
 
 TIERS = {
@@ -64,7 +65,14 @@ class StationEnv:
         if not remaining: return self._last_action.copy()
         body = min(remaining, key=lambda b: float(np.linalg.norm(self.data.xpos[b, :2]))); self._active = body
         self._event("reach", body)
-        q, err, ok = solve_restarted(self.model, self.data, [float(self.data.xpos[body, 0]), float(self.data.xpos[body, 1]), .075], self.arm, 1.7)
+        try:
+            result = ik_pad_pose(
+                [float(self.data.xpos[body, 0]), float(self.data.xpos[body, 1]), .075],
+                approach_pitch=0.0,
+            )
+            q, err, ok = result.q, result.error, result.error <= .004
+        except IKError:
+            q, err, ok = np.zeros(5, dtype=float), float("inf"), False
         if not ok: self._event("ik_fail", body, error_m=float(err)); return self._last_action.copy()
         return np.r_[q, 1.7].astype(np.float32)
 

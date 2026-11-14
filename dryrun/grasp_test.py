@@ -9,6 +9,109 @@ from .mjcf_station import station_xml, ROOT
 
 ARM_NAMES=("shoulder_pan","shoulder_lift","elbow_flex","wrist_flex","wrist_roll")
 
+# Measured zero-pose geometry for the SO-101 pan plus planar chain.  The
+# closed-form branch below is deterministic; MuJoCo only supplies the bounded
+# millimetre correction and the independent cross-check.
+SHOULDER_PIVOT = np.array([0.0388353, 0.0, 0.0624], dtype=float)
+SHOULDER_OFFSET = np.array([0.0303992, -0.0182778, 0.0542], dtype=float)
+UPPER_LINK = np.array([0.028, 0.0, 0.11257], dtype=float)
+FOREARM_LINK = np.array([0.1349, 0.0, 0.0052], dtype=float)
+WRIST_TO_GRIPPERFRAME = np.array([0.1592274, 0.0182665, -0.0079013], dtype=float)
+WRIST_TO_PAD_MIDPOINT = np.array([0.0930000, 0.0184363, 0.0013179], dtype=float)
+
+
+def _rz(angle: float) -> np.ndarray:
+    c, s = math.cos(angle), math.sin(angle)
+    return np.array([[c, s, 0.0], [-s, c, 0.0], [0.0, 0.0, 1.0]], dtype=float)
+
+
+def _analytic_seed(target: np.ndarray, model: mujoco.MjModel, distal_offset: np.ndarray) -> np.ndarray | None:
+    """Select a pan/two-link branch from closed-form planar geometry."""
+    target = np.asarray(target, dtype=float)
+    if target.shape != (3,) or not np.all(np.isfinite(target)):
+        return None
+    dxy = target[:2] - SHOULDER_PIVOT[:2]
+    if np.linalg.norm(dxy) < 1e-9:
+        return None
+    # MuJoCo's positive pan rotates the radial plane by -q1.
+    q1 = float(np.clip(-math.atan2(float(dxy[1]), float(dxy[0])),
+                       model.jnt_range[0, 0], model.jnt_range[0, 1]))
+    local = _rz(q1) @ (target - SHOULDER_PIVOT)
+    # The wrist pitch/roll are free for a position-only target.  Remove the
+    # measured distal length along the current radial direction; this keeps
+    # the two-link triangle inside the reachable annulus for all approach
+    # pitches, while the exact wrist offsets are solved in the correction.
+    distal_length = float(np.linalg.norm(distal_offset))
+    candidates = []
+    l1 = float(np.linalg.norm(UPPER_LINK[[0, 2]])); l2 = float(np.linalg.norm(FOREARM_LINK[[0, 2]]))
+    alpha = math.atan2(float(UPPER_LINK[0]), float(UPPER_LINK[2]))
+    beta = math.atan2(float(FOREARM_LINK[0]), float(FOREARM_LINK[2]))
+    lo = np.asarray(model.jnt_range[:5, 0], dtype=float); hi = np.asarray(model.jnt_range[:5, 1], dtype=float)
+    for distal_sign in (1.0, -1.0):
+        wrist_local = local - SHOULDER_OFFSET - np.array([distal_sign * distal_length, 0.0, 0.0])
+        x, z = float(wrist_local[0]), float(wrist_local[2]); r = math.hypot(x, z)
+        if r > l1 + l2 or r < abs(l1 - l2) or r < 1e-8: continue
+        gamma = math.atan2(x, z)
+        c1 = float(np.clip((l1*l1 + r*r - l2*l2) / (2*l1*r), -1.0, 1.0))
+        c2 = float(np.clip((l2*l2 + r*r - l1*l1) / (2*l2*r), -1.0, 1.0))
+        phi, psi = math.acos(c1), math.acos(c2)
+        for sign in (1.0, -1.0):
+            q2 = gamma + sign * phi - alpha
+            q3 = gamma - sign * psi - beta - q2
+            q = np.array([q1, q2, q3, 0.0, 0.0], dtype=float)
+            if np.all(q >= lo) and np.all(q <= hi): candidates.append(q)
+    if not candidates:
+        return None
+    return min(candidates, key=lambda q: float(np.linalg.norm(q[1:3])))
+
+
+def closed_form_ik(model: mujoco.MjModel, data: mujoco.MjData, target,
+                    grip_q: float = 1.7, *, point: str = "pad_midpoint",
+                    wrist_roll: float = 1.3,
+                    tolerance: float = .0015):
+    """Solve one target from geometry, with one bounded exact correction.
+
+    Unlike ``solve_restarted`` this never searches restart seeds.  The
+    pan/two-link solution chooses the branch, then at most 18 damped Newton
+    updates project it onto the exact MuJoCo pad or gripper-frame geometry.
+    """
+    target = np.asarray(target, dtype=float).reshape(3)
+    distal_offset = WRIST_TO_GRIPPERFRAME if point == "gripperframe" else WRIST_TO_PAD_MIDPOINT
+    seed = _analytic_seed(target, model, distal_offset)
+    if seed is None:
+        return np.zeros(5, dtype=float), float("inf"), False
+    qa = qadr(model, ids(model)); grip = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "gripper"); ga = int(model.jnt_qposadr[grip])
+    qsave = data.qpos.copy(); vsave = data.qvel.copy()
+    try:
+        seed[-1] = float(np.clip(wrist_roll, model.jnt_range[4, 0], model.jnt_range[4, 1]))
+        for k, adr in enumerate(qa): data.qpos[adr] = seed[k]
+        data.qpos[ga] = float(grip_q); mujoco.mj_forward(model, data)
+        def value():
+            if point == "gripperframe":
+                sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "gripperframe")
+                return data.site_xpos[sid].copy()
+            a = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "fixed_grip_pad")
+            b = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "moving_grip_pad")
+            return ((data.geom_xpos[a] + data.geom_xpos[b]) * .5).copy()
+        eps = 2e-5
+        for _ in range(18):
+            p = value(); err = target - p
+            if float(np.linalg.norm(err)) <= tolerance:
+                return np.asarray([data.qpos[a] for a in qa]), float(np.linalg.norm(err)), True
+            J = np.empty((3, 5), dtype=float); base = np.asarray([data.qpos[a] for a in qa], dtype=float)
+            for k, adr in enumerate(qa):
+                data.qpos[adr] = base[k] + eps; mujoco.mj_forward(model, data); J[:, k] = (value() - p) / eps
+                data.qpos[adr] = base[k]
+            mujoco.mj_forward(model, data)
+            dq = J.T @ np.linalg.solve(J @ J.T + 1e-7 * np.eye(3), err)
+            q = np.clip(base + .9 * dq, model.jnt_range[:5, 0], model.jnt_range[:5, 1])
+            for k, adr in enumerate(qa): data.qpos[adr] = q[k]
+            data.qpos[ga] = float(grip_q); mujoco.mj_forward(model, data)
+        err = float(np.linalg.norm(target - value()))
+        return np.asarray([data.qpos[a] for a in qa]), err, bool(np.isfinite(err) and err <= tolerance)
+    finally:
+        data.qpos[:] = qsave; data.qvel[:] = vsave; mujoco.mj_forward(model, data)
+
 def make_empty_table(path: Path):
     path.write_text(station_xml(901,"single brick, bowls behind the arm, inspection camera in front",count=1,robot_include=str((ROOT/'assets/SO101/Simulation/SO101/so101_dryrun.xml').resolve())))
     tree=ET.parse(path); world=tree.getroot().find('worldbody')

@@ -35,3 +35,9 @@ def test_benchmark_has_no_position_override_or_one_brick_special_case():
     assert "count=1" not in source
     assert "0.2600" not in source
     assert not any(isinstance(node, ast.Import) and any(alias.name == "re" for alias in node.names) for node in tree.body)
+
+
+def test_benchmark_uses_the_public_rollout_boundary():
+    source = (ROOT / "dryrun" / "benchmark.py").read_text()
+    assert "from .rollout import run as rollout_run" in source
+    assert "from .render import rollout" not in source

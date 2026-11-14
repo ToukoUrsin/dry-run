@@ -11,7 +11,8 @@ import mujoco
 import imageio.v2 as imageio
 from .mjcf_station import station_xml, ROOT, layout_bricks
 from .env import TIERS
-from .grasp_test import ARM_NAMES, ids, solve_restarted, pad_force, safe_state
+from .grasp_test import ARM_NAMES, ids, pad_force, safe_state
+from .closed_form_ik import IKError, ik_pad_pose, nearest_symmetric_yaw
 from .defects import INSPECTION_FRAME_SIZE, INSPECTION_PRESENT_POSE, configure_inspection_camera, render_inspection_frame
 
 
@@ -24,6 +25,25 @@ def ik(model, data, target, q):
         J=np.zeros((3,model.nv));mujoco.mj_jacSite(model,data,J,None,sid);J=J[:,:6]
         q += .45*J.T@np.linalg.solve(J@J.T+.002*np.eye(3),err);q=np.clip(q,model.jnt_range[:6,0],model.jnt_range[:6,1])
     return q
+
+
+def _solve_target(model, data, target, grip, *, tolerance=.004, wrist_roll=0.0):
+    """Solve physical pad targets with the finite closed-form path."""
+    del model, data, grip  # retained for the rollout call contract
+    pitches = [*range(35, -1, -1), *range(-1, -36, -1)]
+    for degrees in pitches:
+        try:
+            result = ik_pad_pose(
+                target,
+                approach_pitch=float(np.deg2rad(degrees)),
+                wrist_roll=float(wrist_roll),
+                enforce_limits=True,
+            )
+        except IKError:
+            continue
+        if result.error <= tolerance:
+            return result.q, float(result.error), True
+    return np.zeros(5, dtype=float), float("inf"), False
 
 
 def contact_with_arm(model, data, body_id):
@@ -53,8 +73,13 @@ def _record_frame(model, data, action):
         return
     obs = {}
     for cam, renderer in _ACTIVE_RECORDERS.items():
-        renderer.update_scene(data, cam)
-        obs[cam.replace("_view", "")] = renderer.render().copy()
+        if cam == "inspection_view":
+            # The policy and inspector receive the same fixed brick crop;
+            # only the top/free context retains the full arm scene.
+            obs["inspection"] = render_inspection_frame(model, data, renderer)
+        else:
+            renderer.update_scene(data, cam)
+            obs[cam.replace("_view", "")] = renderer.render().copy()
     payload = {
         "t": float(data.time),
         "observation": {
@@ -82,8 +107,12 @@ def _drive(model, data, q, grip, steps, writer):
         _record_frame(model, data, np.r_[np.asarray(q, dtype=np.float32), float(grip)])
         if writer and step % 60 == 0:
             for cam,r in writer.items():
-                r.update_scene(data,cam)
-                if "_VIDEO" in globals(): _VIDEO.append_data(r.render())
+                if cam == "inspection_view":
+                    frame = render_inspection_frame(model, data, r)
+                else:
+                    r.update_scene(data, cam)
+                    frame = r.render().copy()
+                if "_VIDEO" in globals(): _VIDEO.append_data(frame)
 
 
 def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=None):
@@ -114,13 +143,16 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
         for i, ct, ca in pad_collision:
             model.geom_contype[i] = ct if enabled else 0
             model.geom_conaffinity[i] = ca if enabled else 0
-    inspection_renderer = mujoco.Renderer(model, INSPECTION_FRAME_SIZE, INSPECTION_FRAME_SIZE) if inspector is not None and writer is None else None
+    # Keep the inspector input at the canonical 384 px even when a caller is
+    # also writing a low-resolution replay video.
+    inspection_renderer = mujoco.Renderer(model, INSPECTION_FRAME_SIZE, INSPECTION_FRAME_SIZE) if inspector is not None else None
     remaining=set(brick_ids)
     while remaining:
         body=min(remaining,key=lambda b: float(np.linalg.norm(data.xpos[b,:2])))
         remaining.remove(body)
         name=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,body); idx=int(name.split('_')[1])
         spec=specs[idx] if specs is not None and idx < len(specs) else None; start_z=float(data.xpos[body,2]); best=None
+        brick_roll = (1.3 if float(data.xpos[body, 1]) >= 0 else -1.3) if spec is None else (nearest_symmetric_yaw(spec.yaw, spec.size, reference=0.0) + (1.3 if float(data.xpos[body, 1]) >= 0 else -1.3))
         if record is not None:
             event = {"type": "cycle_start", "brick": name, "t": float(data.time)}
             if callable(record): record(event)
@@ -128,12 +160,12 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
         for attempt in range(6):
             set_bowl_collision(False)
             set_pad_collision(False)
-            start=data.xpos[body].copy(); q,ea,oka=solve_restarted(model,data,[float(start[0]),float(start[1]),.075],arm,gopen)
+            start=data.xpos[body].copy(); approach_q,ea,oka=_solve_target(model,data,[float(start[0]),float(start[1]),.075],gopen,wrist_roll=brick_roll)
             if not oka: best={'failed_stage':'approach_ik','ik_error_m':ea}; continue
-            _drive(model,data,q,gopen,500,writer)
+            _drive(model,data,approach_q,gopen,500,writer)
             if not safe_state(model,data,body): best={'failed_stage':'approach_unstable'}; continue
             set_pad_collision(True)
-            xy=data.xpos[body,:2].copy(); q,ep,okp=solve_restarted(model,data,[float(xy[0]),float(xy[1]),.034],arm,gopen,tol=.0025)
+            xy=data.xpos[body,:2].copy(); q,ep,okp=_solve_target(model,data,[float(xy[0]),float(xy[1]),.034],gopen,tolerance=.0025,wrist_roll=brick_roll)
             if not okp: best={'failed_stage':'lower_approach_ik','ik_error_m':ep}; continue
             _drive(model,data,q,gopen,650,writer)
             touched=set(); peak=0.; close_g=gopen
@@ -146,29 +178,37 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
             close_g=min(close_g,.75)
             for _ in range(120):
                 _drive(model,data,q,close_g,1,None); f,t=pad_force(model,data); peak=max(peak,f); touched |= t
+            # The lower pose only establishes both pad contacts.  Lift from
+            # the live brick position with a fresh closed-form solve; the
+            # previous implementation kept commanding the lower pose, so a
+            # brick could be squeezed without ever being lifted.
+            lift_xy=data.xpos[body,:2].copy()
+            lift_q,el,okl=_solve_target(model,data,[float(lift_xy[0]),float(lift_xy[1]),.075],close_g,wrist_roll=brick_roll)
+            if okl:
+                _drive(model,data,lift_q,close_g,500,writer)
             picked=bool(len(touched)==2 and data.xpos[body,2]>start_z+.005)
             if not picked: best={'failed_stage':'lift_contact','pad_contacts':len(touched),'peak_pad_force_N':peak}; continue
             set_bowl_collision(True)
-            inspect=INSPECTION_PRESENT_POSE.copy(); qi,ei,oki=solve_restarted(model,data,inspect,arm,close_g)
+            inspect=INSPECTION_PRESENT_POSE.copy(); qi,ei,oki=_solve_target(model,data,inspect,close_g)
             if not oki: best={'failed_stage':'inspection_ik','ik_error_m':ei}; continue
             for step in range(900):
                 qq=q+(qi-q)*min(1.,step/700.); _drive(model,data,qq,close_g,1,writer)
             for _ in range(180): _drive(model,data,qi,close_g,1,writer)
             verdict = None
             if inspector is not None:
-                view = writer.get('inspection_view') if writer is not None else inspection_renderer
-                result = inspector(render_inspection_frame(model, data, view))
+                result = inspector(render_inspection_frame(model, data, inspection_renderer))
                 verdict = result['verdict']; events.append({'brick': name, 'event': 'verdict', 'verdict': verdict, 'score': float(result['score']), 'threshold': float(result['threshold'])})
                 _ACTIVE_VERDICT = 1 if verdict == 'good' else -1
             is_defective = verdict == 'defective' if verdict is not None else (spec is None or spec.defect != 'none')
-            bowl=np.array([.36, .18 if is_defective else -.18, .125]); qb,eb,okb=solve_restarted(model,data,bowl,arm,close_g)
+            bowl_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "defective_bowl" if is_defective else "good_bowl")
+            bowl=np.array([float(data.xpos[bowl_id, 0]), float(data.xpos[bowl_id, 1]), .125]); qb,eb,okb=_solve_target(model,data,bowl,close_g)
             if not okb: best={'failed_stage':'bowl_ik','ik_error_m':eb}; continue
             for step in range(1100):
                 qq=qi+(qb-qi)*min(1.,step/800.); _drive(model,data,qq,close_g,1,writer)
             # Release fully and give the brick enough real physics time to
             # settle inside the bowl before judging the drop.
             _drive(model,data,qb,gopen,1500,writer)
-            qaway,eaway,okaway=solve_restarted(model,data,[.28,0.,.24],arm,gopen)
+            qaway,eaway,okaway=_solve_target(model,data,[.28,0.,.24],gopen)
             if okaway: _drive(model,data,qaway,gopen,500,writer)
             final=data.xpos[body].copy(); in_bowl=bool(np.linalg.norm(final[:2]-bowl[:2])<.14 and final[2]<.10); ok=bool(in_bowl)
             best={'picked_by_contact':True,'pad_contacts':len(touched),'peak_pad_force_N':peak,'final_xyz':[round(float(v),4) for v in final],'in_bowl':in_bowl,'success':ok,'attempts':attempt+1}

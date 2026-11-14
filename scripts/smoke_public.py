@@ -63,8 +63,10 @@ def check_viewport(page, width: int, height: int, screenshot: Path | None) -> di
     result = page.evaluate(
         """() => {
           const text = document.body.innerText;
-          const bad = [...document.querySelectorAll('#benchmark-metrics strong')]
+          const bad = [...document.querySelectorAll('#benchmark-metrics strong, #db-health b, #inspector td')]
             .filter(x => x.textContent.trim() === 'N/A').map(x => x.parentElement.innerText);
+          const emptyData = [...document.querySelectorAll('#inspector .empty')]
+            .filter(x => /No inspector|No evaluation/i.test(x.textContent)).map(x => x.textContent.trim());
           const canvas = document.querySelector('#viewer');
           let nonBackground = 0;
           if (canvas && canvas.width && canvas.height) {
@@ -87,6 +89,7 @@ def check_viewport(page, width: int, height: int, screenshot: Path | None) -> di
             video_ready: [...document.querySelectorAll('video')].map(v => v.readyState),
             empty_fallbacks: [...document.querySelectorAll('.camera .empty')]
               .filter(x => !x.classList.contains('hide')).map(x => x.textContent.trim()),
+            empty_data: emptyData,
           };
         }"""
     )
@@ -96,6 +99,8 @@ def check_viewport(page, width: int, height: int, screenshot: Path | None) -> di
         errors.append(f"3D viewer is blank ({result['non_background_pixels']} non-background pixels)")
     if result["empty_fallbacks"]:
         errors.append(f"empty camera fallbacks: {result['empty_fallbacks']}")
+    if result["empty_data"]:
+        errors.append(f"empty data sections: {result['empty_data']}")
     if result["scroll_width"] != result["viewport_width"]:
         errors.append(f"horizontal overflow: scrollWidth={result['scroll_width']} viewport={result['viewport_width']}")
     errors.extend(api_errors)

@@ -67,7 +67,7 @@ def score_payload(snap):
     cps=snap.get("checkpoints") or []
     if not cps: return {"status":"unavailable","message":"No benchmark checkpoint has been recorded in telemetry yet.","commit":snap.get("commit"),"checkpoints":[]}
     latest=cps[-1]; latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
-    return {"status":"ok","checkpoint":latest,"commit":snap.get("commit"),"checkpoints":cps,"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at")}
+    return {"status":"ok","checkpoint":latest,"commit":snap.get("commit"),"checkpoints":cps,"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at")}
 
 class Handler(BaseHTTPRequestHandler):
     def send_bytes(self, body: bytes, content_type: str, status=200):

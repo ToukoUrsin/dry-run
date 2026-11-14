@@ -56,6 +56,23 @@ CREATE TABLE IF NOT EXISTS rollout_results (
 SELECT create_hypertable('rollout_results','finished_at',if_not_exists => TRUE);
 CREATE INDEX IF NOT EXISTS rollout_results_checkpoint_idx ON rollout_results (checkpoint, finished_at DESC);
 
+-- Camera-only failure analyses are kept separately from rollout outcomes so
+-- the dashboard can show the exact frames, sentence and next-scene batch.
+CREATE TABLE IF NOT EXISTS failure_diagnoses (
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  rollout_id TEXT NOT NULL,
+  model TEXT NOT NULL,
+  analyst_version TEXT NOT NULL,
+  frame_paths JSONB NOT NULL,
+  failure_stage TEXT NOT NULL,
+  cause TEXT NOT NULL,
+  evidence_frame TEXT NOT NULL,
+  scene_features JSONB NOT NULL,
+  next_scenes JSONB NOT NULL,
+  PRIMARY KEY (rollout_id, analyst_version)
+);
+CREATE INDEX IF NOT EXISTS failure_diagnoses_created_idx ON failure_diagnoses (created_at DESC);
+
 CREATE MATERIALIZED VIEW IF NOT EXISTS benchmark_checkpoint
 WITH (timescaledb.continuous) AS
 SELECT time_bucket('1 day', finished_at) AS bucket, checkpoint,

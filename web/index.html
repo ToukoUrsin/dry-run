@@ -38,7 +38,7 @@
 <script type="module">
 const $=s=>document.querySelector(s);let replay=null,playing=false,frame=0,raf=0,speed=1,renderer,scene,camera,controls,bodyGroups=[];
 const views={station:['hero','station'],benchmark:['benchmark'],replays:['replays','failures'],scenes:['scenes'],inspector:['inspector','draw'],method:['method','codex-log'],compare:['compare']};
-function showView(name){const route=views[name]?name:Object.keys(views).find(k=>views[k].includes(name))||'station';document.querySelectorAll('main>section').forEach(s=>s.classList.add('route-hidden'));(views[route]||views.station).forEach(id=>$("#"+id)?.classList.remove('route-hidden'));document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+route));if(location.hash.slice(1)!==route)history.replaceState(null,'','#'+route)}
+function showView(name,syncHash=true){const route=views[name]?name:Object.keys(views).find(k=>views[k].includes(name))||'station';document.querySelectorAll('main>section').forEach(s=>s.classList.add('route-hidden'));(views[route]||views.station).forEach(id=>$("#"+id)?.classList.remove('route-hidden'));document.querySelectorAll('nav a').forEach(a=>a.classList.toggle('active',a.getAttribute('href')==='#'+route));window.scrollTo(0,0);if(syncHash&&location.hash.slice(1)!==route)history.replaceState(null,'','#'+route)}
 window.addEventListener('hashchange',()=>showView(location.hash.slice(1)));
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function empty(text){return `<tr><td colspan="7" class="empty">${esc(text)}</td></tr>`}
@@ -69,7 +69,7 @@ $('#play-both').onclick=()=>{if(!$('#play-both').disabled){$('#replays').scrollI
 loadWorkspace();
 loadStations();
 loadCodex();
- showView(location.hash.slice(1)||'station');
+ showView(location.hash.slice(1)||'station',false);
 loadData();
 </script>
 </body></html>

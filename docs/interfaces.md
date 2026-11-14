@@ -77,7 +77,7 @@ validated response has `failure_stage`, one-sentence `cause`, a supplied
 `frame`, `scene_features`, and `next_scenes`. Each next scene has generator
 fields `tier`, `brick_count`, `spacing`, `yaw_spread`, `positions`, and
 `lighting`. Requests, raw responses, retries and final responses are saved
-under `/bulk2/runs/dryrun/m5/diagnoses/`.
+under `/bulk3/runs/dryrun/m5/diagnoses/`.
 
 `dryrun.telemetry.record_diagnosis(row)` writes the validated result to
 `failure_diagnoses`; `dashboard_snapshot()` and `/api/failures` expose the

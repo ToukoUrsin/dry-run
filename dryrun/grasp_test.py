@@ -233,7 +233,7 @@ def _trial_once(m,base,pos,yaw,roll_offset=None):
     if roll_offset is None:
         try:
             desired_roll = wrist_roll_for_brick(
-                [float(pos[0]), float(pos[1]), .034], float(yaw), "2x2", grip_q=.35
+                [float(pos[0]), float(pos[1]), .034], float(yaw), "2x2", grip_q=.6
             )
             offsets = (desired_roll,)
         except Exception:
@@ -303,7 +303,11 @@ def _trial_once(m,base,pos,yaw,roll_offset=None):
             f,t=pad_force(m,d); peak=max(peak,f); touched|=t
     if len(touched) < 2:
         return {'x':pos[0],'y':pos[1],'yaw':yaw,'ik_ok':[oka,okp,okp2], 'ik_error_m':[ea,ep,ep2], 'pad_contacts':len(touched), 'peak_pad_normal_force_N':round(peak,5), 'prelift_z':round(float(d.xpos[bid,2]),5), 'lift_z':round(float(d.xpos[bid,2]),5), 'lifted_10mm':False, 'final_pad_midpoint_error_m':None, 'failed_stage':'contact'}
-    z0=float(d.xpos[bid,2]); ql,el,okl=solve_restarted(m,d,target(.125),arm,close_g,tol=.0025,offsets=offsets)
+    z0=float(d.xpos[bid,2])
+    ql,el,okl=closed_form_ik(
+        m, d, target(.125), close_g, point="pad_midpoint",
+        wrist_roll=float(qp[-1]), tolerance=.0035,
+    )
     if not okl:
         return {'x':pos[0],'y':pos[1],'yaw':yaw,'ik_ok':[oka,okp,okl], 'ik_error_m':[ea,ep,el], 'pad_contacts':len(touched), 'peak_pad_normal_force_N':round(peak,5), 'prelift_z':round(z0,5), 'lift_z':round(z0,5), 'lifted_10mm':False, 'final_pad_midpoint_error_m':None, 'failed_stage':'lift_ik'}
     for step in range(1000):
@@ -317,7 +321,7 @@ def _trial_once(m,base,pos,yaw,roll_offset=None):
 def trial(m,base,pos,yaw):
     """Retry a symmetric brick with equivalent jaw orientations."""
     try:
-        primary = wrist_roll_for_brick([float(pos[0]), float(pos[1]), .034], float(yaw), "2x2", grip_q=.35)
+        primary = wrist_roll_for_brick([float(pos[0]), float(pos[1]), .034], float(yaw), "2x2", grip_q=.6)
     except Exception:
         primary = 0.0
     attempts=[_trial_once(m,base,pos,yaw,off) for off in (primary, 0., math.pi/2, -math.pi/2, math.pi)]

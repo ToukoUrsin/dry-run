@@ -95,7 +95,13 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     """Return a seeded 3--8 brick scene from measured >=95% cells."""
     opts = parse_sentence(sentence)
     rng = random.Random(seed + {"grid": 0, "messy": 100_003, "pile": 200_009, "tray": 300_007}[opts["layout"]])
-    accepted = [dict(row) for size in ("2x2", "2x4") for row in measured_cells(size)
+    # Scene candidates must come from the measured physics gate, not merely
+    # from analytic reach.  ``scene_reachable`` is a useful secondary check
+    # for the pickup and presentation poses, but it cannot promote a cell
+    # whose measured pick/lift rate is below the 95% threshold.  Keeping this
+    # filter here prevents a seed from quietly selecting the old low-success
+    # rim cells that were responsible for the rigged one-brick fixture.
+    accepted = [dict(row) for size in ("2x2", "2x4") for row in measured_cells(size, threshold=.95)
                 if scene_reachable(float(row["x"]), float(row["y"]))]
     if not accepted:
         raise ValueError("measured reach map has no accepted cells")

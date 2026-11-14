@@ -6,6 +6,7 @@ from pathlib import Path
 
 from dryrun.env import TIERS
 from dryrun.mjcf_station import _brick, layout_bricks, BrickSpec
+from dryrun.reach import measured_pick_ok, scene_reachable
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,25 @@ def test_loose_seed_controls_a_real_multi_brick_scene():
     assert all({b.size for b in scene} == {"2x2", "2x4"} for scene in scenes)
     assert {b.color for scene in scenes for b in scene} == {"red", "blue", "yellow", "green"}
     assert len({round(b.yaw, 6) for scene in scenes for b in scene}) >= 20
+    # Positions must vary with the seed as well as metadata.  A fixed pose
+    # with changing colours/defects is still the withdrawn rigged fixture.
+    positions = {
+        tuple((b.size, round(b.x, 4), round(b.y, 4), round(b.yaw, 6)) for b in scene)
+        for scene in scenes
+    }
+    assert len(positions) >= 18
+    assert all(
+        measured_pick_ok(b.x, b.y, b.size, b.yaw) and scene_reachable(b.x, b.y)
+        for scene in scenes for b in scene
+    ), "seeded scenes must use measured >=95% cells and reachable presentation poses"
+
+
+def test_every_tier_is_seeded_and_multi_brick():
+    for tier, sentence in TIERS.items():
+        scenes = [layout_bricks(seed, sentence) for seed in range(8)]
+        assert all(3 <= len(scene) <= 8 for scene in scenes)
+        assert len({tuple((b.size, round(b.x, 4), round(b.y, 4), round(b.yaw, 6)) for b in scene)
+                    for scene in scenes}) >= 6, tier
 
 
 def test_brick_yaw_is_emitted_on_the_free_body():

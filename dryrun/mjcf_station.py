@@ -17,6 +17,8 @@ from typing import Iterable
 import mujoco
 import numpy as np
 
+from .closed_form_ik import nearest_symmetric_yaw
+
 ROOT = Path(__file__).resolve().parents[1]
 ROBOT_INCLUDE = "SO101/Simulation/SO101/so101_dryrun.xml"
 COLORS = ("red", "blue", "yellow", "green")
@@ -36,6 +38,9 @@ class BrickSpec:
     y: float
     defect: str
     color: str
+    # Seeded scene orientation. A default keeps older inspection fixtures
+    # that construct BrickSpec positionally source-compatible.
+    yaw: float = 0.0
 
 
 def _xml_escape(s: str) -> str:
@@ -107,19 +112,27 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     placed: list[BrickSpec] = []
     rects: list[tuple[float, float, float, float]] = []
     for i in range(n):
-        size = "2x2" if opts["layout"] == "grid" else ("2x4" if rng.random() < .45 else "2x2")
-        # Keep 2x4 bodies along x; this makes the generated geometry easy to
-        # inspect and leaves enough room for all twelve bricks.
+        # Loose scenes always contain both footprints when n >= 3. Other
+        # tiers retain their seeded mixture. Reduce yaw to each footprint's
+        # symmetry class so equivalent jaw approaches stay equivalent.
+        size = ("2x2" if i % 2 == 0 else "2x4") if opts["layout"] == "grid" else ("2x4" if rng.random() < .45 else "2x2")
+        yaw = nearest_symmetric_yaw(rng.uniform(-math.pi, math.pi), size, reference=0.0)
         hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
+        cy, sy = math.cos(yaw), math.sin(yaw)
+        # Conservative bounds of a rotated rectangle keep free bodies
+        # separated at rest for every seeded orientation.
+        bound_x = abs(hx * cy) + abs(hy * sy)
+        bound_y = abs(hx * sy) + abs(hy * cy)
         for x, y in candidates:
-            r = (x - hx, y - hy, x + hx, y + hy)
+            r = (x - bound_x, y - bound_y, x + bound_x, y + bound_y)
             # The actual bowl wall is 66 mm from its centre; keep a 34 mm
             # margin for a 2x4 brick rather than rejecting a broad empty area.
             near_bowl = any((x - bx) ** 2 + (y - by) ** 2 < .10 ** 2 for bx, by in bowl_centres)
             if not near_bowl and not any(_rects_overlap(r, old) for old in rects):
                 rects.append(r)
                 defect = "none" if rng.random() < .58 else rng.choice(DEFECTS[1:])
-                placed.append(BrickSpec(i, size, round(float(x), 4), round(float(y), 4), defect, rng.choice(COLORS)))
+                color = COLORS[(int(seed) + i) % len(COLORS)]
+                placed.append(BrickSpec(i, size, round(float(x), 4), round(float(y), 4), defect, color, round(float(yaw), 6)))
                 break
         else:
             raise ValueError(f"could not place brick {i} without overlap")
@@ -144,7 +157,7 @@ def _bowl(name: str, x: float, y: float, material: str) -> str:
 def _brick(spec: BrickSpec) -> str:
     hx, hy = ((.032, .016) if spec.size == "2x4" else (.016, .016))
     cols = 4 if spec.size == "2x2" else 8
-    bits = [f'<body name="brick_{spec.index}" pos="{spec.x:.4f} {spec.y:.4f} {BRICK_H/2:.5f}"><freejoint/>',
+    bits = [f'<body name="brick_{spec.index}" pos="{spec.x:.4f} {spec.y:.4f} {BRICK_H/2:.5f}"{_quat_z(float(spec.yaw))}><freejoint/>',
             f'<geom name="brick_{spec.index}_body" type="box" size="{hx:.4f} {hy:.4f} {BRICK_H/2:.5f}" material="brick_{spec.color}" mass="0.018" friction="1.8 0.01 0.001" condim="4"/>']
     # Stud centres are at the standard 16 mm Duplo pitch.  Missing/chipped
     # studs are represented by absent/reduced collision geometry, not labels.

@@ -11,13 +11,8 @@ class ACTController:
     def __init__(self, checkpoint, device: str = "cpu"):
         self.policy = load_policy(checkpoint, device=device)
         self.device = device
-        self._ticks = 0
-        self._last = np.zeros(6, dtype=np.float32)
 
     def act(self, obs):
-        if self._ticks and self._ticks % 30:
-            self._ticks += 1
-            return self._last
         top = torch.from_numpy(np.asarray(obs["top"]).transpose(2, 0, 1)).float().unsqueeze(0).to(self.device) / 255.0
         inspection = torch.from_numpy(np.asarray(obs["inspection"]).transpose(2, 0, 1)).float().unsqueeze(0).to(self.device) / 255.0
         if top.shape[-2:] != (64, 64):
@@ -27,9 +22,10 @@ class ACTController:
         verdict = torch.as_tensor(obs.get("verdict", [0]), dtype=torch.float32).reshape(1, 1).to(self.device)
         with torch.no_grad():
             action = self.policy.select_action({"observation.images.top": top, "observation.images.inspection": inspection, "observation.state": torch.cat([joints, verdict], dim=1)})
-        self._last = action.detach().cpu().numpy().reshape(6)
-        self._ticks += 1
-        return self._last
+        # ACT is configured with n_action_steps=1.  A rollout tick is 1/30 s,
+        # so evaluate it on every observation rather than holding an action for
+        # 29 ticks (which silently turns a 30 Hz policy into a 1 Hz controller).
+        return action.detach().cpu().numpy().reshape(6)
 
 
 class OpenVINOController:
@@ -44,12 +40,19 @@ class OpenVINOController:
         return np.asarray(self.request.infer({"top": top, "inspection": inspection, "state": state})[self.compiled.output(0)]).reshape(6)
 
 
-def one(seed, tier, controller, checkpoint):
-    policy = ACTController(checkpoint) if controller == "policy" else "expert"
-    return run(seed, policy, tier=tier)
+def _controller_for(kind: str, checkpoint: str | Path | None):
+    if kind == "expert":
+        return "expert"
+    if checkpoint is None:
+        raise ValueError(f"--checkpoint is required for {kind} evaluation")
+    if kind == "policy":
+        return ACTController(checkpoint)
+    if kind == "openvino":
+        return OpenVINOController(checkpoint)
+    raise ValueError(f"unknown controller {kind!r}")
 
 
-def evaluate(checkpoint: str | Path, seeds: int = 200, workers: int = 8, controller: str = "policy", max_steps: int = 1800, export_replays: Path | None = None):
+def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, controller: str = "policy", max_steps: int = 3600, export_replays: Path | None = None):
     if seeds == 200:
         groups = {"loose": list(range(0, 80)), "messy": list(range(80, 150)), "pile": list(range(150, 200))}
     else:
@@ -67,11 +70,10 @@ def evaluate(checkpoint: str | Path, seeds: int = 200, workers: int = 8, control
     all_rows = {}
     for tier, values in groups.items():
         rows = []
-        if controller == "policy":
-            shared_controller = ACTController(checkpoint) if max_steps <= 1 else None
-            # n_action_steps=1 leaves no stateful action queue between calls.
+        if controller in {"policy", "openvino"}:
+            shared_controller = _controller_for(controller, checkpoint) if max_steps <= 1 else None
             def task(seed):
-                controller_obj = shared_controller or ACTController(checkpoint)
+                controller_obj = shared_controller or _controller_for(controller, checkpoint)
                 # A short horizon ends before `present`; avoid compiling the
                 # inspector for every smoke worker. Full-cycle runs still use
                 # the real OpenVINO inspector.
@@ -87,7 +89,7 @@ def evaluate(checkpoint: str | Path, seeds: int = 200, workers: int = 8, control
                 result = run(seed, controller_obj, inspector=inspector, record=capture, tier=tier, max_steps=max_steps, render_size=16 if max_steps <= 1 else 64)
                 return result, capture
         else:
-            def task(seed): return one(seed, tier, "expert", checkpoint), None
+            def task(seed): return run(seed, "expert", tier=tier, max_steps=max_steps), None
         with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:
             futures = [pool.submit(task, seed) for seed in values]
             for future in as_completed(futures):
@@ -118,7 +120,7 @@ def evaluate(checkpoint: str | Path, seeds: int = 200, workers: int = 8, control
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--controller", choices=("policy", "expert"), default="policy"); ap.add_argument("--checkpoint", type=Path, required=False, default=Path("/bulk2/runs/dryrun/m4/act-final.pt")); ap.add_argument("--seeds", type=int, default=200); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-steps", type=int, default=1800); ap.add_argument("--export-replays", type=Path); ap.add_argument("--out", type=Path, default=Path("/bulk2/runs/dryrun/m4/policy-benchmark.json")); a = ap.parse_args()
+    ap = argparse.ArgumentParser(); ap.add_argument("--controller", choices=("policy", "openvino", "expert"), default="policy"); ap.add_argument("--checkpoint", type=Path, required=False); ap.add_argument("--seeds", type=int, default=200); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-steps", type=int, default=3600); ap.add_argument("--export-replays", type=Path); ap.add_argument("--out", type=Path, default=Path("/bulk3/runs/dryrun/m4/policy-benchmark.json")); a = ap.parse_args()
     result = evaluate(a.checkpoint, a.seeds, a.workers, a.controller, max_steps=a.max_steps, export_replays=a.export_replays); result["max_steps"] = a.max_steps; a.out.parent.mkdir(parents=True, exist_ok=True); a.out.write_text(json.dumps(result, indent=2)); print(json.dumps({k: v for k, v in result.items() if k != "tiers"}, indent=2)); print(json.dumps({k: {x: v[x] for x in ("seeds", "bricks", "successes", "score")} for k, v in result["tiers"].items()}, indent=2))
 
 

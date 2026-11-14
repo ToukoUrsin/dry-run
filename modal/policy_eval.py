@@ -17,10 +17,22 @@ rows_store = modal.Dict.from_name("dryrun-policy-rows", create_if_missing=True)
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libegl1", "libgles2", "libosmesa6")
-    .pip_install("mujoco", "numpy", "torch", "torchvision", "lerobot[dataset]==0.7.0", "opencv-python-headless", "pillow")
+    .pip_install("mujoco", "numpy", "torch", "torchvision", "lerobot[dataset]==0.7.0", "opencv-python-headless", "pillow", "openvino")
     .add_local_dir("dryrun", remote_path="/root/repo/dryrun")
     .add_local_dir("assets", remote_path="/root/repo/assets")
     .add_local_file("data/reach_map_polar.json", remote_path="/root/repo/data/reach_map_polar.json")
+    .add_local_file(
+        "/bulk3/runs/dryrun/m2_rebuild/models_prompt020/PaDiM/openvino/weights/openvino/dryrun_inspector.xml",
+        remote_path="/root/repo/model/dryrun_inspector.xml",
+    )
+    .add_local_file(
+        "/bulk3/runs/dryrun/m2_rebuild/models_prompt020/PaDiM/openvino/weights/openvino/dryrun_inspector.bin",
+        remote_path="/root/repo/model/dryrun_inspector.bin",
+    )
+    .add_local_file(
+        "/bulk3/runs/dryrun/m2_rebuild/models_prompt020/PaDiM/openvino/weights/openvino/threshold.json",
+        remote_path="/root/repo/model/threshold.json",
+    )
 )
 
 
@@ -32,6 +44,7 @@ def evaluate_seed(
     max_steps: int = 3600,
     run_id: str = "latest",
     source_commit: str = "unknown",
+    inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
 ):
     sys.path.insert(0, "/root/repo")
     os.environ.setdefault("MUJOCO_GL", "osmesa")
@@ -40,9 +53,11 @@ def evaluate_seed(
     torch.set_num_threads(1)
     from dryrun.policy_benchmark import ACTController
     from dryrun.rollout import run
+    from dryrun.inspector import Inspector
 
     controller = ACTController(checkpoint, device="cuda" if torch.cuda.is_available() else "cpu")
-    result = run(int(seed), controller, tier=tier, max_steps=int(max_steps))
+    inspector = Inspector(inspector_model, threads=1)
+    result = run(int(seed), controller, inspector=inspector, tier=tier, max_steps=int(max_steps))
     row = {
         "format": "dryrun-policy-eval-row-v1",
         "source": "modal-map",
@@ -82,6 +97,7 @@ def main(
     run_id: str = "",
     out_dir: str = "/bulk3/runs/dryrun/m4/modal-map/policy-map",
     download: bool = False,
+    inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -96,6 +112,7 @@ def main(
                 "max_steps": int(max_steps),
                 "run_id": run_id,
                 "source_commit": source_commit,
+                "inspector_model": inspector_model,
             },
         )
     )

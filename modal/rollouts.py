@@ -30,10 +30,22 @@ shards = modal.Dict.from_name("dryrun-demo-shards", create_if_missing=True)
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libegl1", "libgles2", "libosmesa6")
-    .pip_install("mujoco", "numpy", "imageio", "imageio-ffmpeg", "pillow", "opencv-python-headless")
+    .pip_install("mujoco", "numpy", "imageio", "imageio-ffmpeg", "pillow", "opencv-python-headless", "openvino")
     .add_local_dir("dryrun", remote_path="/root/repo/dryrun")
     .add_local_dir("assets", remote_path="/root/repo/assets")
     .add_local_file("data/reach_map_polar.json", remote_path="/root/repo/data/reach_map_polar.json")
+    .add_local_file(
+        "/bulk3/runs/dryrun/m2_rebuild/models_prompt020/PaDiM/openvino/weights/openvino/dryrun_inspector.xml",
+        remote_path="/root/repo/model/dryrun_inspector.xml",
+    )
+    .add_local_file(
+        "/bulk3/runs/dryrun/m2_rebuild/models_prompt020/PaDiM/openvino/weights/openvino/dryrun_inspector.bin",
+        remote_path="/root/repo/model/dryrun_inspector.bin",
+    )
+    .add_local_file(
+        "/bulk3/runs/dryrun/m2_rebuild/models_prompt020/PaDiM/openvino/weights/openvino/threshold.json",
+        remote_path="/root/repo/model/threshold.json",
+    )
 )
 
 
@@ -79,21 +91,91 @@ class EpisodeRecorder:
         self.seed = int(seed)
         self.cycles: list[dict[str, Any]] = []
         self._open: dict[str, Any] | None = None
+        self._seen_events: set[tuple[Any, ...]] = set()
+        self._scene_success = False
+        self._finalized = False
 
     def cycle_start(self, brick: str | None = None, task: str = "sort brick") -> None:
-        if self._open is not None:
-            # Compatibility with the current rollout API, which opens one
-            # scene-wide cycle. A newer API may open one cycle per brick.
-            self._open["success"] = False
-            self.cycles.append(self._open)
-        self._open = {"brick": brick, "task": task, "frames": [], "success": False}
+        # The current rollout API emits one scene-level cycle_start.  Keep
+        # that marker as an empty holding state; actual episodes begin at the
+        # first physics ``reach`` event.  A future API may emit one start per
+        # brick, in which case the previous brick is flushed here.
+        self._finish_open()
+        self._seen_events.clear()
+        self._scene_success = False
+        self._finalized = False
+        self._open = None if brick is None else {
+            "brick": int(brick), "task": str(task), "frames": [], "success": False,
+        }
 
     def cycle_end(self, success: bool) -> None:
+        self._scene_success = bool(success)
+        self._finish_open()
+
+    def _finish_open(self) -> None:
+        """Move the current brick attempt to ``cycles`` if it has frames."""
         if self._open is None:
             return
-        self._open["success"] = bool(success)
-        self.cycles.append(self._open)
+        if self._open.get("brick") is not None and self._open.get("frames"):
+            self.cycles.append(self._open)
         self._open = None
+
+    @staticmethod
+    def _event_key(event: dict[str, Any]) -> tuple[Any, ...]:
+        return tuple(sorted((str(k), repr(v)) for k, v in event.items()))
+
+    def _start_brick(self, brick: int, task: str = "sort brick") -> None:
+        brick = int(brick)
+        if self._open is not None and self._open.get("brick") == brick:
+            return
+        self._finish_open()
+        self._open = {
+            "brick": brick,
+            "task": f"{task} ({brick})",
+            "frames": [],
+            "success": False,
+        }
+
+    def _consume_events(self, events: Any) -> None:
+        for event in events or []:
+            if not isinstance(event, dict):
+                continue
+            key = self._event_key(event)
+            if key in self._seen_events:
+                continue
+            self._seen_events.add(key)
+            if event.get("event") == "reach" and event.get("brick") is not None:
+                self._start_brick(int(event["brick"]), task="sort brick")
+
+    @staticmethod
+    def _has_drop(cycle: dict[str, Any]) -> bool:
+        brick = cycle.get("brick")
+        for frame in cycle.get("frames", []):
+            for event in frame.get("events", []) or []:
+                if isinstance(event, dict) and event.get("event") == "drop":
+                    if event.get("brick") is None or int(event["brick"]) == int(brick):
+                        return True
+        return False
+
+    def finalize_result(self, result: dict[str, Any]) -> None:
+        """Assign per-brick success after the scene result is available.
+
+        ``rollout.run`` emits a scene-level cycle_end before it computes the
+        final result.  The only authoritative per-brick labels are therefore
+        ``result['correct']``; a matching drop event also prevents a failed
+        retry from becoming a training episode when the same brick is later
+        sorted successfully.
+        """
+        self._finish_open()
+        correct = {int(x) for x in result.get("correct", [])}
+        for cycle in self.cycles:
+            brick = cycle.get("brick")
+            cycle["success"] = (
+                brick is not None
+                and int(brick) in correct
+                and self._has_drop(cycle)
+            )
+        self._finalized = True
 
     def record(self, payload: dict[str, Any]) -> None:
         kind = payload.get("type")
@@ -103,7 +185,12 @@ class EpisodeRecorder:
         if kind == "cycle_end":
             self.cycle_end(bool(payload.get("success", False)))
             return
-        if self._open is None or "observation" not in payload:
+        if "observation" not in payload:
+            return
+        self._consume_events(payload.get("events", []))
+        # Do not put the scene's initial neutral/hover frames in an episode:
+        # they precede the first brick-level reach event.
+        if self._open is None or self._open.get("brick") is None:
             return
         obs = payload["observation"]
         self._open["frames"].append(
@@ -127,24 +214,29 @@ def rollout_seed(
     max_steps: int = 3600,
     max_cycles: int | None = 1,
     run_id: str = "latest",
+    inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
 ):
     """Run one expert seed and persist a shard before returning its summary."""
 
     sys.path.insert(0, "/root/repo")
     os.environ.setdefault("MUJOCO_GL", "osmesa")
     from dryrun.rollout import run
+    from dryrun.inspector import Inspector
 
     recorder = EpisodeRecorder(int(seed))
+    inspector = Inspector(inspector_model, threads=1)
     result = run(
         int(seed),
         "expert",
         tier=tier,
+        inspector=inspector,
         record=recorder,
         max_steps=int(max_steps),
         max_cycles=max_cycles,
     )
     if recorder._open is not None:
         recorder.cycle_end(bool(result.get("successes", 0)))
+    recorder.finalize_result(result)
     store_key = f"{run_id}/{tier}/{int(seed):04d}"
     payload = {
         "format": "dryrun-demo-shard-v1",
@@ -193,6 +285,7 @@ def main(
     run_id: str = "",
     out_dir: str = "/bulk3/runs/dryrun/m4/modal-map/demo-map",
     download: bool = False,
+    inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -205,6 +298,7 @@ def main(
                 "max_steps": int(max_steps),
                 "max_cycles": int(max_cycles) if max_cycles > 0 else None,
                 "run_id": run_id,
+                "inspector_model": inspector_model,
             },
         )
     )

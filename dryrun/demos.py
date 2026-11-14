@@ -30,6 +30,8 @@ FEATURES = {
 class Cycle:
     task: str
     frames: list[dict[str, Any]]
+    brick: int | None = None
+    success: bool = False
 
 
 class DemoRecorder:
@@ -67,6 +69,15 @@ class DemoRecorder:
             image_writer_threads=0,
         )
         self._cycle: Cycle | None = None
+        self._cycles: list[Cycle] = []
+        self._seen_events: set[tuple[str, str, str]] = set()
+        self._scene_success = False
+        self._finalized = False
+        # ``rollout.run`` opens one scene-level boundary and emits brick
+        # boundaries as physics ``reach`` events.  Keep that scene staged
+        # until its result is available: a scene-level success must never
+        # turn every brick into a successful training episode.
+        self._scene_open = False
         self.cycles_seen = 0
         self.cycles_written = 0
         self.frames_written = 0
@@ -78,23 +89,89 @@ class DemoRecorder:
     def begin_cycle(self, task: str = "sort brick") -> None:
         if self._cycle is not None:
             raise RuntimeError("a demo cycle is already open")
+        self._cycles = []
+        self._seen_events.clear()
+        self._scene_success = False
+        self._finalized = False
+        self._scene_open = True
         self._cycle = Cycle(task=str(task), frames=[])
 
     # Adapter used directly as ``record=recorder`` by dryrun.rollout.run.
     def cycle_start(self, brick: str | None = None, task: str = "sort brick") -> None:
         self.begin_cycle(task=f"{task} ({brick})" if brick is not None else task)
+        if brick is not None:
+            self._cycle.brick = self._brick_id(brick)
+            # A caller that names the brick is using the direct, one-brick
+            # recorder API rather than the scene-level rollout adapter.
+            self._scene_open = False
 
     def cycle_end(self, success: bool) -> bool:
+        # The rollout's cycle_end is scene-scoped.  Defer all writes until
+        # ``finalize_result`` can match each staged cycle to result["correct"].
+        if self._scene_open:
+            self._stage_current()
+            self._scene_success = bool(success)
+            return False
         return self.end_cycle(bool(success))
+
+    @staticmethod
+    def _brick_id(value: Any) -> int | None:
+        """Normalize body ids such as ``3`` and ``"brick_3"``."""
+        if value is None:
+            return None
+        if isinstance(value, (int, np.integer)):
+            return int(value)
+        text = str(value)
+        try:
+            return int(text)
+        except ValueError:
+            if text.startswith("brick_"):
+                try:
+                    return int(text.rsplit("_", 1)[1])
+                except ValueError:
+                    pass
+        return None
+
+    @staticmethod
+    def _event_key(event: dict[str, Any]) -> tuple[str, str, str]:
+        return (str(event.get("event", "")), str(event.get("brick", "")), str(event.get("t", "")))
+
+    def _start_brick(self, brick: int, task: str = "sort brick") -> None:
+        brick_id = self._brick_id(brick)
+        if brick_id is None:
+            return
+        if self._cycle is not None:
+            # Avoid splitting a cycle if a cumulative event tail repeats the
+            # same reach event.  The event-key de-duplication normally covers
+            # this, but this guard also handles callers without timestamps.
+            if self._cycle.brick == brick_id:
+                return
+            if self._cycle.frames:
+                self._cycles.append(self._cycle)
+        self._cycle = Cycle(task=f"{task} ({brick_id})", frames=[], brick=brick_id)
+
+    def _consume_events(self, events: Any) -> None:
+        for event in events or []:
+            if not isinstance(event, dict):
+                continue
+            key = self._event_key(event)
+            if key in self._seen_events:
+                continue
+            self._seen_events.add(key)
+            if event.get("event") == "reach" and event.get("brick") is not None:
+                self._start_brick(int(event["brick"]))
 
     def record(self, payload: dict[str, Any]) -> None:
         """Consume the callback payload emitted at each 30 Hz boundary."""
         if payload.get("type") in {"cycle_start", "cycle_end"}:
             if payload["type"] == "cycle_start":
-                self.cycle_start(payload.get("brick"))
+                self.cycle_start(payload.get("brick"), str(payload.get("task", "sort brick")))
             else:
                 self.cycle_end(bool(payload.get("success", False)))
             return
+        self._consume_events(payload.get("events", []))
+        if self._cycle is None:
+            self._cycle = Cycle(task="sort brick", frames=[])
         obs = payload["observation"]
         self.record_step(
             state=obs["joints"], action=payload["action"], top=obs["top"],
@@ -147,14 +224,15 @@ class DemoRecorder:
             }
         )
 
-    def end_cycle(self, success: bool) -> bool:
-        """Commit a successful cycle and return whether it was written."""
+    def _stage_current(self) -> None:
         if self._cycle is None:
-            raise RuntimeError("no demo cycle is open")
-        cycle = self._cycle
+            return
+        if self._cycle.frames:
+            self._cycles.append(self._cycle)
         self._cycle = None
-        self.cycles_seen += 1
-        if not success or not cycle.frames:
+
+    def _write_cycle(self, cycle: Cycle) -> bool:
+        if not cycle.success or not cycle.frames:
             return False
         for frame in cycle.frames:
             frame["success"] = np.asarray([True], dtype=np.bool_)
@@ -164,10 +242,63 @@ class DemoRecorder:
         self.frames_written += len(cycle.frames)
         return True
 
+    def end_cycle(self, success: bool) -> bool:
+        """Commit a direct, already-scoped brick cycle.
+
+        This is retained for the older callback API used by render fixtures.
+        Scene rollouts call ``cycle_end`` and then ``finalize_result`` so they
+        can be segmented by brick.
+        """
+        if self._cycle is None:
+            raise RuntimeError("no demo cycle is open")
+        cycle = self._cycle
+        self._cycle = None
+        self.cycles_seen += 1
+        cycle.success = bool(success)
+        return self._write_cycle(cycle)
+
+    def finalize_result(self, result: dict[str, Any]) -> dict[str, int]:
+        """Finalize the staged scene against physical per-brick results.
+
+        ``StationEnv.result`` returns body ids in ``correct``.  Only cycles
+        whose ``brick`` id is in that set are written.  A legacy scene with no
+        reach events is handled as one unnamed cycle and is written only when
+        the scene-level result is truthy.
+        """
+        if self._finalized:
+            return {"cycles_seen": self.cycles_seen, "cycles_written": self.cycles_written,
+                    "frames_written": self.frames_written}
+        self._stage_current()
+        correct_values = result.get("correct", []) if isinstance(result, dict) else []
+        correct = {self._brick_id(value) for value in (correct_values or [])}
+        correct.discard(None)
+        scene_ok = bool(correct) or bool(result.get("success", False)) if isinstance(result, dict) else False
+        # If no physical ids are available, preserve the old one-cycle
+        # callback behavior without claiming a multi-brick scene succeeded.
+        for cycle in self._cycles:
+            if cycle.brick is None:
+                cycle.success = bool(scene_ok and len(self._cycles) == 1)
+            else:
+                cycle.success = cycle.brick in correct
+            self.cycles_seen += 1
+            self._write_cycle(cycle)
+        self._cycles = []
+        self._finalized = True
+        self._scene_open = False
+        return {"cycles_seen": self.cycles_seen, "cycles_written": self.cycles_written,
+                "frames_written": self.frames_written}
+
     def close(self) -> dict[str, int]:
         """Finalize metadata and return a compact write summary."""
-        if self._cycle is not None:
-            raise RuntimeError("cannot close with an open demo cycle")
+        # A caller that used the scene adapter must explicitly provide the
+        # physical result.  Discarding an unfinalized scene is safer than
+        # silently training on a scene-level success flag.
+        if self._cycle is not None or self._cycles:
+            if not self._finalized:
+                self._stage_current()
+                self._cycles = []
+            else:
+                raise RuntimeError("cannot close with an open demo cycle")
         self._dataset.finalize()
         return {
             "cycles_seen": self.cycles_seen,

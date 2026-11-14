@@ -8,7 +8,7 @@ from lerobot.datasets.lerobot_dataset import LeRobotDataset
 from lerobot.policies.act import ACTConfig, ACTPolicy
 from lerobot.configs.types import PolicyFeature, FeatureType
 
-ROOT = Path("/bulk2/runs/dryrun/m4")
+ROOT = Path("/bulk3/runs/dryrun/m4")
 
 
 def act_config() -> ACTConfig:

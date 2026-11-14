@@ -54,6 +54,15 @@ def _size_xml(path: Path, size: str) -> None:
     if geom is None:
         raise RuntimeError("calibration station has no brick body geom")
     geom.set("size", "0.0320 0.0160 0.00960")
+    # The station fixture starts as a 2x2 brick. Add the four outer studs so
+    # the 2x4 calibration exercises the same collision footprint as a scene
+    # brick rather than a widened box with a fake label.
+    for index, (xx, yy) in enumerate(((.024, -.008), (.024, .008), (-.024, -.008), (-.024, .008)), start=4):
+        ET.SubElement(body, "geom", {
+            "name": f"brick_0_stud_{index}", "type": "cylinder",
+            "size": "0.0040 0.0016", "pos": f"{xx:.4f} {yy:.4f} 0.01120",
+            "material": "brick_red", "friction": "1.2 0.2 0.05",
+        })
     tree.write(path, encoding="unicode")
 
 

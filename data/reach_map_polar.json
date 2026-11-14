@@ -18,7 +18,7 @@
     "2x4"
   ],
   "threshold": 0.95,
-  "calibration": "physics pick and 10mm lift; cells are accepted only when measured rate >= threshold; 2x2 latest run is 36 polar cells x 8 yaws, 2x4 latest run is 6 cells x 8 yaws",
+  "calibration": "physics pick and 10mm lift; accepted cells have measured rate >= threshold; 2x2 full polar sample 36 cells x 8 yaws, 2x4 full-stud sample 6 cells x 8 yaws",
   "cells": [
     {
       "size": "2x4",
@@ -36,10 +36,10 @@
         2.356194,
         2.748894
       ],
-      "pick_rate": 0.875,
+      "pick_rate": 1.0,
       "trials": 8,
-      "passes": 7,
-      "source": "/bulk2/runs/dryrun/m1/map2_2x4.jsonl"
+      "passes": 8,
+      "source": "/bulk2/runs/dryrun/m1/map2_true_2x4.jsonl"
     },
     {
       "size": "2x4",
@@ -60,7 +60,7 @@
       "pick_rate": 1.0,
       "trials": 8,
       "passes": 8,
-      "source": "/bulk2/runs/dryrun/m1/map2_2x4.jsonl"
+      "source": "/bulk2/runs/dryrun/m1/map2_true_2x4.jsonl"
     },
     {
       "size": "2x4",
@@ -81,7 +81,7 @@
       "pick_rate": 1.0,
       "trials": 8,
       "passes": 8,
-      "source": "/bulk2/runs/dryrun/m1/map2_2x4.jsonl"
+      "source": "/bulk2/runs/dryrun/m1/map2_true_2x4.jsonl"
     },
     {
       "size": "2x4",
@@ -99,10 +99,10 @@
         2.356194,
         2.748894
       ],
-      "pick_rate": 0.875,
+      "pick_rate": 1.0,
       "trials": 8,
-      "passes": 7,
-      "source": "/bulk2/runs/dryrun/m1/map2_2x4.jsonl"
+      "passes": 8,
+      "source": "/bulk2/runs/dryrun/m1/map2_true_2x4.jsonl"
     },
     {
       "size": "2x4",
@@ -120,10 +120,10 @@
         2.356194,
         2.748894
       ],
-      "pick_rate": 0.875,
+      "pick_rate": 1.0,
       "trials": 8,
-      "passes": 7,
-      "source": "/bulk2/runs/dryrun/m1/map2_2x4.jsonl"
+      "passes": 8,
+      "source": "/bulk2/runs/dryrun/m1/map2_true_2x4.jsonl"
     },
     {
       "size": "2x4",
@@ -141,10 +141,10 @@
         2.356194,
         2.748894
       ],
-      "pick_rate": 0.875,
+      "pick_rate": 1.0,
       "trials": 8,
-      "passes": 7,
-      "source": "/bulk2/runs/dryrun/m1/map2_2x4.jsonl"
+      "passes": 8,
+      "source": "/bulk2/runs/dryrun/m1/map2_true_2x4.jsonl"
     },
     {
       "size": "2x2",

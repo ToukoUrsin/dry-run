@@ -12,6 +12,8 @@ if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 os.environ.setdefault("MUJOCO_GL", "egl")
 REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", "/bulk2/runs/dryrun/replays/seed-7c"))
 INSPECTOR_EVALUATION = Path(os.environ.get("DRYRUN_INSPECTOR_EVALUATION", "/bulk2/runs/dryrun/m2/evaluation.json"))
+CODEX_LOG = ROOT / "data" / "codex_log.jsonl"
+CODEX_CAST = Path("/bulk2/runs/dryrun/codex-casts/main-001.cast")
 
 def commit() -> str:
     value = os.environ.get("RELEASE_SHA")
@@ -26,6 +28,18 @@ def read_jsonl(path: Path):
         try: rows.append(json.loads(line))
         except json.JSONDecodeError: pass
     return rows
+
+def codex_payload() -> dict:
+    """Return the page-safe Codex timeline and truthful cast availability."""
+    entries = read_jsonl(CODEX_LOG)
+    return {
+        "status": "ok" if entries else "unavailable",
+        "entries": entries,
+        "entry_count": len(entries),
+        "cast_available": CODEX_CAST.is_file(),
+        "cast_path": str(CODEX_CAST) if CODEX_CAST.is_file() else None,
+        "message": "Codex log loaded." if entries else "No Codex log is connected.",
+    }
 
 def snapshot() -> dict:
     try:
@@ -103,6 +117,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed=urlparse(self.path); path=unquote(parsed.path)
         if path=="/api/score": return self.send_json(score_payload(snapshot()))
+        if path=="/api/codex": return self.send_json(codex_payload())
         if path=="/api/telemetry": return self.send_json(snapshot())
         if path=="/api/failures": return self.send_json(snapshot().get("diagnoses", []))
         if path in ("/api/inspector", "/api/inspector.json"): return self.send_json(inspector_payload())

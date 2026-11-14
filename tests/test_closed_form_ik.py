@@ -16,7 +16,7 @@ def test_closed_form_matches_mujoco_on_10000_reachable_poses(tmp_path: Path) -> 
         station_xml(
             0,
             "one calibration brick",
-            count=1,
+            count=3,
             robot_include=str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve()),
         )
     )

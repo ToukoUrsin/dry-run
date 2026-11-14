@@ -140,7 +140,7 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     for long in longs + [None]:
         for attempt in range(24):
             used: set[tuple[float, float]] = set(); rects: list[tuple[float, float, float, float]] = []; placed: list[BrickSpec] = []
-            if long is not None and not add_row(long, 1 + attempt, "2x4", used, rects, placed):
+            if long is not None and not add_row(long, 0, "2x4", used, rects, placed):
                 continue
             rows2 = [row for row in accepted if row["size"] == "2x2"]
             random.Random(int(seed) * 7919 + attempt * 313).shuffle(rows2)

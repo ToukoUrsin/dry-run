@@ -77,7 +77,8 @@ uv run --project /home/ubuntu/junction/dryrun --no-sync \
    scroll_width=390, errors=[]
 ```
 
-The page and telemetry are live, but data-dependent sections remain explicit:
-there is one recorded failed seed-7 trace, no Nemotron diagnosis rows, no
-station requests, no second controller for Compare, and no attached measured
-reach-map artifact. No held-out loose-tier score is claimed.
+The page and telemetry are live, and the data-dependent states remain explicit:
+there is one recorded failed seed-7 trace. No Nemotron diagnosis rows, station
+requests, second controller for Compare, or measured reach-map artifact are
+attached to the release. No held-out loose-tier score is claimed. The withdrawn
+fixed-scene loose run is never used as a benchmark or training result.

@@ -24,7 +24,7 @@ def _record(record, payload):
     elif callable(record): record(payload)
     else: raise TypeError("record must be callable or expose record(payload)")
 
-def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, tier: str | None = None, max_steps: int = 1800, count: int | None = None):
+def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, tier: str | None = None, max_steps: int = 1800, count: int | None = None, render_size: int = 64):
     """Run one scene; expert and learned paths expose the same observations."""
     tier = tier or "loose"
     if tier not in TIERS: raise ValueError(f"unknown tier {tier}")
@@ -36,7 +36,7 @@ def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, t
         result = expert_rollout(model, data, int(seed), specs=layout_bricks(int(seed), sentence, count=count), inspector=inspector, record=record)
         result.update({"seed": int(seed), "tier": tier, "steps": int(round(float(data.time) * 30.0)), "observations": {"top": (64, 64, 3), "inspection": (64, 64, 3), "joints": (6,)}})
         return result
-    env = StationEnv(seed, tier=tier); obs = env.reset()
+    env = StationEnv(seed, tier=tier, render_size=render_size); obs = env.reset()
     _record(record, {"type": "cycle_start", "brick": None, "task": f"sort {tier}"})
     verdict = 0; steps = 0
     for steps in range(1, max_steps + 1):

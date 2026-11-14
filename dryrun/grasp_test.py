@@ -173,7 +173,12 @@ def solve_restarted(m,d,target,jids,grip_q,tol=.004,pad_angle=None,offsets=None)
 def safe_state(m,d,bid):
     if not np.all(np.isfinite(d.qpos)) or not np.all(np.isfinite(d.qvel)):
         return False
-    return float(d.xpos[bid,2]) >= -.02 and float(np.linalg.norm(d.qvel)) <= 50.0
+    p = np.asarray(d.xpos[bid], dtype=float)
+    # A contact blow-up can send a free brick kilometres away while all
+    # generalized values are still finite.  Treat that as an unstable cycle
+    # immediately so the expert never retries from a corrupted scene.
+    return (float(p[2]) >= 0.0 and float(np.linalg.norm(p[:2])) <= 1.0
+            and float(np.linalg.norm(d.qvel)) <= 50.0)
 
 def failure(pos,yaw,stage,err=float('inf')):
     return {'x':pos[0],'y':pos[1],'yaw':yaw,'ik_ok':[False,False,False],

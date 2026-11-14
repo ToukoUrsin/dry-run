@@ -70,7 +70,10 @@ def _record_frame(model, data, action):
     if _ACTIVE_RECORD is None or _ACTIVE_RECORDERS is None:
         return
     _ACTIVE_TICK += 1
-    if _ACTIVE_TICK % 17:
+    sample_every = int(getattr(_ACTIVE_RECORD, "sample_every", 17))
+    if sample_every <= 0:
+        return
+    if _ACTIVE_TICK % sample_every:
         return
     obs = {}
     for cam, renderer in _ACTIVE_RECORDERS.items():
@@ -81,17 +84,39 @@ def _record_frame(model, data, action):
         else:
             renderer.update_scene(data, cam)
             obs[cam.replace("_view", "")] = renderer.render().copy()
+    observation = {"joints": np.asarray(data.qpos[:6], dtype=np.float32).copy()}
+    if "top" in obs:
+        observation["top"] = obs["top"]
+    if "inspection" in obs:
+        observation["inspection"] = obs["inspection"]
     payload = {
         "t": float(data.time),
-        "observation": {
-            "top": obs.get("top", np.zeros((64, 64, 3), np.uint8)),
-            "inspection": obs.get("inspection", np.zeros((64, 64, 3), np.uint8)),
-            "joints": np.asarray(data.qpos[:6], dtype=np.float32).copy(),
-        },
+        "observation": observation,
         "action": np.asarray(action, dtype=np.float32).copy(),
         "verdict": int(_ACTIVE_VERDICT),
         "events": [],
     }
+    if callable(_ACTIVE_RECORD):
+        _ACTIVE_RECORD(payload)
+    elif hasattr(_ACTIVE_RECORD, "record"):
+        _ACTIVE_RECORD.record(payload)
+
+
+def _record_initial_frame(model, data):
+    """Emit one camera pair before the first arm command when requested."""
+    if _ACTIVE_RECORD is None or _ACTIVE_RECORDERS is None:
+        return
+    if not bool(getattr(_ACTIVE_RECORD, "capture_initial", False)):
+        return
+    obs = {}
+    for cam, renderer in _ACTIVE_RECORDERS.items():
+        if cam == "inspection_view":
+            obs["inspection"] = render_inspection_frame(model, data, renderer)
+        else:
+            renderer.update_scene(data, cam)
+            obs[cam.replace("_view", "")] = renderer.render().copy()
+    payload = {"t": float(data.time), "observation": obs,
+               "action": np.zeros(6, dtype=np.float32), "verdict": 0, "events": []}
     if callable(_ACTIVE_RECORD):
         _ACTIVE_RECORD(payload)
     elif hasattr(_ACTIVE_RECORD, "record"):
@@ -127,11 +152,30 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
     old_record, old_recorders, old_tick, old_verdict = _ACTIVE_RECORD, _ACTIVE_RECORDERS, _ACTIVE_TICK, _ACTIVE_VERDICT
     _ACTIVE_RECORD, _ACTIVE_TICK, _ACTIVE_VERDICT = record, 0, 0
     if record is not None:
-        _ACTIVE_RECORDERS = {
-            "top_view": mujoco.Renderer(model, 64, 64),
-            "inspection_view": mujoco.Renderer(model, 64, 64),
-        }
+        _ACTIVE_RECORDERS = {}
+        if not bool(getattr(record, "thumbnail_only", False)):
+            _ACTIVE_RECORDERS["top_view"] = mujoco.Renderer(model, 64, 64)
+            if bool(getattr(record, "include_inspection", True)):
+                _ACTIVE_RECORDERS["inspection_view"] = mujoco.Renderer(model, 64, 64)
+        elif hasattr(record, "__call__"):
+            # A benchmark export needs one truthful top-camera thumbnail but
+            # does not need to render duplicate pixels at every physics tick.
+            thumb_renderer = mujoco.Renderer(model, 64, 64)
+            thumb_renderer.update_scene(data, "top_view")
+            thumb = thumb_renderer.render().copy()
+            thumb_renderer.close()
+            record({
+                "t": float(data.time),
+                "observation": {"top": thumb, "joints": np.asarray(data.qpos[:6], dtype=np.float32).copy()},
+                "action": np.zeros(6, dtype=np.float32),
+                "verdict": 0,
+                "events": [],
+            })
+        if bool(getattr(record, "capture_initial", False)) and _ACTIVE_RECORDERS:
+            _record_initial_frame(model, data)
     arm=ids(model); events=[]; successes=0; gopen=1.7
+    wrist_joint = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "wrist_roll")
+    wrist_mid = float(model.jnt_range[wrist_joint, 0] + model.jnt_range[wrist_joint, 1]) / 2.0
     bowl_geoms = [i for i in range(model.ngeom) if ((mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, i) or '').startswith(('good_bowl_', 'defective_bowl_')))]
     bowl_collision = [(i, int(model.geom_contype[i]), int(model.geom_conaffinity[i])) for i in bowl_geoms]
     pad_geoms = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, n) for n in ('fixed_grip_pad', 'moving_grip_pad')]
@@ -153,7 +197,15 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
         remaining.remove(body)
         name=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,body); idx=int(name.split('_')[1])
         spec=specs[idx] if specs is not None and idx < len(specs) else None; start_z=float(data.xpos[body,2]); best=None
-        brick_roll = (1.3 if float(data.xpos[body, 1]) >= 0 else -1.3) if spec is None else (nearest_symmetric_yaw(spec.yaw, spec.size, reference=0.0) + (1.3 if float(data.xpos[body, 1]) >= 0 else -1.3))
+        # The wrist roll is the jaw-yaw branch.  The old path added a
+        # side-dependent +/-1.3 radian bias after choosing the symmetric
+        # branch; that pushed some valid bricks outside the wrist-roll limits
+        # (and made the supposedly measured scene fail before contact).  Pick
+        # the equivalent branch nearest the mechanical midpoint, as the
+        # closed-form solver and reach-map contract specify.
+        brick_roll = 0.0 if spec is None else nearest_symmetric_yaw(
+            spec.yaw, spec.size, reference=wrist_mid
+        )
         if record is not None:
             event = {"type": "cycle_start", "brick": name, "t": float(data.time)}
             if callable(record): record(event)
@@ -223,7 +275,7 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
         if best is None: best={'failed_stage':'no_attempt'}
         best.setdefault('picked_by_contact',False); best.setdefault('pad_contacts',0); best.setdefault('peak_pad_force_N',0.0); best.setdefault('final_xyz',[round(float(v),4) for v in data.xpos[body]]); best.setdefault('in_bowl',False); best.setdefault('success',False)
         cycle_ok = bool(best.get("success", False))
-        events.append({'brick':name,'defect':spec.defect if spec else 'unknown',**best})
+        events.append({'brick':name,'t':float(data.time),'defect':spec.defect if spec else 'unknown',**best})
         if record is not None:
             event = {"type": "cycle_end", "brick": name, "success": cycle_ok, "t": float(data.time)}
             if callable(record): record(event)

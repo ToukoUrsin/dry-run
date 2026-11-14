@@ -40,13 +40,16 @@ A_FROM_SHOULDER = np.asarray((0.0303992, -0.0182778, 0.0542), dtype=float)
 L1 = np.asarray((0.028, 0.0, 0.11257), dtype=float)
 L2 = np.asarray((0.1349, 0.0, 0.0052), dtype=float)
 L3 = np.asarray((0.0611, 0.0181, 0.0), dtype=float)
-SITE_FROM_GRIPPER = np.asarray((0.0981274, 0.00016655369, -0.007901255384), dtype=float)
+# The site and pad midpoint are calibrated against the fingertip collision pads
+# in ``so101_dryrun.xml``.  The previous pads sat near the jaw hinge and opened
+# only 49 mm centre-to-centre; these values describe the relocated tips.
+SITE_FROM_GRIPPER = np.asarray((0.0895812, -0.00026926, 0.01374718), dtype=float)
 # The pad midpoint is a fixed-pad offset plus a single hinge sinusoid from the
 # moving jaw.  These vectors are calibrated in the gripper body frame from the
 # MJCF, so the exact solver can drive both the open and closed jaw targets.
-PAD_MID_C = np.asarray((0.0212, -0.0000189523497, 0.00860927644), dtype=float)
-PAD_MID_COS = np.asarray((0.0107, 0.00035522, -0.00729135), dtype=float)
-PAD_MID_SIN = np.asarray((0.0073, -0.00052067, 0.01068733), dtype=float)
+PAD_MID_C = np.asarray((0.0542, -0.0000189523497, 0.00860927644), dtype=float)
+PAD_MID_COS = np.asarray((0.0350, 0.00035522, -0.00729135), dtype=float)
+PAD_MID_SIN = np.asarray((0.0073, -0.00170311021, 0.0349585389), dtype=float)
 
 
 def pad_from_gripper(grip_q: float) -> np.ndarray:

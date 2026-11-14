@@ -16,10 +16,19 @@ TIER_COUNTS = {"loose": 80, "messy": 70, "pile": 50}
 class _ReplayCapture:
     """Collect the public rollout observations without reading simulator state."""
 
+    # Benchmark exports need a compact artifact for every held-out seed.
+    # Keep one top-camera observation as the required thumbnail; inspection
+    # pixels remain available from the live inspector path and are not
+    # duplicated in every binary export.
+    sample_every = 240
+    include_inspection = False
+    thumbnail_only = True
+
     def __init__(self) -> None:
         self.frames: list[dict[str, Any]] = []
         self.events: list[dict[str, Any]] = []
         self.thumbnail = None
+        self._policy_observations = 0
 
     def __call__(self, row: dict[str, Any]) -> None:
         if "observation" not in row:
@@ -29,6 +38,14 @@ class _ReplayCapture:
         top = obs.get("top")
         if self.thumbnail is None and top is not None:
             self.thumbnail = top
+        # StationEnv sends a full camera observation on every policy step.
+        # Keep a 30 Hz-equivalent sparse trace while retaining the first
+        # pixel frame as the thumbnail.  Expert captures arrive already
+        # sparse and carry no ``step`` field, so they are all retained.
+        if "step" in row:
+            self._policy_observations += 1
+            if self._policy_observations > 1 and self._policy_observations % 30:
+                return
         self.frames.append({
             "t": float(row.get("t", 0.0)),
             "joints": _jsonable(obs.get("joints", [])),
@@ -139,7 +156,7 @@ def main():
     if a.controller == "policy":
         from .policy_benchmark import evaluate
         if a.checkpoint is None: p.error("--checkpoint is required with --controller policy")
-        x = evaluate(a.checkpoint, a.seeds, a.workers, "policy", max_steps=a.max_steps)
+        x = evaluate(a.checkpoint, a.seeds, a.workers, "policy", max_steps=a.max_steps, export_replays=a.export_replays)
         x.update({"benchmark": "mujoco-physics-v3", "controller": "policy", "command": "uv run python -m dryrun.benchmark --controller policy --checkpoint PATH --seeds 200", "max_steps": a.max_steps})
     else:
         inspector = None if a.without_inspector else Inspector(); x = run(range(a.seeds), workdir=a.output.parent, inspector=inspector, tier=a.tier, export_replays=a.export_replays, workers=a.workers)

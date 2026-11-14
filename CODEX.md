@@ -79,9 +79,17 @@ uv run --project /home/ubuntu/junction/dryrun --no-sync \
 ```
 
 The page and telemetry are live, and the data-dependent states remain explicit:
-there is one recorded failed seed-7 trace. No Nemotron diagnosis rows, station
-requests, second controller for Compare, or measured reach-map artifact are
-attached to the release. No held-out loose-tier score is claimed. The withdrawn
-fixed-scene loose run is never used as a benchmark or training result.
+the current page has 304 camera-only Nemotron diagnosis rows (all version
+`v4-both-chain-fewshot`) and four retained station requests with an online
+worker heartbeat. The 36-sentence recipe-compatible gallery currently has 32/36 accepted
+checks, with four retained rest-intersection rejections; expert reruns wait for
+main’s prompt-021 reference-expert commit. No held-out
+loose-tier score is claimed. The withdrawn fixed-scene loose run is never used
+as a benchmark or training result.
 
 The page is prepared for the measured expert replacement in `prompts/019-grasp-recipe-measured.md` and `prompts/020-present-pose-and-what-changes.md`. The old failed replay remains labelled as an earlier recorded trace; it is not used as a benchmark or training result. Fresh replays must replace it after main's expert commit lands.
+
+2026-11-14 22:34 UTC — Nemotron v4 completion (`/root/analyst_impl`): the 300-row camera-only diagnostic set reached 300 valid responses after retry-5; ID-aligned stage/cause/combined accuracy is 0.090000/0.000000/0.045000. This is diagnostic evidence from the withdrawn loose-tier failures, never a benchmark or training score. Proof: `/bulk3/runs/dryrun/nemotron_accuracy_v4/score.json`, source `8b3d3a4`.
+2026-11-14 23:04 UTC — Recipe-compatible station gallery (`/root/analyst_impl`): 36 distinct sentence requests were checked; 32 passed and four rest-intersection rejections were retained. Expert rollout rerun is intentionally pending main’s prompt-021 reference-expert commit. Proof: `/bulk3/runs/dryrun/stations36-reference-check/summary.json`.
+
+2026-11-14 23:05 UTC — Supervisor reference expert handoff (`prompts/021-reference-expert.md`): the earlier measured expert was found broken and its rollout numbers are withdrawn. Main owns the port of the external reference expert and the protected physics files; analyst evidence here does not claim its 382/382 reference result as a repository score.

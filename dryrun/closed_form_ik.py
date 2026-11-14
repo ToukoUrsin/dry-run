@@ -41,10 +41,21 @@ L1 = np.asarray((0.028, 0.0, 0.11257), dtype=float)
 L2 = np.asarray((0.1349, 0.0, 0.0052), dtype=float)
 L3 = np.asarray((0.0611, 0.0181, 0.0), dtype=float)
 SITE_FROM_GRIPPER = np.asarray((0.0981274, 0.00016655369, -0.007901255384), dtype=float)
-# The pad midpoint is calibrated at the public open-jaw target (gripper
-# actuator q=1.7).  Keeping this separate from the site offset lets the exact
-# solver drive the same pad point used by the contact expert.
-PAD_FROM_GRIPPER_OPEN = np.asarray((0.02706052, -0.00058105, 0.02014697), dtype=float)
+# The pad midpoint is a fixed-pad offset plus a single hinge sinusoid from the
+# moving jaw.  These vectors are calibrated in the gripper body frame from the
+# MJCF, so the exact solver can drive both the open and closed jaw targets.
+PAD_MID_C = np.asarray((0.0212, -0.0000189523497, 0.00860927644), dtype=float)
+PAD_MID_COS = np.asarray((0.0107, 0.00035522, -0.00729135), dtype=float)
+PAD_MID_SIN = np.asarray((0.0073, -0.00052067, 0.01068733), dtype=float)
+
+
+def pad_from_gripper(grip_q: float) -> np.ndarray:
+    """Return the pad midpoint offset from the gripper body at q=``grip_q``."""
+
+    g = float(grip_q)
+    if not np.isfinite(g):
+        raise ValueError("grip_q must be finite")
+    return PAD_MID_C + PAD_MID_COS * math.cos(g) + PAD_MID_SIN * math.sin(g)
 
 
 class IKError(ValueError):
@@ -103,20 +114,12 @@ def forward_position(q: Iterable[float]) -> np.ndarray:
 
 
 def forward_pad_midpoint(q: Iterable[float], *, grip_q: float = 1.7) -> np.ndarray:
-    """Return the analytic pad midpoint at a fixed gripper opening.
-
-    The closed form uses the measured open-jaw calibration.  Other openings
-    remain available through the numeric cross-check because the moving-jaw
-    offset changes with its actuator angle.
-    """
-
-    if abs(float(grip_q) - 1.7) > 1e-12:
-        raise ValueError("forward_pad_midpoint is calibrated for grip_q=1.7")
+    """Return the analytic pad midpoint at any gripper opening."""
     q = np.asarray(tuple(q), dtype=float)
     if q.shape != (5,):
         raise ValueError("q must contain shoulder_pan through wrist_roll")
     q0, q1, q2, q3, q4 = q
-    distal = _rx_minus(q4, PAD_FROM_GRIPPER_OPEN)
+    distal = _rx_minus(q4, pad_from_gripper(grip_q))
     theta = q1 + q2 + q3
     local = A_FROM_SHOULDER + _ry(q1, L1) + _ry(q1 + q2, L2) + _ry(theta, L3 + distal)
     c, s = math.cos(q0), math.sin(q0)
@@ -246,17 +249,18 @@ def ik_pad_pose(
     target: Iterable[float], *, approach_pitch: float = 0.0,
     wrist_roll: float = 0.0, elbow: int | None = None,
     radial_sign: int | None = None, enforce_limits: bool = True,
+    grip_q: float = 1.7,
 ) -> IKResult:
     """Closed-form pose IK for the open-jaw pad midpoint.
 
     This is the same solver as :func:`ik_pose`, with the distal calibration
-    measured at gripper actuator ``q=1.7``.  It is the target used by the
-    physical contact expert during approach and grasp.
+    measured at the requested gripper actuator angle.  It is the target used
+    by the physical contact expert during approach and grasp.
     """
 
     return ik_pose(target, approach_pitch=approach_pitch, wrist_roll=wrist_roll,
                    elbow=elbow, radial_sign=radial_sign,
-                   enforce_limits=enforce_limits, distal_base=PAD_FROM_GRIPPER_OPEN)
+                   enforce_limits=enforce_limits, distal_base=pad_from_gripper(grip_q))
 
 
 def symmetry_period(size: str) -> float:
@@ -386,7 +390,7 @@ def solve_position(
 
 
 __all__ = [
-    "IKError", "IKResult", "JOINT_LIMITS", "forward_position", "forward_pad_midpoint", "jaw_vector",
+    "IKError", "IKResult", "JOINT_LIMITS", "forward_position", "forward_pad_midpoint", "pad_from_gripper", "jaw_vector",
     "ik_pose", "ik_pad_pose", "ik_position", "solve_position", "symmetry_period",
     "nearest_symmetric_yaw",
 ]

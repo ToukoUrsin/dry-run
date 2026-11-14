@@ -92,93 +92,66 @@ def _rects_overlap(a: tuple[float, float, float, float], b: tuple[float, float, 
 
 
 def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[BrickSpec]:
+    """Return a seed-driven scene using measured, physically accepted cells.
+
+    Every emitted brick comes from a polar calibration row whose physics
+    pick/lift rate is at least 95%; closed-form IK also checks pickup and
+    presentation heights. A bounded backtrack keeps seeded 3--8 scenes valid
+    when a long footprint consumes a useful cell.
+    """
     rng = random.Random(seed)
-    n = count if count is not None else rng.randint(3, 8)
     opts = parse_sentence(sentence)
-    # Candidate cells leave a 3 mm gap between rigid bodies at rest.  A tray is
-    # deliberately regular; a pile is a shuffled, dense arrangement without
-    # interpenetrating boxes, so contact checks remain meaningful.
-    # The real SO-101's useful workspace is biased to +x from its base.  Keep
-    # every generated start in that envelope so the reach checker exercises
-    # real IK rather than accepting an unreachable layout.
-    # Keep scenes inside the analytic 95% reach envelope. The committed polar
-    # map supplies tested yaw choices where it has coverage; its current
-    # 2x4 sample is intentionally sparse, so the deterministic interior grid
-    # remains available for the remaining seeded cells and is still checked
-    # by the same closed-form gate before a body is emitted.
-    candidates = [(x, y) for y in (-.12, -.08, -.04, 0.0, .04, .08, .12)
-                  for x in (.22, .26, .30, .34)]
-    measured = {(str(row["size"]), round(float(row["x"]), 4), round(float(row["y"]), 4)): row
-                for size in ("2x2", "2x4") for row in measured_cells(size)}
-    candidates = [(x, y) for x, y in candidates if scene_reachable(float(x), float(y))]
-    if parse_sentence(sentence)["bowls"] == "behind":
-        # Keep the two 150 mm bowls at least one outside diameter apart.
-        bowl_centres = ((.16, .22), (.16, -.22))
-    elif parse_sentence(sentence)["bowls"] == "front":
-        bowl_centres = ((.16, -.22), (.16, .22))
-    else:
-        # Side bowls sit farther from the brick corridor so a 2x4 corner
-        # cannot clip the wall at rest.
-        bowl_centres = ((.16, -.22), (.16, .22))
-    if opts["layout"] == "pile":
-        rng.shuffle(candidates)
-    elif opts["layout"] == "tray":
-        candidates.sort(key=lambda p: (round(p[1], 3), round(p[0], 3)))
-    else:
-        rng.shuffle(candidates)
+    accepted = [dict(row) for size in ("2x2", "2x4") for row in measured_cells(size)
+                if scene_reachable(float(row["x"]), float(row["y"]))]
+    if not accepted:
+        raise ValueError("measured reach map has no accepted cells")
+    bowl_centres = ((.16, .22), (.16, -.22))
+    max_count = min(8, len(accepted))
+    n = int(count) if count is not None else rng.randint(3, max_count)
+    if n < 3 or n > 8:
+        raise ValueError("scene count must be between 3 and 8")
     placed: list[BrickSpec] = []
     rects: list[tuple[float, float, float, float]] = []
-    used_positions: set[tuple[float, float]] = set()
-    for i in range(n):
-        # Loose scenes deliberately include both footprints. A measured cell
-        # contributes its tested yaw set; an uncovered interior cell uses the
-        # same eight deterministic symmetry representatives and remains
-        # subject to the analytic reach gate above.
-        preferred = "2x4" if (opts["layout"] == "grid" and i == 1) else "2x2" if opts["layout"] == "grid" else ("2x4" if rng.random() < .45 else "2x2")
-        size_options = [preferred, "2x4" if preferred == "2x2" else "2x2"]
-        chosen_row = None
-        chosen_yaw = None
-        chosen_rect = None
-        chosen_xy = None
-        for size in size_options:
-            positions = list(candidates)
-            rng.shuffle(positions)
-            for x, y in positions:
-                if (x, y) in used_positions:
-                    continue
-                row = measured.get((size, round(float(x), 4), round(float(y), 4)))
-                yaw_choices = list(float(v) for v in (row or {}).get("tested_yaws_rad", ()))
-                if not yaw_choices:
-                    yaw_choices = [nearest_symmetric_yaw(rng.uniform(-math.pi, math.pi), size, reference=0.0)
-                                   for _ in range(8)]
-                rng.shuffle(yaw_choices)
-                hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
-                for yaw_try in yaw_choices:
-                    cy, sy = math.cos(yaw_try), math.sin(yaw_try)
-                    bound_x = abs(hx * cy) + abs(hy * sy)
-                    bound_y = abs(hx * sy) + abs(hy * cy)
-                    r = (x - bound_x, y - bound_y, x + bound_x, y + bound_y)
-                    near_bowl = any((x - bx) ** 2 + (y - by) ** 2 < .100 ** 2 for bx, by in bowl_centres)
-                    if near_bowl or any(_rects_overlap(r, old) for old in rects):
-                        continue
-                    chosen_row, chosen_yaw, chosen_rect, chosen_xy = size, yaw_try, r, (x, y)
-                    break
-                if chosen_row is not None:
-                    break
-            if chosen_row is not None:
-                break
-        if chosen_row is None:
-            raise ValueError(f"could not place reachable {preferred} brick {i}")
-        size = str(chosen_row)
-        x, y = chosen_xy
-        yaw = float(chosen_yaw)
-        rects.append(chosen_rect)
-        used_positions.add(chosen_xy)
-        defect = "none" if rng.random() < .58 else rng.choice(DEFECTS[1:])
-        color = COLORS[(int(seed) + i) % len(COLORS)]
-        placed.append(BrickSpec(i, size, x, y, defect, color, round(yaw, 6)))
-    return placed
+    used: set[tuple[float, float]] = set()
 
+    def place(i: int) -> bool:
+        if i == n:
+            return True
+        preferred = ("2x4" if (opts["layout"] == "grid" and i == 1)
+                     else "2x2" if opts["layout"] == "grid"
+                     else ("2x4" if rng.random() < .45 else "2x2"))
+        sizes = (preferred, "2x4" if preferred == "2x2" else "2x2")
+        for size in sizes:
+            rows = [row for row in accepted if str(row["size"]) == size]
+            random.Random(int(seed) * 1009 + i * 97 + (0 if size == "2x2" else 1)).shuffle(rows)
+            for row in rows:
+                x, y = round(float(row["x"]), 4), round(float(row["y"]), 4)
+                if (x, y) in used:
+                    continue
+                yaws = list(float(v) for v in row.get("tested_yaws_rad", (0.0,)))
+                random.Random(int(seed) * 9176 + i * 131 + int(x * 1000) + int(y * 1000)).shuffle(yaws)
+                hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
+                for yaw in yaws:
+                    cy, sy = math.cos(yaw), math.sin(yaw)
+                    bx, by = abs(hx * cy) + abs(hy * sy), abs(hx * sy) + abs(hy * cy)
+                    rect = (x - bx, y - by, x + bx, y + by)
+                    if any((x - cx) ** 2 + (y - cy) ** 2 < .10 ** 2 for cx, cy in bowl_centres):
+                        continue
+                    if any(_rects_overlap(rect, old) for old in rects):
+                        continue
+                    defect_rng = random.Random(int(seed) * 65537 + i * 101)
+                    defect = "none" if defect_rng.random() < .58 else defect_rng.choice(DEFECTS[1:])
+                    color = COLORS[(int(seed) + i) % len(COLORS)]
+                    used.add((x, y)); rects.append(rect)
+                    placed.append(BrickSpec(i, size, x, y, defect, color, round(yaw, 6)))
+                    if place(i + 1):
+                        return True
+                    placed.pop(); rects.pop(); used.remove((x, y))
+        return False
+
+    if not place(0):
+        raise ValueError(f"could not place measured {n}-brick scene in seed {seed}")
+    return placed
 
 def _bowl(name: str, x: float, y: float, material: str) -> str:
     # 150 mm outside diameter: the real station's bowls are compact enough
@@ -233,11 +206,11 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     # Bowl centres stay inside the SO-101's working envelope.  The sentence
     # changes their arrangement while preserving camera and reach validity.
     if opts["bowls"] == "behind":
-        good, bad = (.16, .22), (.16, -.22)
+        good, bad = (.30, .22), (.30, -.22)
     elif opts["bowls"] == "front":
-        good, bad = (.16, -.22), (.16, .22)
+        good, bad = (.30, -.22), (.30, .22)
     else:
-        good, bad = (.16, -.22), (.16, .22)
+        good, bad = (.30, -.22), (.30, .22)
     if opts["inspection"] == "left":
         cam = np.array([-.48, -.23, .34])
     elif opts["inspection"] == "right":

@@ -111,7 +111,8 @@
                 <!-- Collision pads are at the fingertips, where the real SO-101 grips. -->
                 <!-- Site is the pad midpoint at the brick-closing opening (q=0.35). -->
                 <site group="3" name="gripperframe" pos="0.013744 0.000400 -0.0895812" quat="0.707107 -0 0.707107 -2.37788e-17"/>
-                <geom name="fixed_grip_pad" type="box" size="0.009 0.018 0.012" pos="-0.003 -0.0004 -0.085" friction="1.8 0.01 0.001" condim="4" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1"/>
+                <!-- Thin, level fingertip pad: its local z face is the opening axis. -->
+                <geom name="fixed_grip_pad" type="box" size="0.004 0.018 0.010" pos="-0.003 -0.0004 -0.085" quat="0.706897338 -0.017209108 0.706897338 0.017209108" friction="1.8 0.01 0.001" condim="4" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1"/>
                 <!-- Link moving_jaw_so101_v1 -->
                 <body name="moving_jaw_so101_v1" pos="0.0202 0.0188 -0.0234" quat="0.707107 0.707107 -1.85362e-08 1.85362e-08">
                   <!-- Joint from gripper to moving_jaw_so101_v1 -->
@@ -120,7 +121,11 @@
                   <!-- Part moving_jaw_so101_v1 -->
                   <geom type="mesh" class="visual" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
                   <geom type="mesh" class="visual" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
-                  <geom name="moving_grip_pad" type="box" size="0.009 0.003 0.018" pos="-0.0146 -0.070 0.0176" friction="1.8 0.01 0.001" condim="4" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1"/>
+                  <!-- At gripper q=.35 this sits 49.8 mm from the fixed pad,
+                       with opposing faces level; the opening remains >45 mm
+                       at full q=1.745.  The nested quaternion aligns both
+                       pad faces at the calibrated close pose. -->
+                  <geom name="moving_grip_pad" type="box" size="0.004 0.018 0.010" pos="-0.059980440 -0.096658480 0.019200000" quat="0.395324981 -0.415053287 0.593347212 -0.565144242" friction="1.8 0.01 0.001" condim="4" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1"/>
                 </body>
               </body>
             </body>

@@ -6,6 +6,7 @@ import numpy as np
 import mujoco
 from .grasp_test import ARM_NAMES, ids, qadr
 from .closed_form_ik import IKError, ik_pad_pose
+from .defects import render_inspection_frame
 from .expert import MeasuredExpert
 from .mjcf_station import ROOT, layout_bricks, station_xml
 
@@ -33,7 +34,11 @@ class StationEnv:
         self._grip = int(self.model.jnt_qposadr[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, "gripper")])
         self.renderer = mujoco.Renderer(self.model, render_size, render_size); self._inspection_renderer = mujoco.Renderer(self.model, render_size, render_size)
         self._planner = MeasuredExpert(self)
+        self._last_obs: dict[str, Any] | None = None
         self._ticks = 0; self._done = False; self._events: list[dict[str, Any]] = []; self._cycle_times: dict[str, float] = {}; self._substeps = 0.0; self._last_action = np.zeros(6, np.float32); self._active = None
+        self._physical_events: set[tuple[str, int, str]] = set(); self._active_z_prev: float | None = None
+        self._force_inspection = False
+        self._max_ticks = (120 + 330 * len(self.brick_ids)) * (1 if self.tier == "loose" else 2)
         self.reset()
 
     @property
@@ -43,14 +48,27 @@ class StationEnv:
     def reset(self):
         mujoco.mj_resetData(self.model, self.data); mujoco.mj_forward(self.model, self.data)
         self._ticks = 0; self._done = False; self._events.clear(); self._cycle_times.clear(); self._substeps = 0.0; self._active = None
+        self._physical_events.clear(); self._active_z_prev = None
         self._last_action = np.asarray([self.data.qpos[a] for a in self._qa] + [self.data.qpos[self._grip]], np.float32)
         self._planner = MeasuredExpert(self)
+        self._last_obs = None
         return self.observe()
 
     def observe(self):
         mujoco.mj_forward(self.model, self.data)
-        self.renderer.update_scene(self.data, "top_view"); self._inspection_renderer.update_scene(self.data, "inspection_view")
-        return {"top": self.renderer.render().copy().astype(np.uint8), "inspection": self._inspection_renderer.render().copy().astype(np.uint8), "joints": np.asarray([self.data.qpos[a] for a in self._qa] + [self.data.qpos[self._grip]], np.float32)}
+        joints = np.asarray([self.data.qpos[a] for a in self._qa] + [self.data.qpos[self._grip]], np.float32)
+        # Rendering two EGL views dominates CPU rollout time.  Keep the
+        # public two-camera observation contract, but refresh at 1 Hz; joints
+        # remain current at the 30 Hz physics boundary.  A fresh frame is
+        # available on the presentation holds (their phase boundaries are
+        # aligned to the 30-tick cadence).
+        if self._last_obs is None or self._ticks % 30 == 0 or self._force_inspection:
+            self.renderer.update_scene(self.data, "top_view")
+            top = self.renderer.render().copy().astype(np.uint8)
+            inspection = render_inspection_frame(self.model, self.data, self._inspection_renderer, focus_body=self._active)
+            self._last_obs = {"top": top, "inspection": inspection.astype(np.uint8, copy=False)}
+            self._force_inspection = False
+        return {"top": self._last_obs["top"], "inspection": self._last_obs["inspection"], "joints": joints}
 
     def _event(self, event: str, brick: int | None = None, **extra):
         row = {"event": event, "t": float(self.data.time)}
@@ -66,19 +84,36 @@ class StationEnv:
         self._ticks += 1
         if self._active is not None:
             pads = {mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, n) for n in ("fixed_grip_pad", "moving_grip_pad")}
-            touched: set[int] = set()
+            pad_force: dict[int, float] = {int(g): 0.0 for g in pads}
             for i in range(self.data.ncon):
                 c = self.data.contact[i]
-                if c.geom1 in pads or c.geom2 in pads:
-                    touched.add(c.geom1 if c.geom1 in pads else c.geom2)
-            if len(touched) == 2 and not any(e.get("event") == "grasp" and e.get("brick") == self._active for e in self._events):
-                self._event("grasp", self._active)
+                pad = c.geom1 if c.geom1 in pads else (c.geom2 if c.geom2 in pads else -1)
+                if pad < 0:
+                    continue
+                other = c.geom2 if pad == c.geom1 else c.geom1
+                # A grasp is a two-pad load on the active brick.  Contacts
+                # with the table, jaw links, bowls, or another brick do not
+                # satisfy the recipe's 0.2 N per-pad acceptance.
+                if int(self.model.geom_bodyid[other]) != int(self._active):
+                    continue
+                force = np.zeros(6, dtype=np.float64)
+                mujoco.mj_contactForce(self.model, self.data, i, force)
+                pad_force[int(pad)] += abs(float(force[0]))
+            grasp_key = ("grasp", int(self._active), "")
+            if all(value >= 0.2 for value in pad_force.values()) and grasp_key not in self._physical_events:
+                self._physical_events.add(grasp_key); self._event("grasp", self._active)
             p = self.data.xpos[self._active]
+            z = float(p[2])
+            if self._active_z_prev is not None and self._active_z_prev <= .04 < z:
+                lift_key = ("lift", int(self._active), "")
+                if lift_key not in self._physical_events:
+                    self._physical_events.add(lift_key); self._event("lift", self._active)
+            self._active_z_prev = z
             if not np.all(np.isfinite(p)) or float(p[2]) < -0.01 or float(np.linalg.norm(p[:2])) > 1.0:
                 self._event("unstable", self._active); self._done = True
         if not np.all(np.isfinite(self.data.qpos)) or not np.all(np.isfinite(self.data.qvel)) or float(np.max(np.abs(self.data.qvel))) > 50:
             self._event("unstable", self._active); self._done = True
-        if self._ticks >= 2150: self._done = True
+        if self._ticks >= self._max_ticks: self._done = True
         return self.observe(), 0.0, self._done, {"events": list(self._events[-8:]), "time": float(self.data.time)}
 
     def expert_action(self):
@@ -86,18 +121,33 @@ class StationEnv:
         for row in self._planner.events():
             extra = {k: v for k, v in row.items() if k not in {"event", "brick", "t"}}
             self._event(str(row.get("event", "event")), row.get("brick"), **extra)
-        self._active = self._planner.current.body if self._planner.current is not None else None
+            if row.get("event") == "present":
+                self._force_inspection = True
+        next_active = self._planner.current.body if self._planner.current is not None else None
+        if next_active != self._active:
+            self._active_z_prev = None
+        self._active = next_active
         return np.asarray(action, dtype=np.float32)
 
     def result(self):
         good_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "good_bowl"); bad_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "defective_bowl")
-        good_xy, bad_xy = self.data.xpos[good_id, :2], self.data.xpos[bad_id, :2]; good, wrong, dropped = [], [], []
+        good_xy, bad_xy = self.data.xpos[good_id, :2], self.data.xpos[bad_id, :2]
+        good, wrong, dropped, correct, false_accepts, false_rejects = [], [], [], [], [], []
+        by_body = {int(mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, f"brick_{s.index}")): str(s.defect) for s in self.specs}
         for b in self.brick_ids:
             p = self.data.xpos[b]
             if not np.all(np.isfinite(p)) or float(p[2]) < 0: dropped.append(int(b)); continue
             dg, db = np.linalg.norm(p[:2] - good_xy), np.linalg.norm(p[:2] - bad_xy)
-            if min(dg, db) < .11 and p[2] < .10: (good if dg <= db else wrong).append(int(b))
-        return {"good_bowl": good, "wrong_bowl": wrong, "dropped": dropped, "cycle_times": dict(self._cycle_times), "events": list(self._events)}
+            if min(dg, db) < .11 and p[2] < .10:
+                if dg <= db:
+                    good.append(int(b))
+                    (false_accepts if by_body.get(int(b), "none") != "none" else correct).append(int(b))
+                else:
+                    wrong.append(int(b))
+                    (correct if by_body.get(int(b), "none") != "none" else false_rejects).append(int(b))
+        return {"good_bowl": good, "wrong_bowl": wrong, "correct": correct,
+                "false_accepts": false_accepts, "false_rejects": false_rejects,
+                "dropped": dropped, "cycle_times": dict(self._cycle_times), "events": list(self._events)}
 
     def close(self): self.renderer.close(); self._inspection_renderer.close()
 

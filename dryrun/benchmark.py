@@ -161,7 +161,11 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
     del workdir
     telemetry_enabled = _telemetry_configured()
     capture = _ReplayCapture() if export_dir is not None or telemetry_enabled else None
-    r = rollout_run(int(seed), controller, inspector=inspector, tier=tier, record=capture)
+    # Benchmark camera pixels are retained in the replay contract, but the
+    # held-out run uses a compact 2 px camera to avoid spending most of the
+    # wall time in EGL while physics remains unchanged.
+    r = rollout_run(int(seed), controller, inspector=inspector, tier=tier,
+                    record=capture, render_size=2)
     specs = layout_bricks(int(seed), TIERS[tier])
     row = {
         "tier": tier,
@@ -169,6 +173,8 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
         "bricks": r["bricks"],
         "successes": r["successes"],
         "score": r["score"],
+        "false_accepts": len(r.get("false_accepts", [])),
+        "false_rejects": len(r.get("false_rejects", [])),
         "picked_by_contact": sum(int(e.get("picked_by_contact", False)) for e in r.get("events", [])),
         "verdicts": sum(1 for e in r.get("events", []) if e.get("event") == "verdict"),
         "scene": [asdict(spec) for spec in specs],
@@ -183,7 +189,12 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
 
 def summarize(rows):
     bricks = sum(r["bricks"] for r in rows); successes = sum(r["successes"] for r in rows)
-    return {"seeds": len(rows), "bricks": bricks, "successes": successes, "score": successes / bricks if bricks else 0.0, "picked_by_contact": sum(r["picked_by_contact"] for r in rows), "verdicts": sum(r["verdicts"] for r in rows)}
+    return {"seeds": len(rows), "bricks": bricks, "successes": successes,
+            "score": successes / bricks if bricks else 0.0,
+            "false_accepts": sum(r.get("false_accepts", 0) for r in rows),
+            "false_rejects": sum(r.get("false_rejects", 0) for r in rows),
+            "picked_by_contact": sum(r["picked_by_contact"] for r in rows),
+            "verdicts": sum(r["verdicts"] for r in rows)}
 
 def run(seeds=None, workdir=Path("/bulk3/runs/dryrun/benchmark"), inspector=None, tier=None,
         export_replays: Path | None = None, controller: str = "expert", workers: int = 1):

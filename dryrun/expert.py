@@ -1,227 +1,254 @@
-"""Measured loose-tier expert from prompts/019-grasp-recipe-measured.md.
+"""Reference scripted expert for the Dry Run station.
 
-The expert is intentionally a small state machine.  It owns only target
-generation and timing; MuJoCo remains the source of contact, lift, slip and
-drop events through :class:`StationEnv`.
+Written by the supervisor outside Codex as a measured prototype and handed to Codex in
+prompts/021. It is a drop-in for ``dryrun.expert.MeasuredExpert``: ``Expert(env)``, ``action()``
+(six joint targets for the next 30 Hz tick), ``events()``, ``.phase`` and ``.current``.
+
+The expert is the demonstrator, so it reads ground-truth brick poses from the simulator. It never
+sets a pose: every motion goes through the six position actuators.
 """
 from __future__ import annotations
-
 import math
-from dataclasses import dataclass
-from typing import Any
-
-import mujoco
+from types import SimpleNamespace
 import numpy as np
+import mujoco
 
-
-ARM_NAMES = ("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll")
-TCP_POS = np.asarray((0.0225, 0.0, -0.086), dtype=float)
-PAN_AXIS = np.asarray((0.0388, 0.0), dtype=float)
-OPEN_Q, CLOSED_Q = 1.0, 0.5
-TICK_HZ = 30.0
-
-
-@dataclass
-class PlanItem:
-    body: int
-    index: int
-    size: str
-    jaw_angle: float
-    target_xy: np.ndarray
-    defect: str
-
-
-def _unit_xy(angle: float) -> np.ndarray:
-    return np.asarray((math.cos(angle), math.sin(angle), 0.0), dtype=float)
+ARM = ("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll")
+TCP_LOCAL = np.array([0.0225, 0.0, -0.086])   # centre of a 32 mm brick that touches the fixed pad, gripper frame
+PAN_X = 0.0388                                # world x of the shoulder pan axis
+Q_OPEN, Q_CLOSE = 1.0, 0.5                    # gripper targets; contact happens near 0.60
+GRASP_DZ = 0.0034                             # TCP above the brick centre at the grasp (0.013 on the table)
+MID_DZ, HOVER_DZ, LIFT1_DZ, LIFT2_DZ = 0.022, 0.042, 0.027, 0.057
+APPROACH_OFF = 0.0045                         # start this far towards the fixed pad; closing pushes the brick home
+FOOT_NEG, FOOT_POS, FOOT_HALF_W = 0.027, 0.052, 0.019   # gripper footprint around the brick centre
+SLOT = (-0.0175, 0.0185)                      # part of the footprint taken by the brick itself
+BOWL_KEEPOUT = 0.110                          # footprint stays this far from a bowl centre
+BOWL_RADIUS = 0.095
+PRESENT_A = np.array([0.5527, -1.2042, 0.8575, 1.0175, -2.3])
+PRESENT_B = np.array([0.7468, -1.5394, 1.1230, 1.0625, 0.9507])
+DROP_OFFSETS = ((0.03, 0.03), (-0.03, -0.03), (0.03, -0.03), (-0.03, 0.03), (0.0, 0.0))
+DROP_Z = 0.115
+MAX_TRIES = 2
+MIN_PAD_FORCE = 0.2
+HZ = 30
 
 
 class MeasuredExpert:
-    """Prompt-019 cycle planner and DLS TCP solver."""
-
-    def __init__(self, env: Any):
+    def __init__(self, env):
         self.env = env
-        self.model = env.model
-        self.data = env.data
-        self.arm_joints = [mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, n) for n in ARM_NAMES]
-        self.qa = [int(self.model.jnt_qposadr[j]) for j in self.arm_joints]
-        self.grip_joint = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, "gripper")
-        self.grip_adr = int(self.model.jnt_qposadr[self.grip_joint])
-        self.tcp = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, "dryrun_tcp")
-        if self.tcp < 0:
-            # The vendor SO-101 include exposes the calibrated TCP as
-            # ``gripperframe``; keep ``dryrun_tcp`` as an optional alias for
-            # stations that add the explicit recipe site.
-            self.tcp = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, "gripperframe")
-        self.gripper_body = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "gripper")
-        self.pad_ids = tuple(mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, n) for n in ("fixed_grip_pad", "moving_grip_pad"))
-        self.tick = 0
-        self.phase = "neutral"
-        self.phase_tick = 0
-        self.item_no = 0
-        self.plan: list[PlanItem] = []
-        self.current: PlanItem | None = None
-        self.current_q: np.ndarray | None = None
-        self._events: list[dict[str, Any]] = []
-        self._planned = False
-        self._present_b = False
-        self._last_result = None
-        self._pose_cache: dict[tuple[Any, ...], np.ndarray] = {}
+        self.m, self.d = env.model, env.data
+        m = self.m
+        self.k = mujoco.MjData(m)             # scratch copy for kinematics; the simulation is never touched
+        nid = lambda t, n: mujoco.mj_name2id(m, t, n)
+        jid = [nid(mujoco.mjtObj.mjOBJ_JOINT, n) for n in ARM]
+        self.qa = [int(m.jnt_qposadr[j]) for j in jid]
+        self.da = [int(m.jnt_dofadr[j]) for j in jid]
+        self.lo, self.hi = m.jnt_range[jid, 0] + 0.02, m.jnt_range[jid, 1] - 0.02
+        self.gq = int(m.jnt_qposadr[nid(mujoco.mjtObj.mjOBJ_JOINT, "gripper")])
+        self.G = nid(mujoco.mjtObj.mjOBJ_BODY, "gripper")
+        self.pads = (nid(mujoco.mjtObj.mjOBJ_GEOM, "fixed_grip_pad"), nid(mujoco.mjtObj.mjOBJ_GEOM, "moving_grip_pad"))
+        self.bricks = [b for b in range(m.nbody) if (mujoco.mj_id2name(m, mujoco.mjtObj.mjOBJ_BODY, b) or "").startswith("brick_")]
+        self.defect = {}
+        for s in getattr(env, "specs", []):
+            b = nid(mujoco.mjtObj.mjOBJ_BODY, f"brick_{s.index}")
+            if b >= 0: self.defect[b] = str(s.defect)
+        self.bowl = {"good": nid(mujoco.mjtObj.mjOBJ_BODY, "good_bowl"), "defective": nid(mujoco.mjtObj.mjOBJ_BODY, "defective_bowl")}
+        self.phase = "neutral"; self.current = None; self._events = []
+        self._cmd = np.r_[[self.d.qpos[a] for a in self.qa], self.d.qpos[self.gq]].astype(float)
+        self._gen = self._run()
 
-    def _body_specs(self):
-        return self.env.specs
+    # ------------------------------------------------------------------ public
+    def action(self):
+        try: self._cmd = np.asarray(next(self._gen), float)
+        except StopIteration: self.phase = "done"; self.current = None
+        return self._cmd.copy()
 
-    def _body_ids(self):
-        return {int(b): int(i) for i, b in enumerate(self.env.brick_ids)}
+    def events(self):
+        out, self._events = self._events, []
+        return out
 
-    def _clear(self, item: PlanItem, axis: np.ndarray) -> bool:
-        """Prompt-019 footprint test against other brick rectangles/bowls."""
-        p = item.target_xy
-        for other in self._body_specs():
-            if other.index == item.index:
-                continue
-            minimum = .078 if item.size == other.size == "2x2" else .095
-            if math.hypot(float(p[0] - other.x), float(p[1] - other.y)) < minimum:
-                return False
-        for bowl in ((-.0093, -.2657), (-.0093, .2657)):
-            if math.hypot(float(p[0] - bowl[0]), float(p[1] - bowl[1])) < .095 + .015:
-                return False
-        return True
+    # ------------------------------------------------------------------ helpers
+    def _emit(self, name, brick=None, **kw):
+        row = {"event": name, "t": float(self.d.time), **kw}
+        if brick is not None: row["brick"] = int(brick)
+        self._events.append(row)
 
-    def _solve(self, target: np.ndarray, pitch: float, jaw_angle: float, *, initial: np.ndarray | None = None) -> np.ndarray | None:
-        """Measured damped least-squares TCP pose solve from prompt 019."""
-        target = np.asarray(target, dtype=float)
-        radial = target[:2] - PAN_AXIS
-        norm = float(np.linalg.norm(radial))
-        if norm < 1e-9:
-            return None
-        rhat = radial / norm
-        f_des = math.sin(pitch) * np.asarray((rhat[0], rhat[1], 0.0)) - math.cos(pitch) * np.asarray((0.0, 0.0, 1.0))
-        jaw_des = _unit_xy(jaw_angle)
-        seeds = []
-        if initial is not None:
-            seeds.append(np.asarray(initial, dtype=float).copy())
-        seeds.extend([
-            np.asarray((-math.atan2(radial[1], radial[0]), -.3, .6, 1.2, 0.0)),
-            np.asarray((-math.atan2(radial[1], radial[0]), .2, .2, 1.2, 0.0)),
-            np.asarray((-math.atan2(radial[1], radial[0]), -.8, 1.2, 1.1, 0.0)),
-        ])
-        for roll in (0.0, 1.4, -1.4, 2.5, -2.5):
-            for base in seeds[:3]:
-                q = base.copy(); q[4] = roll
-                for _ in range(120):
-                    for k, adr in enumerate(self.qa):
-                        self.data.qpos[adr] = q[k]
-                    mujoco.mj_forward(self.model, self.data)
-                    p = self.data.site_xpos[self.tcp].copy()
-                    R = self.data.xmat[self.gripper_body].reshape(3, 3)
-                    f = -R[:, 2]; jaw = R[:, 0]
-                    e = np.r_[target - p, .05 * (np.cross(f, f_des) + np.cross(jaw, jaw_des))]
-                    if np.linalg.norm(target - p) < .001 and np.linalg.norm(np.cross(f, f_des)) < math.sin(math.radians(2)) and np.linalg.norm(np.cross(jaw, jaw_des)) < math.sin(math.radians(3)):
-                        return q.copy()
-                    Jp = np.zeros((3, self.model.nv)); Jr = np.zeros((3, self.model.nv))
-                    mujoco.mj_jacSite(self.model, self.data, Jp, Jr, self.tcp)
-                    cols = [self.model.jnt_dofadr[j] for j in self.arm_joints]
-                    J = np.vstack((Jp[:, cols], .05 * Jr[:, cols]))
-                    dq = J.T @ np.linalg.solve(J @ J.T + 1e-6 * np.eye(6), e)
-                    dq = np.clip(dq, -.3, .3)
-                    q = np.clip(q + dq, self.model.jnt_range[self.arm_joints, 0] + .02, self.model.jnt_range[self.arm_joints, 1] - .02)
+    def _fk(self, q):
+        self.k.qpos[:] = self.d.qpos; self.k.qpos[self.qa] = q
+        mujoco.mj_kinematics(self.m, self.k); mujoco.mj_comPos(self.m, self.k)
+        R = self.k.xmat[self.G].reshape(3, 3)
+        return self.k.xpos[self.G] + R @ TCP_LOCAL, R
+
+    def _ik(self, pos, jaw=None, pitch=0.0, q0=None):
+        """Damped least squares. Fingers point down, tilted outward by ``pitch``; ``jaw`` is the signed
+        horizontal direction from the fixed pad to the moving pad. Returns (q, pos_err_m, finger_deg, jaw_deg)."""
+        pos = np.asarray(pos, float)
+        az = math.atan2(pos[1], pos[0] - PAN_X); rhat = np.array([math.cos(az), math.sin(az), 0.0])
+        f_des = math.sin(pitch) * rhat + np.array([0.0, 0.0, -math.cos(pitch)])
+        jd = None
+        if jaw is not None:
+            jd = np.asarray(jaw, float); jd = jd - jd.dot(f_des) * f_des; jd /= np.linalg.norm(jd)
+        seeds = [np.asarray(q0, float)] if q0 is not None else []
+        seeds += [np.array([-az, a, b, c, roll]) for roll in (0.0, -1.4, 1.4, -2.5, 2.5)
+                  for a, b, c in ((-0.3, 0.6, 1.2), (0.2, 0.2, 1.2), (-0.8, 1.2, 1.1))]
+        best = None
+        jp = np.zeros((3, self.m.nv)); jr = np.zeros((3, self.m.nv))
+        for q in seeds:
+            q = np.clip(q, self.lo, self.hi)
+            for _ in range(120):
+                p, R = self._fk(q)
+                e_rot = np.cross(-R[:, 2], f_des)
+                if jd is not None: e_rot = e_rot + np.cross(R[:, 0], jd)
+                e = np.r_[pos - p, 0.05 * e_rot]
+                if np.linalg.norm(e[:3]) < 2e-4 and np.linalg.norm(e_rot) < 2e-3: break
+                mujoco.mj_jac(self.m, self.k, jp, jr, p, self.G)
+                J = np.vstack([jp[:, self.da], 0.05 * jr[:, self.da]])
+                dq = J.T @ np.linalg.solve(J @ J.T + 1e-6 * np.eye(6), e)
+                n = np.abs(dq).max()
+                if n > 0.3: dq *= 0.3 / n
+                q = np.clip(q + dq, self.lo, self.hi)
+            p, R = self._fk(q)
+            pe = float(np.linalg.norm(pos - p))
+            fe = math.degrees(math.acos(float(np.clip((-R[:, 2]).dot(f_des), -1, 1))))
+            je = 0.0 if jd is None else math.degrees(math.acos(float(np.clip(R[:, 0].dot(jd), -1, 1))))
+            score = pe * 1000 + 0.2 * fe + 0.2 * je
+            if best is None or score < best[0]: best = (score, q.copy(), pe, fe, je)
+            if pe < 5e-4 and fe < 1.0 and je < 1.5: break
+        return best[1], best[2], best[3], best[4]
+
+    @staticmethod
+    def _ok(sol): return sol[1] < 1e-3 and sol[2] < 2.0 and sol[3] < 3.0
+
+    def _tcp(self):
+        R = self.d.xmat[self.G].reshape(3, 3)
+        return self.d.xpos[self.G] + R @ TCP_LOCAL
+
+    def _pad_forces(self, body):
+        out = [0.0, 0.0]; f6 = np.zeros(6)
+        for i in range(self.d.ncon):
+            c = self.d.contact[i]
+            if body not in (int(self.m.geom_bodyid[c.geom1]), int(self.m.geom_bodyid[c.geom2])): continue
+            for j, pad in enumerate(self.pads):
+                if pad in (int(c.geom1), int(c.geom2)):
+                    mujoco.mj_contactForce(self.m, self.d, i, f6); out[j] += abs(float(f6[0]))
+        return out
+
+    def _half(self, b):
+        g = next(i for i in range(self.m.ngeom) if self.m.geom_bodyid[i] == b and self.m.geom_type[i] == mujoco.mjtGeom.mjGEOM_BOX)
+        return self.m.geom_size[g][:2].copy()
+
+    def _bowl_xy(self): return {k: self.d.xpos[b][:2].copy() for k, b in self.bowl.items()}
+
+    def _in_bowl(self, b):
+        p = self.d.xpos[b]
+        return any(np.linalg.norm(p[:2] - xy) < BOWL_RADIUS for xy in self._bowl_xy().values())
+
+    def _clear(self, b, c, jaw):
+        """True if the open gripper can come straight down on brick ``b`` with this jaw direction."""
+        j = np.asarray(jaw[:2], float); j /= np.linalg.norm(j); perp = np.array([-j[1], j[0]])
+        pts = np.array([c[:2] + a * j + w * perp for a in np.linspace(-FOOT_NEG, FOOT_POS, 12) if not SLOT[0] < a < SLOT[1]
+                        for w in np.linspace(-FOOT_HALF_W, FOOT_HALF_W, 5)])
+        for o in self.bricks:
+            if o == b or self.d.xpos[o][2] < -0.01 or self._in_bowl(o): continue
+            R = self.d.xmat[o].reshape(3, 3); hs = self._half(o) + 0.003
+            loc = (pts - self.d.xpos[o][:2]) @ R[:2, :2]
+            if np.any((np.abs(loc[:, 0]) < hs[0]) & (np.abs(loc[:, 1]) < hs[1])): return False
+        return not any(np.any(np.linalg.norm(pts - xy, axis=1) < BOWL_KEEPOUT) for xy in self._bowl_xy().values())
+
+    def _plan(self, b):
+        """(centre, shifted target, jaw, q_grasp, q_hover, q_lift) or None."""
+        R = self.d.xmat[b].reshape(3, 3); c0 = self.d.xpos[b].copy(); hs = self._half(b)
+        if abs(R[2, 2]) < 0.95 or c0[2] > 0.05: return None          # not lying flat
+        axes = [R[:, 1], -R[:, 1]] + ([R[:, 0], -R[:, 0]] if abs(hs[0] - hs[1]) < 1e-4 else [])
+        for jaw in axes:
+            jaw = np.array([jaw[0], jaw[1], 0.0]); jaw /= np.linalg.norm(jaw)
+            if not self._clear(b, c0, jaw): continue
+            c = c0.copy(); c[:2] -= APPROACH_OFF * jaw[:2]; zg = c0[2] + GRASP_DZ
+            sols = []; q0 = None
+            for dz in (0.0, HOVER_DZ, LIFT2_DZ):
+                s = self._ik((c[0], c[1], zg + dz), jaw=jaw, q0=q0)
+                if not self._ok(s): break
+                sols.append(s[0]); q0 = s[0]
+            if len(sols) == 3: return c0, c, jaw, zg, sols[0], sols[1], sols[2]
         return None
 
-    def _make_plan(self) -> None:
-        if self._planned:
-            return
-        body_by_index = {int(i): int(b) for b, i in self._body_ids().items()}
-        candidates: list[PlanItem] = []
-        for spec in self._body_specs():
-            b = body_by_index.get(spec.index)
-            if b is None:
-                continue
-            short = float(spec.yaw + (math.pi / 2.0 if spec.size == "2x4" else 0.0))
-            options = (short, short + math.pi) if spec.size == "2x4" else (short, short + math.pi / 2, short + math.pi, short + 3 * math.pi / 2)
-            for angle in options:
-                axis = _unit_xy(angle)
-                item = PlanItem(b, spec.index, spec.size, angle, np.asarray((spec.x, spec.y), dtype=float), spec.defect)
-                if self._clear(item, axis):
-                    # The measured work-area gate is checked at the three
-                    # recipe heights before an item enters the queue.
-                    ok = all(self._solve(np.asarray((spec.x - .0045 * axis[0], spec.y - .0045 * axis[1], z)), 0.0, angle) is not None for z in (.013, .055, .07))
-                    if ok:
-                        candidates.append(item)
-                        break
-        # Nearest-first is the measured recipe order and remains deterministic.
-        self.plan = sorted(candidates, key=lambda x: float(np.linalg.norm(x.target_xy - PAN_AXIS)))
-        self._planned = True
+    def _label(self, b, since):
+        """Inspector verdicts given for this brick in this cycle win; without an inspector the demonstrator uses ground truth."""
+        said = [str(e.get("verdict")).lower() for e in getattr(self.env, "_events", [])
+                if e.get("event") == "verdict" and e.get("brick") == b and e.get("t", 0.0) >= since]
+        if said: return "defective" if any(v in ("defective", "-1", "bad") for v in said) else "good"
+        return "good" if self.defect.get(b, "none") in ("none", "", "None") else "defective"
 
-    def _set_phase(self, phase: str) -> None:
-        self.phase = phase; self.phase_tick = 0
-        if self.current is not None:
-            # Keep the public stream at the physical task vocabulary.  The
-            # detailed phase remains internal to the planner state machine.
-            public = {"close": "grasp", "lift04": "lift", "present_a": "present",
-                      "present_b": "present", "drop": "drop"}.get(phase)
-            if public is not None:
-                self._events.append({"event": public, "brick": self.current.index, "t": float(self.data.time)})
+    # ------------------------------------------------------------------ motion primitives (generators of per-tick actions)
+    def _move(self, q, grip, seconds, phase):
+        self.phase = phase
+        q0 = self._cmd[:5].copy(); g0 = float(self._cmd[5]); n = max(2, int(round(seconds * HZ)))
+        for i in range(1, n + 1):
+            a = i / n; a = 10 * a**3 - 15 * a**4 + 6 * a**5
+            yield np.r_[q0 + a * (np.asarray(q) - q0), g0 + a * (grip - g0)]
 
-    def _pose(self, z: float, pitch: float, jaw_angle: float, *, bowl: np.ndarray | None = None,
-              target_xy: np.ndarray | None = None) -> np.ndarray:
-        if bowl is not None:
-            target = np.asarray((bowl[0], bowl[1], z), dtype=float)
-        elif target_xy is not None:
-            target = np.asarray((target_xy[0], target_xy[1], z), dtype=float)
-        else:
-            assert self.current is not None
-            axis = _unit_xy(self.current.jaw_angle)
-            target = np.asarray((self.current.target_xy[0] - .0045 * axis[0], self.current.target_xy[1] - .0045 * axis[1], z), dtype=float)
-        key = (self.phase, tuple(np.round(target, 6)), round(float(pitch), 6), round(float(jaw_angle), 6))
-        solved = self._pose_cache.get(key)
-        if solved is None:
-            solved = self._solve(target, pitch, jaw_angle, initial=self.current_q)
-            if solved is not None:
-                self._pose_cache[key] = solved.copy()
-        if solved is not None:
-            self.current_q = np.asarray(solved, dtype=float).copy()
-        if self.current_q is None:
-            self._events.append({"event": "ik_fail", "brick": self.current.index if self.current else None, "t": float(self.data.time)})
-            self.current_q = np.asarray([self.data.qpos[a] for a in self.qa], dtype=float)
-        return np.r_[self.current_q, OPEN_Q if self.phase in {"neutral", "hover", "down"} else CLOSED_Q].astype(np.float32)
+    def _hold(self, seconds, phase=None):
+        if phase: self.phase = phase
+        for _ in range(max(1, int(round(seconds * HZ)))): yield self._cmd.copy()
 
-    def action(self) -> np.ndarray:
-        self._make_plan()
-        if self.current is None and self.item_no < len(self.plan):
-            self.current = self.plan[self.item_no]; self.current_q = None; self._set_phase("hover")
-        if self.current is None:
-            return np.r_[np.asarray([self.data.qpos[a] for a in self.qa]), OPEN_Q].astype(np.float32)
-        # Fixed recipe durations at 30 Hz.  Pose interpolation is represented
-        # by the servo target changing each tick; MuJoCo supplies the 17 steps.
-        self.phase_tick += 1; self.tick += 1
-        if self.phase == "hover" and self.phase_tick > 35: self._set_phase("down035")
-        elif self.phase == "down035" and self.phase_tick > 11: self._set_phase("down013")
-        elif self.phase == "down013" and self.phase_tick > 17: self._set_phase("close")
-        elif self.phase == "close" and self.phase_tick > 27: self._set_phase("lift04")
-        elif self.phase == "lift04" and self.phase_tick > 12: self._set_phase("lift07")
-        elif self.phase == "lift07" and self.phase_tick > 12: self._set_phase("present_a")
-        elif self.phase == "present_a" and self.phase_tick > 48: self._set_phase("present_b")
-        elif self.phase == "present_b" and self.phase_tick > 42: self._set_phase("drop")
-        elif self.phase == "drop" and self.phase_tick > 42: self._set_phase("release")
-        elif self.phase == "release" and self.phase_tick > 27: self._set_phase("neutral")
-        elif self.phase == "neutral" and self.phase_tick > 30:
-            self.item_no += 1; self.current = None; self.current_q = None
-        if self.phase == "hover": return self._pose(.055, .0, self.current.jaw_angle)
-        if self.phase == "down035": return self._pose(.035, .0, self.current.jaw_angle)
-        if self.phase in {"down013", "close"}: return self._pose(.013, .0, self.current.jaw_angle)
-        if self.phase == "lift04": return self._pose(.04, .6, self.current.jaw_angle)
-        if self.phase == "lift07": return self._pose(.07, .6, self.current.jaw_angle)
-        if self.phase == "present_a": return self._pose(.16, .9, -2.3, target_xy=np.asarray((.20, -.10)))
-        if self.phase == "present_b": return self._pose(.16, .9, .84, target_xy=np.asarray((.20, -.10)))
-        if self.phase in {"drop", "release"}:
-            bad = self.current.defect != "none"
-            bowl = np.asarray((-.0093, .2657 if bad else -.2657))
-            return self._pose(.115, .6, self.current.jaw_angle, bowl=bowl)
-        return self._pose(.14, .6, self.current.jaw_angle)
-
-    def events(self) -> list[dict[str, Any]]:
-        rows, self._events = self._events, []
-        return rows
+    # ------------------------------------------------------------------ the cycle
+    def _run(self):
+        d = self.d
+        yield from self._hold(0.2, "neutral")
+        qN = self._ik((0.22, 0.0, 0.14), pitch=0.6)[0]
+        drops = {}
+        for k, xy in self._bowl_xy().items():
+            sols = [self._ik((xy[0] + dx, xy[1] + dy, DROP_Z), pitch=0.6) for dx, dy in DROP_OFFSETS]
+            drops[k] = [s[0] for s in sols if s[1] < 2e-3]
+        n_drop = {"good": 0, "defective": 0}; tries = {}
+        yield from self._move(qN, Q_OPEN, 1.0, "neutral")
+        while True:
+            todo = [b for b in self.bricks if not self._in_bowl(b) and d.xpos[b][2] > -0.01 and tries.get(b, 0) < MAX_TRIES]
+            todo.sort(key=lambda b: math.hypot(d.xpos[b][0] - PAN_X, d.xpos[b][1]))
+            plan = b = None
+            for b in todo:
+                plan = self._plan(b)
+                if plan: break
+            if plan is None:
+                for b in todo: self._emit("ik_fail", b, reason="no_clear_grasp")
+                break
+            c0, c, jaw, zg, qg, qh, ql = plan
+            tries[b] = tries.get(b, 0) + 1; t0 = float(d.time)
+            self.current = SimpleNamespace(body=b, name=mujoco.mj_id2name(self.m, mujoco.mjtObj.mjOBJ_BODY, b), defect=self.defect.get(b, "none"))
+            self._emit("reach", b)
+            yield from self._move(qh, Q_OPEN, 1.0, "hover"); yield from self._hold(0.15)
+            qm = self._ik((c[0], c[1], zg + MID_DZ), jaw=jaw, q0=self._cmd[:5])[0]
+            yield from self._move(qm, Q_OPEN, 0.35, "down")
+            yield from self._move(qg, Q_OPEN, 0.35, "down"); yield from self._hold(0.2, "touch")
+            yield from self._move(qg, Q_CLOSE, 0.6, "close"); yield from self._hold(0.3)
+            forces = self._pad_forces(b)
+            if min(forces) < MIN_PAD_FORCE:
+                self._emit("miss", b, pad_n=[round(f, 2) for f in forces])
+                yield from self._move(qg, Q_OPEN, 0.3, "retreat"); yield from self._move(qh, Q_OPEN, 0.6, "retreat")
+                yield from self._move(qN, Q_OPEN, 1.0, "neutral"); self.current = None; continue
+            q1 = self._ik((c[0], c[1], zg + LIFT1_DZ), jaw=jaw, q0=self._cmd[:5])[0]
+            yield from self._move(q1, Q_CLOSE, 0.4, "lift"); yield from self._move(ql, Q_CLOSE, 0.4, "lift")
+            for pose, q, secs in (("a", PRESENT_A, 1.2), ("b", PRESENT_B, 1.0)):
+                yield from self._move(q, Q_CLOSE, secs, "to_present_" + pose)
+                yield from self._hold(0.2, "present_" + pose)
+                self._emit("present", b, pose=pose)          # the brick is still: the inspector looks now
+                yield from self._hold(0.2)
+            if np.linalg.norm(d.xpos[b] - self._tcp()) > 0.02:
+                self._emit("slip", b)
+                yield from self._move(qN, Q_OPEN, 1.0, "neutral"); self.current = None; continue
+            label = self._label(b, t0)
+            if not drops[label]:
+                self._emit("ik_fail", b, reason="bowl_unreachable")
+                yield from self._move(qN, Q_CLOSE, 1.0, "neutral"); yield from self._move(qN, Q_OPEN, 0.4, "release")
+                tries[b] = MAX_TRIES; self.current = None; continue
+            qd = drops[label][n_drop[label] % len(drops[label])]; n_drop[label] += 1
+            yield from self._move(qd, Q_CLOSE, 1.2, "drop"); yield from self._hold(0.2)
+            yield from self._move(qd, Q_OPEN, 0.4, "release"); yield from self._hold(0.5)
+            self._emit("drop", b, bowl=label)
+            yield from self._move(qN, Q_OPEN, 1.0, "neutral"); self.current = None
+        self.phase = "done"; self.current = None
 
 
-__all__ = ["MeasuredExpert", "PlanItem"]
+# Public name retained for the StationEnv contract.
+Expert = MeasuredExpert
+__all__ = ["MeasuredExpert", "Expert"]

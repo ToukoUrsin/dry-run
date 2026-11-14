@@ -237,14 +237,16 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     # Sentence variants may change the camera, but the measured loose station
     # keeps this safe drop arrangement.
     good, bad = (-.0093, -.2657), (-.0093, .2657)
-    if opts["inspection"] == "left":
-        cam = np.array([-.48, -.23, .34])
-    elif opts["inspection"] == "right":
-        cam = np.array([.48, -.23, .34])
-    else:
-        cam = np.array([0.0, -.52, .30])
-    target = np.array([0.0, 0.0, .12])
-    axes = _xyaxes(cam, target)
+    # Prompt 020 measured the only inspection shot used by the expert.  Keep
+    # this camera fixed across seeded stations so rendered training frames and
+    # live present frames are the same distribution.
+    # Hang the inspection camera from the rear edge of the station.  Its
+    # optical centre remains the measured view, but the post and foot no
+    # longer occupy the brick work area.
+    cam_mount = np.array([-.40, .35, .90])
+    cam = np.array([.1194, -.1430, .2296])
+    cam_local = cam - cam_mount
+    axes = "0.6290 -0.7774 0 0.6449 0.5218 0.5584"
     pieces = [f'''<?xml version="1.0" encoding="UTF-8"?>
 <mujoco model="dryrun_station_seed_{seed}">
   <compiler angle="radian" autolimits="true"/>
@@ -268,7 +270,7 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     <!-- Rigid camera mounts: the camera is a physical station component, not a floating site. -->
     <body name="top_camera_mount" pos="-0.40 0.35 1.20"><geom type="box" size="0.025 0.025 0.60" pos="0 0 -0.60" material="table_mat"/><geom type="box" size="0.58 0.025 0.025" pos="0.29 -0.175 0" material="table_mat"/><camera name="top_view" pos="0.55 -0.35 0" xyaxes="1 0 0 0 1 0"/>
     </body>
-    <body name="inspection_camera_mount" pos="{cam[0]:.4f} {cam[1]:.4f} {cam[2]:.4f}"><geom type="box" size="0.018 0.018 0.17" pos="0 0 -0.17" material="table_mat"/><geom type="box" size="0.06 0.06 0.018" pos="0 0 -0.34" material="table_mat"/><camera name="inspection_view" pos="0 0 0" xyaxes="{axes}"/></body>
+    <body name="inspection_camera_mount" pos="{cam_mount[0]:.4f} {cam_mount[1]:.4f} {cam_mount[2]:.4f}"><geom type="box" size="0.018 0.018 0.17" pos="0 0 -0.17" material="table_mat" contype="0" conaffinity="0"/><geom type="box" size="0.06 0.06 0.018" pos="0 0 -0.34" material="table_mat" contype="0" conaffinity="0"/><geom type="box" size="0.018 0.018 0.38" pos="0.25 -0.25 -0.34" material="table_mat" contype="0" conaffinity="0"/><camera name="inspection_view" pos="{cam_local[0]:.4f} {cam_local[1]:.4f} {cam_local[2]:.4f}" fovy="40" xyaxes="{axes}"/></body>
     <camera name="free_view" pos="0.95 -1.15 0.85" xyaxes="0.76 0.65 0 -0.27 0.32 0.91"/>
     {''.join(_brick(b) for b in bricks)}
   </worldbody>

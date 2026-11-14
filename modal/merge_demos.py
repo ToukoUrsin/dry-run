@@ -11,6 +11,7 @@ import io
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import modal
@@ -34,6 +35,7 @@ def merge(
     tier: str = "loose",
     dataset_path: str = "/runs/lerobot-modal",
 ):
+    sys.path.insert(0, "/root/repo")
     import numpy as np
     from PIL import Image
     from lerobot.datasets.lerobot_dataset import LeRobotDataset

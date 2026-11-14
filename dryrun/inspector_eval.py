@@ -190,8 +190,15 @@ def evaluate(model_path: Path, data: Path, out: Path) -> dict:
     core = ov.Core(); compiled = core.compile_model(core.read_model(str(model_path)), "CPU")
     val = _rows(compiled, data, "val"); threshold, threshold_metrics = _threshold([r for r in val if r["type"] == "good" or r["type"] in SEEN_FOR_THRESHOLD])
     sidecar = model_path.with_name("threshold.json"); sidecar.write_text(json.dumps({"threshold": threshold, "validation": threshold_metrics, "seen_types": list(SEEN_FOR_THRESHOLD), "held_out_types": list(HELD_OUT_TYPES)}, indent=2))
-    test = _rows(compiled, data, "test"); metrics = _metrics(test, threshold); metrics["validation"] = {"n": len(val), "threshold": threshold, "selected_on": list(SEEN_FOR_THRESHOLD), "metrics": threshold_metrics}; metrics["held_out"] = {t: metrics["per_type"][t] for t in HELD_OUT_TYPES}; metrics["latency_cpu"] = _latency(model_path); metrics["openvino_version"] = ov.__version__; metrics["contact_sheet"] = _contact_sheet(test, compiled, out.parent, threshold); metrics.pop("rows", None)
-    out.write_text(json.dumps(metrics, indent=2)); print(json.dumps(metrics, indent=2)); return metrics
+    test = _rows(compiled, data, "test"); metrics = _metrics(test, threshold); metrics["validation"] = {"n": len(val), "threshold": threshold, "selected_on": list(SEEN_FOR_THRESHOLD), "metrics": threshold_metrics}; metrics["held_out"] = {t: metrics["per_type"][t] for t in HELD_OUT_TYPES}; metrics["latency_cpu"] = _latency(model_path); metrics["latency"] = metrics["latency_cpu"]; metrics["per_defect_recall"] = {t: metrics["per_type"][t]["recall"] for t in DEFECT_TYPES}; metrics["score_histograms"] = _score_histograms(test); metrics["openvino_version"] = ov.__version__; metrics["contact_sheet"] = _contact_sheet(test, compiled, out.parent, threshold); metrics.pop("rows", None)
+    page_path = out.with_name("inspector_page.json")
+    metrics["page_json"] = str(page_path)
+    out.write_text(json.dumps(metrics, indent=2));
+    # Keep the page projection beside the detailed artifact.  It is compact,
+    # stable across model implementations, and safe for the web process to
+    # expose directly.
+    page_path.write_text(json.dumps(page_payload(metrics, source=out), indent=2))
+    print(json.dumps(metrics, indent=2)); return metrics
 
 def main() -> None:
     ap = argparse.ArgumentParser(); ap.add_argument("--model", type=Path, default=Path("/bulk2/runs/dryrun/m2/model/openvino/weights/openvino/dryrun_inspector.xml")); ap.add_argument("--data", type=Path, default=Path("/bulk2/runs/dryrun/m2/data")); ap.add_argument("--out", type=Path, default=Path("/bulk2/runs/dryrun/m2/evaluation.json")); a = ap.parse_args(); a.out.parent.mkdir(parents=True, exist_ok=True); evaluate(a.model, a.data, a.out)

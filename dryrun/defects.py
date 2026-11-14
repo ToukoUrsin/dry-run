@@ -112,16 +112,18 @@ def _replace_brick(xml: str, spec: BrickSpec) -> str:
 
 
 def render_inspection(seed: int, defect: str = "none", *, size: str | None = None,
-                      color: str | None = None, width: int = 128, height: int = 128) -> np.ndarray:
+                      color: str | None = None, width: int = INSPECTION_FRAME_SIZE,
+                      height: int = INSPECTION_FRAME_SIZE) -> np.ndarray:
     """Render one RGB inspection frame from a real MuJoCo station model."""
     if defect != "none" and defect not in DEFECT_TYPES:
         raise ValueError(f"unknown defect: {defect}")
     rng = random.Random(seed)
     size = size or ("2x4" if rng.random() < .42 else "2x2")
     color = color or rng.choice(COLORS)
-    # The brick is in the camera's actual inspection envelope.  Small pose
-    # changes mimic a gripper holding it without making the camera task easy.
-    spec = BrickSpec(0, size, 0.0, -0.12, defect, color)
+    # The brick is rendered at the same fixed present pose used by the
+    # rollout.  Small offsets and yaw mimic a gripper holding it without
+    # changing the camera target or making the camera task easy.
+    spec = BrickSpec(0, size, float(INSPECTION_PRESENT_POSE[0]), float(INSPECTION_PRESENT_POSE[1]), defect, color)
     key = (defect, size, color, width, height)
     if key not in _POOLS:
         xml = station_xml(0, "good and defective bowls on the sides, inspection camera in front",
@@ -130,24 +132,22 @@ def render_inspection(seed: int, defect: str = "none", *, size: str | None = Non
         model = mujoco.MjModel.from_xml_string(xml)
         data = mujoco.MjData(model)
         renderer = mujoco.Renderer(model, height, width)
-        cid0 = model.camera("inspection_view").id
-        # The station inspection camera is a close, fixed camera: the brick
-        # occupies most of its frame while the jaw and arm remain visible.
-        mount = model.body("inspection_camera_mount").id
-        model.body_pos[mount] = np.asarray([0.0, -0.36, 0.235], dtype=np.float64)
-        model.cam_pos[cid0] = np.zeros(3, dtype=np.float64)
-        model.cam_fovy[cid0] = 30.0
-        _POOLS[key] = (model, data, renderer, model.cam_pos[cid0].copy(), model.light_diffuse.copy())
+        configure_inspection_camera(model)
+        cid = model.camera("inspection_view").id
+        _POOLS[key] = (model, data, renderer, model.cam_pos[cid].copy(), model.light_diffuse.copy())
     model, data, renderer, camera_base, light_base = _POOLS[key]
     body = model.body("brick_0").id
     adr = model.jnt_qposadr[model.body_jntadr[body]]
     yaw = rng.uniform(-math.pi, math.pi)
-    data.qpos[adr:adr + 3] = [rng.uniform(-.018, .018), -.12 + rng.uniform(-.012, .012),
-                               .102 + rng.uniform(-.006, .010)]
+    data.qpos[adr:adr + 3] = [INSPECTION_PRESENT_POSE[0] + rng.uniform(-.006, .006),
+                               INSPECTION_PRESENT_POSE[1] + rng.uniform(-.006, .006),
+                               INSPECTION_PRESENT_POSE[2] + rng.uniform(-.006, .010)]
     data.qpos[adr + 3:adr + 7] = [math.cos(yaw / 2), 0, 0, math.sin(yaw / 2)]
-    # Camera and key-light jitter are part of the render distribution.
+    # The camera remains at the fixed station pose.  Small key-light jitter is
+    # part of the render distribution; camera jitter would make train and
+    # rollout crops disagree and is intentionally omitted here.
     cid = model.camera("inspection_view").id
-    model.cam_pos[cid] = camera_base + np.asarray([rng.uniform(-.008, .008), rng.uniform(-.006, .006), rng.uniform(-.004, .004)])
+    model.cam_pos[cid] = camera_base
     model.light_diffuse[:] = light_base
     for li in range(model.nlight):
         model.light_diffuse[li] *= rng.uniform(.82, 1.18)
@@ -161,11 +161,10 @@ def render_drawing_frame(drawing: str | Path | np.ndarray, seed: int = 0, *, siz
                          color: str = "red") -> np.ndarray:
     """Put a transparent user drawing on the visible brick face and return RGB.
 
-    The inspection crop is only 128 pixels high, so a fixed pixel position is
-    not stable when the seeded camera/brick jitter changes.  Render a
-    segmentation pass and use the projected brick bounds for the compositing
-    rectangle.  This also keeps drawings inside the frame (the previous
-    implementation used ``y=132`` and clipped most of the overlay).
+    Render a segmentation pass and use the projected brick bounds for the
+    compositing rectangle.  This keeps drawings on the visible studded face
+    despite the few-millimetre grasp jitter and avoids a hard-coded pixel
+    location.
     """
     base = Image.fromarray(render_inspection(seed, "none", size=size, color=color)).convert("RGBA")
     if isinstance(drawing, (str, Path)):

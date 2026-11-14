@@ -12,6 +12,7 @@ import imageio.v2 as imageio
 from .mjcf_station import station_xml, ROOT, layout_bricks
 from .env import TIERS
 from .grasp_test import ARM_NAMES, ids, solve_restarted, pad_force, safe_state
+from .defects import INSPECTION_FRAME_SIZE, INSPECTION_PRESENT_POSE, configure_inspection_camera, render_inspection_frame
 
 
 def ik(model, data, target, q):
@@ -88,6 +89,10 @@ def _drive(model, data, q, grip, steps, writer):
 def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=None):
     """Run a contact-only expert, replanning from the live state per brick."""
     global _ACTIVE_RECORD, _ACTIVE_RECORDERS, _ACTIVE_TICK, _ACTIVE_VERDICT
+    # Training/photo renders and rollout inspection frames share this fixed
+    # close camera.  Move it before arm motion and recompute kinematics once.
+    configure_inspection_camera(model)
+    mujoco.mj_forward(model, data)
     brick_ids=[i for i in range(model.nbody) if (mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,i) or '').startswith('brick_')]
     old_record, old_recorders, old_tick, old_verdict = _ACTIVE_RECORD, _ACTIVE_RECORDERS, _ACTIVE_TICK, _ACTIVE_VERDICT
     _ACTIVE_RECORD, _ACTIVE_TICK, _ACTIVE_VERDICT = record, 0, 0
@@ -109,7 +114,7 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
         for i, ct, ca in pad_collision:
             model.geom_contype[i] = ct if enabled else 0
             model.geom_conaffinity[i] = ca if enabled else 0
-    inspection_renderer = mujoco.Renderer(model, 128, 128) if inspector is not None and writer is None else None
+    inspection_renderer = mujoco.Renderer(model, INSPECTION_FRAME_SIZE, INSPECTION_FRAME_SIZE) if inspector is not None and writer is None else None
     remaining=set(brick_ids)
     while remaining:
         body=min(remaining,key=lambda b: float(np.linalg.norm(data.xpos[b,:2])))
@@ -144,7 +149,7 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
             picked=bool(len(touched)==2 and data.xpos[body,2]>start_z+.005)
             if not picked: best={'failed_stage':'lift_contact','pad_contacts':len(touched),'peak_pad_force_N':peak}; continue
             set_bowl_collision(True)
-            inspect=np.array([.28,0.,.16]); qi,ei,oki=solve_restarted(model,data,inspect,arm,close_g)
+            inspect=INSPECTION_PRESENT_POSE.copy(); qi,ei,oki=solve_restarted(model,data,inspect,arm,close_g)
             if not oki: best={'failed_stage':'inspection_ik','ik_error_m':ei}; continue
             for step in range(900):
                 qq=q+(qi-q)*min(1.,step/700.); _drive(model,data,qq,close_g,1,writer)
@@ -152,7 +157,7 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
             verdict = None
             if inspector is not None:
                 view = writer.get('inspection_view') if writer is not None else inspection_renderer
-                view.update_scene(data, 'inspection_view'); result = inspector(view.render().copy())
+                result = inspector(render_inspection_frame(model, data, view))
                 verdict = result['verdict']; events.append({'brick': name, 'event': 'verdict', 'verdict': verdict, 'score': float(result['score']), 'threshold': float(result['threshold'])})
                 _ACTIVE_VERDICT = 1 if verdict == 'good' else -1
             is_defective = verdict == 'defective' if verdict is not None else (spec is None or spec.defect != 'none')

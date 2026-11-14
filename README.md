@@ -20,9 +20,10 @@ can be rerun. Open milestones are deliberately called open.
   inspection experiment and its held-out evaluation.
 - `dryrun/telemetry.py`, `data/schema.sql` and `web/` provide the telemetry
   writer and dashboard.
-- `dryrun/nemotron*.py`, `dryrun/curriculum*.py` and `dryrun/stations*.py`
-  contain the failure analyst, curriculum comparison and sentence-to-station
-  machinery. Their proof is in `status/M5.md`.
+- `dryrun/nemotron*.py`, `dryrun/curriculum*.py`, `dryrun/stations*.py` and
+  `dryrun/worker.py` contain the failure analyst, curriculum comparison,
+  sentence-to-station machinery and bounded local worker. Their proof is in
+  `status/M5.md`; `data/codex_log.jsonl` is the page-readable build ledger.
 
 ## Reproduce the checks
 

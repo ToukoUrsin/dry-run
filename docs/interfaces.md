@@ -22,6 +22,15 @@ accepts a PNG path or an `H x W x 3/4` NumPy drawing (RGBA alpha is preserved),
 places it on the visible face of a seeded brick at the inspection point, and
 returns the RGB `uint8[128,128,3]` frame to pass to `Inspector`.
 
+`dryrun.live_defect.inspect_custom_defect(payload)` is the fast Modal boundary.
+`payload` has a PNG `drawing` data URI and optional `seed`, `size`, and `color`;
+it returns `rendered_rgb` (`uint8[H,W,3]`), `heatmap` (`uint8[H,W]`),
+`score`, `threshold`, `verdict` (`good` or `defective`), and measured
+`latency_ms`. The process caches the OpenVINO graph. `inspection_json(...)`
+converts the two arrays to PNG data URIs for HTTP. The Modal endpoint returns
+this inspection result by default; adding `rollout: true` also returns the
+compressed one-brick replay and its `run_id`.
+
 The page can render the measured inspector artifacts directly from
 `/bulk2/runs/dryrun/m2/evaluation.json` (confusion, per-defect recall, held-out
 types, OpenVINO version and one/four-thread latency) and
@@ -30,6 +39,17 @@ the scalar `score`, selected `threshold` and the heat-map array; callers that
 persist it should write a PNG beside the replay and retain its path in the
 event row. The pure `render_drawing_frame` function is the payload boundary for
 an on-demand worker or Modal endpoint.
+
+The page/API inspector contract is `schema: "dryrun.inspector.v1"` from
+`GET /api/inspector` (also `/api/inspector.json`) and
+`/bulk2/runs/dryrun/m2/inspector_page.json`. It contains `confusion` with
+`tp`, `tn`, `fp`, `fn` and false-accept/reject rates,
+`per_defect_recall` keyed by each generated defect type (including the two
+held-out types), `latency` keyed by OpenVINO thread count with `median_ms`,
+`p95_ms`, and `n`, and `score_histograms` with shared `edges`, lower-bound
+`bins`, all-sample `counts`, and `per_type` counts. The detailed evaluation
+remains at `evaluation.json`; the page projection is emitted beside it and
+never invents a histogram when the detailed score rows are unavailable.
 
 ## Replay export format
 

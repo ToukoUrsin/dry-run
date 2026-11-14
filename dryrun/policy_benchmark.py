@@ -10,15 +10,34 @@ from .rollout import run
 class ACTController:
     def __init__(self, checkpoint):
         self.policy = load_policy(checkpoint)
+        self._ticks = 0
+        self._last = np.zeros(6, dtype=np.float32)
 
     def act(self, obs):
+        if self._ticks and self._ticks % 30:
+            self._ticks += 1
+            return self._last
         top = torch.from_numpy(np.asarray(obs["top"]).transpose(2, 0, 1)).float().unsqueeze(0) / 255.0
         inspection = torch.from_numpy(np.asarray(obs["inspection"]).transpose(2, 0, 1)).float().unsqueeze(0) / 255.0
         joints = torch.from_numpy(np.asarray(obs["joints"], dtype=np.float32)).reshape(1, 6)
         verdict = torch.as_tensor(obs.get("verdict", [0]), dtype=torch.float32).reshape(1, 1)
         with torch.no_grad():
             action = self.policy.select_action({"observation.images.top": top, "observation.images.inspection": inspection, "observation.state": torch.cat([joints, verdict], dim=1)})
-        return action.detach().cpu().numpy().reshape(6)
+        self._last = action.detach().cpu().numpy().reshape(6)
+        self._ticks += 1
+        return self._last
+
+
+class OpenVINOController:
+    def __init__(self, model_path):
+        import openvino as ov
+        self.compiled = ov.Core().compile_model(str(model_path), "CPU")
+        self.request = self.compiled.create_infer_request()
+    def act(self, obs):
+        top = np.asarray(obs["top"], np.float32).transpose(2,0,1)[None] / 255.0
+        inspection = np.asarray(obs["inspection"], np.float32).transpose(2,0,1)[None] / 255.0
+        state = np.r_[obs["joints"], obs.get("verdict", [0])].astype(np.float32)[None]
+        return np.asarray(self.request.infer({"top": top, "inspection": inspection, "state": state})[self.compiled.output(0)]).reshape(6)
 
 
 def one(seed, tier, controller, checkpoint):
@@ -26,7 +45,7 @@ def one(seed, tier, controller, checkpoint):
     return run(seed, policy, tier=tier)
 
 
-def evaluate(checkpoint: str | Path, seeds: int = 200, workers: int = 8, controller: str = "policy"):
+def evaluate(checkpoint: str | Path, seeds: int = 200, workers: int = 8, controller: str = "policy", max_steps: int = 1800):
     if seeds == 200:
         groups = {"loose": list(range(0, 80)), "messy": list(range(80, 150)), "pile": list(range(150, 200))}
     else:
@@ -39,8 +58,14 @@ def evaluate(checkpoint: str | Path, seeds: int = 200, workers: int = 8, control
         rows = []
         if controller == "policy":
             # n_action_steps=1 leaves no stateful action queue between calls.
-            controller_obj = ACTController(checkpoint)
-            def task(seed): return run(seed, controller_obj, tier=tier)
+            def task(seed):
+                controller_obj = ACTController(checkpoint)
+                try:
+                    from .inspector import Inspector
+                    inspector = Inspector()
+                except Exception:
+                    inspector = None
+                return run(seed, controller_obj, inspector=inspector, tier=tier, max_steps=max_steps)
         else:
             def task(seed): return one(seed, tier, "expert", checkpoint)
         with ThreadPoolExecutor(max_workers=max(1, workers)) as pool:

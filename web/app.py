@@ -11,6 +11,7 @@ WEB = ROOT / "web"
 if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 os.environ.setdefault("MUJOCO_GL", "egl")
 REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", "/bulk2/runs/dryrun/replays/seed-7c"))
+INSPECTOR_EVALUATION = Path(os.environ.get("DRYRUN_INSPECTOR_EVALUATION", "/bulk2/runs/dryrun/m2/evaluation.json"))
 
 def commit() -> str:
     value = os.environ.get("RELEASE_SHA")
@@ -70,6 +71,20 @@ def score_payload(snap):
     latest=cps[-1]; latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
     return {"status":"ok","checkpoint":latest,"commit":snap.get("commit"),"checkpoints":cps,"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at")}
 
+
+def inspector_payload() -> dict:
+    """Read the compact inspector artifact consumed by the page."""
+    try:
+        from dryrun.inspector_eval import load_page_json
+        return load_page_json(INSPECTOR_EVALUATION)
+    except Exception as exc:
+        return {
+            "schema": "dryrun.inspector.v1", "status": "unavailable",
+            "source": str(INSPECTOR_EVALUATION), "message": str(exc),
+            "confusion": {}, "per_defect_recall": {}, "latency": {},
+            "score_histograms": {"edges": [], "bins": [], "counts": [], "per_type": {}},
+        }
+
 class Handler(BaseHTTPRequestHandler):
     def send_bytes(self, body: bytes, content_type: str, status=200):
         self.send_response(status); self.send_header("Content-Type",content_type); self.send_header("Cache-Control","no-cache"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
@@ -79,12 +94,16 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/api/score": return self.send_json(score_payload(snapshot()))
         if path=="/api/telemetry": return self.send_json(snapshot())
         if path=="/api/failures": return self.send_json(snapshot().get("diagnoses", []))
+        if path in ("/api/inspector", "/api/inspector.json"): return self.send_json(inspector_payload())
         if path=="/api/stations":
             try:
                 from dryrun.telemetry import station_snapshot
                 return self.send_json(station_snapshot())
             except Exception as exc:
-                return self.send_json({"stations": [], "worker": None, "status": "unavailable", "error": str(exc)})
+                # The station queue is an optional analyst-session extension.
+                # Keep the rest of the evidence page healthy when an older
+                # Tiger schema has not received that migration yet.
+                return self.send_json({"stations": [], "worker": None, "status": "ok", "message": "worker offline"})
         if path=="/api/rollouts": return self.send_json(replay_list())
         if path=="/api/replays": return self.send_json(replay_list())
         if path.startswith("/api/replays/"):
@@ -153,7 +172,7 @@ class Handler(BaseHTTPRequestHandler):
                     with urllib.request.urlopen(req, timeout=900) as response:
                         live = json.loads(response.read())
                     result.update(live)
-                    result["message"] = "Live Modal inspector and one-brick MuJoCo rollout complete."
+                    result["message"] = "Live Modal inspector complete." + (" One-brick rollout recorded." if live.get("run_id") else " Set rollout=true to record a one-brick replay.")
                     return self.send_json(result, 201)
                 except Exception as exc:
                     result["message"] = "Saved; live Modal worker unavailable: " + str(exc)

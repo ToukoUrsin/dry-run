@@ -17,7 +17,7 @@ rows_store = modal.Dict.from_name("dryrun-policy-rows", create_if_missing=True)
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libegl1", "libgles2", "libosmesa6")
-    .pip_install("mujoco", "numpy", "torch", "torchvision", "lerobot[dataset]", "opencv-python-headless", "pillow")
+    .pip_install("mujoco", "numpy", "torch", "torchvision", "lerobot[dataset]==0.7.0", "opencv-python-headless", "pillow")
     .add_local_dir("dryrun", remote_path="/root/repo/dryrun")
     .add_local_dir("assets", remote_path="/root/repo/assets")
     .add_local_file("data/reach_map_polar.json", remote_path="/root/repo/data/reach_map_polar.json")

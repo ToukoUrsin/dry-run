@@ -33,7 +33,9 @@ def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, t
         xml = Path("/tmp") / f"dryrun_rollout_{int(seed)}_{tier}.xml"
         xml.write_text(station_xml(int(seed), sentence, count=count, robot_include=str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve())))
         model = mujoco.MjModel.from_xml_path(str(xml)); data = mujoco.MjData(model); mujoco.mj_forward(model, data)
-        return expert_rollout(model, data, int(seed), specs=layout_bricks(int(seed), sentence, count=count), inspector=inspector, record=record)
+        result = expert_rollout(model, data, int(seed), specs=layout_bricks(int(seed), sentence, count=count), inspector=inspector, record=record)
+        result.update({"seed": int(seed), "tier": tier, "steps": int(round(float(data.time) * 30.0)), "observations": {"top": (64, 64, 3), "inspection": (64, 64, 3), "joints": (6,)}})
+        return result
     env = StationEnv(seed, tier=tier); obs = env.reset()
     _record(record, {"type": "cycle_start", "brick": None, "task": f"sort {tier}"})
     verdict = 0; steps = 0

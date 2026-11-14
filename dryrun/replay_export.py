@@ -211,7 +211,10 @@ def export(
         recorder.sample(obs, force=True)
         result = env.result()
         bricks = len(env.brick_ids)
-        successes = len(result.get("good_bowl", []))
+        # The good bowl alone is not the task score: defective bricks belong
+        # in the defective bowl.  Reuse StationEnv's ground-truth label
+        # accounting so replay manifests and benchmark rows agree.
+        successes = len(result.get("correct", []))
         failures = [e for e in recorder.events if e.get("name") in {"unstable", "miss", "slip", "ik_fail"}]
         outcome = {
             "status": "success" if bricks and successes == bricks else "failed",
@@ -219,6 +222,8 @@ def export(
             "correct": successes,
             "successes": successes,
             "wrong_bowl": len(result.get("wrong_bowl", [])),
+            "false_accepts": len(result.get("false_accepts", [])),
+            "false_rejects": len(result.get("false_rejects", [])),
             "drops": len(result.get("dropped", [])),
             "score": successes / bricks if bricks else 0.0,
             "failure_reason": failures[0].get("name") if failures else None,

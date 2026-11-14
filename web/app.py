@@ -44,6 +44,34 @@ def replay_provenance(payload: dict) -> str:
     commit_value = payload.get("commit") or outcome.get("commit")
     return "post-main" if commit_value and str(commit_value).lower() not in {"unknown", "local"} else "archived pre-handoff"
 
+def _external_replay_paths() -> list[Path]:
+    """Return replay files mounted for the current deployment."""
+    if not REPLAY_DIR.exists():
+        return []
+    return sorted({*REPLAY_DIR.glob("seed-*/manifest.json"), *REPLAY_DIR.rglob("*.json.gz")})
+
+def _external_post_main() -> bool:
+    """Whether the mounted replay set contains a post-handoff artifact."""
+    for path in _external_replay_paths():
+        try:
+            if path.name == "manifest.json":
+                payload = json.loads(path.read_text())
+            else:
+                import gzip
+                with gzip.open(path, "rt", encoding="utf-8") as fh:
+                    payload = json.load(fh)
+            if replay_provenance(payload) == "post-main":
+                return True
+        except Exception:
+            continue
+    return False
+
+def _embedded_replay(seed: int) -> dict | None:
+    """Read the legacy embedded payload only for mesh compatibility."""
+    path = ROOT / "data" / f"replay-seed{seed}.jsonl"
+    rows = read_jsonl(path)
+    return rows[-1] if rows else None
+
 def codex_payload() -> dict:
     """Return the page-safe Codex timeline and truthful cast availability."""
     entries = read_jsonl(CODEX_LOG)
@@ -70,7 +98,9 @@ def snapshot() -> dict:
         return {"status":"unavailable","source":"none","reason":"No telemetry aggregate is connected yet.","error":str(exc),"commit":commit(),"checkpoints":[],"rollups":[],"diagnoses":[],"raw_rows":0,"result_rows":0,"query_ms":{}}
 
 def replay_payload(seed: int) -> dict | None:
-    candidates=[REPLAY_DIR/f"seed-{seed}"/"replay.json.gz", REPLAY_DIR/f"seed-{seed}c"/"replay.json.gz", ROOT/"data"/f"replay-seed{seed}.jsonl"]
+    candidates=[REPLAY_DIR/f"seed-{seed}"/"replay.json.gz", REPLAY_DIR/f"seed-{seed}c"/"replay.json.gz"]
+    if not _external_post_main():
+        candidates.append(ROOT/"data"/f"replay-seed{seed}.jsonl")
     for path in candidates:
         if not path.exists(): continue
         try:
@@ -96,14 +126,17 @@ def replay_payload(seed: int) -> dict | None:
 
 def replay_list():
     rows=[]
-    for path in sorted((ROOT/"data").glob("replay-*.jsonl")):
-        try:
-            obj=read_jsonl(path)[-1]; rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint"),"outcome":obj.get("outcome"),"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"recorded trace","provenance":replay_provenance(obj)})
-        except Exception: pass
+    mounted_post_main = _external_post_main()
+    if not mounted_post_main:
+        for path in sorted((ROOT/"data").glob("replay-*.jsonl")):
+            try:
+                obj=read_jsonl(path)[-1]; rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint"),"outcome":obj.get("outcome"),"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"recorded trace","provenance":replay_provenance(obj)})
+            except Exception: pass
     if REPLAY_DIR.exists():
         for path in sorted(REPLAY_DIR.glob("seed-*/manifest.json")):
             try:
-                obj=json.loads(path.read_text()); obj.setdefault("provenance", replay_provenance(obj)); rows.append(obj | {"source":"local MuJoCo export"})
+                obj=json.loads(path.read_text()); obj.setdefault("provenance", replay_provenance(obj))
+                if not mounted_post_main or obj["provenance"] == "post-main": rows.append(obj | {"source":"local MuJoCo export"})
             except Exception: pass
         # Benchmark exports are compact gzip traces without a manifest. Keep
         # their scene/result rows visible to the workspace while the featured
@@ -114,7 +147,9 @@ def replay_list():
                 with gzip.open(path, "rt", encoding="utf-8") as fh: obj=json.load(fh)
                 if obj.get("seed") is None: continue
                 outcome=obj.get("outcome") or {}
-                rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint") or obj.get("controller"),"tier":obj.get("tier"),"outcome":outcome,"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"benchmark replay export","commit":obj.get("commit"),"provenance":replay_provenance(obj)})
+                provenance = replay_provenance(obj)
+                if not mounted_post_main or provenance == "post-main":
+                    rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint") or obj.get("controller"),"tier":obj.get("tier"),"outcome":outcome,"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"benchmark replay export","commit":obj.get("commit"),"provenance":provenance})
             except Exception: pass
     unique={int(r.get("seed")):r for r in rows if r.get("seed") is not None}
     return list(unique.values())
@@ -227,7 +262,7 @@ class Handler(BaseHTTPRequestHandler):
             candidate=RUNS / "page-assets/so101.glb"
             if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"model/gltf-binary")
             try:
-                encoded=(replay_payload(7) or {}).get("mesh_data")
+                encoded=(_embedded_replay(7) or {}).get("mesh_data")
                 if encoded:
                     import base64
                     return self.send_bytes(base64.b64decode(encoded),"model/gltf-binary")

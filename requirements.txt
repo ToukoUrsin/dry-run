@@ -1,0 +1,2 @@
+# Optional acceleration (the simulator and benchmark run with Python stdlib only)
+openvino>=2024.0

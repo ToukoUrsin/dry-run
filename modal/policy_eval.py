@@ -13,7 +13,7 @@ image = (modal.Image.debian_slim(python_version="3.12")
          .add_local_file("data/reach_map_polar.json", remote_path="/root/repo/data/reach_map_polar.json"))
 
 
-@app.function(image=image, timeout=1800, cpu=4, volumes={"/runs": volume})
+@app.function(image=image, timeout=1800, cpu=4, gpu="T4", volumes={"/runs": volume})
 def evaluate_seed(seed: int, tier: str = "loose", checkpoint: str = "/runs/act-final-modal.pt", max_steps: int = 1800):
     sys.path.insert(0, "/root/repo")
     import os

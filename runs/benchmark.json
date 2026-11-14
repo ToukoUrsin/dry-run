@@ -1,0 +1,1415 @@
+{
+  "benchmark": "dryrun-v1",
+  "seeds": {
+    "count": 200,
+    "first": 0,
+    "last": 199
+  },
+  "bricks": 1519,
+  "correct": 1519,
+  "score": 1.0,
+  "drops": 0,
+  "mean_cycle_time_s": 2.7782,
+  "rows": [
+    {
+      "seed": 0,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 1,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 2,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 3,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 4,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 5,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 6,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 7,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 8,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 9,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 10,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 11,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 12,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 13,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 14,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 15,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 16,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 17,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 18,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 19,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 20,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 21,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 22,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 23,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 24,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 25,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 26,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 27,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 28,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 29,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 30,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 31,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 32,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 33,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 34,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 35,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 36,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 37,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 38,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 39,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 40,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 41,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 42,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 43,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 44,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 45,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 46,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 47,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 48,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 49,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 50,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 51,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 52,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 53,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 54,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 55,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 56,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 57,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 58,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 59,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 60,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 61,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 62,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 63,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 64,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 65,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 66,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 67,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 68,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 69,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 70,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 71,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 72,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 73,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 74,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 75,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 76,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 77,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 78,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 79,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 80,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 81,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 82,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 83,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 84,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 85,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 86,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 87,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 88,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 89,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 90,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 91,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 92,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 93,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 94,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 95,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 96,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 97,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 98,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 99,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 100,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 101,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 102,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 103,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 104,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 105,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 106,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 107,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 108,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 109,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 110,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 111,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 112,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 113,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 114,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 115,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 116,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 117,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 118,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 119,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 120,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 121,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 122,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 123,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 124,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 125,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 126,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 127,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 128,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 129,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 130,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 131,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 132,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 133,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 134,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 135,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 136,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 137,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 138,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 139,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 140,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 141,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 142,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 143,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 144,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 145,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 146,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 147,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 148,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 149,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 150,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 151,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 152,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 153,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 154,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 155,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 156,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 157,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 158,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 159,
+      "bricks": 9,
+      "correct": 9,
+      "drops": 0,
+      "cycle_time_s": 3.27
+    },
+    {
+      "seed": 160,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 161,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 162,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 163,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 164,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 165,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 166,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 167,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 168,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 169,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 170,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 171,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 172,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 173,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 174,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 175,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 176,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 177,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 178,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 179,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 180,
+      "bricks": 5,
+      "correct": 5,
+      "drops": 0,
+      "cycle_time_s": 1.87
+    },
+    {
+      "seed": 181,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 182,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 183,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 184,
+      "bricks": 7,
+      "correct": 7,
+      "drops": 0,
+      "cycle_time_s": 2.57
+    },
+    {
+      "seed": 185,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 186,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 187,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 188,
+      "bricks": 6,
+      "correct": 6,
+      "drops": 0,
+      "cycle_time_s": 2.22
+    },
+    {
+      "seed": 189,
+      "bricks": 10,
+      "correct": 10,
+      "drops": 0,
+      "cycle_time_s": 3.62
+    },
+    {
+      "seed": 190,
+      "bricks": 4,
+      "correct": 4,
+      "drops": 0,
+      "cycle_time_s": 1.52
+    },
+    {
+      "seed": 191,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 192,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    },
+    {
+      "seed": 193,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 194,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 195,
+      "bricks": 12,
+      "correct": 12,
+      "drops": 0,
+      "cycle_time_s": 4.32
+    },
+    {
+      "seed": 196,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 197,
+      "bricks": 11,
+      "correct": 11,
+      "drops": 0,
+      "cycle_time_s": 3.97
+    },
+    {
+      "seed": 198,
+      "bricks": 3,
+      "correct": 3,
+      "drops": 0,
+      "cycle_time_s": 1.17
+    },
+    {
+      "seed": 199,
+      "bricks": 8,
+      "correct": 8,
+      "drops": 0,
+      "cycle_time_s": 2.92
+    }
+  ]
+}

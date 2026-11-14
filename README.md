@@ -1,11 +1,5 @@
 # Dry Run
 
-Dry Run is a seedable CPU simulator for the Junction 2026 brick-sorting station. It generates camera-facing scenes, runs a scripted demonstrator, and scores a fixed benchmark.
+This repository is an unfinished investigation for the Junction 2026 challenge. The first implementation pass was rejected because it used stand-ins for MuJoCo, Anomalib, LeRobot, TimescaleDB, Nemotron, and deployment. No milestone is complete.
 
-```bash
-python -m dryrun.sim scene 42 --json
-python benchmark.py --seeds 200 --output runs/benchmark.json
-python -m dryrun.render_run 7
-```
-
-The XML station is intentionally small and portable. It provides the same table, bowls and camera contract used by later inspector and policy stages; it does not claim a calibrated physical SO-101.
+The authoritative requirements and proof commands are in `prompts/001-goal.md` and `prompts/002-first-pass-rejected.md`. Work must not describe an interface, fallback, placeholder, or proxy as a completed feature. Status files are intentionally absent until each milestone has real evidence.

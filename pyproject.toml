@@ -1,0 +1,8 @@
+[project]
+name = "dryrun"
+version = "0.1.0"
+description = "Seeded MuJoCo-inspired SO-101 brick sorting dry run"
+requires-python = ">=3.10"
+dependencies = []
+[project.scripts]
+dryrun = "dryrun.cli:main"

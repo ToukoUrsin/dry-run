@@ -1,6 +1,6 @@
 """Held-out benchmark over the shared seeded rollout API."""
 from __future__ import annotations
-import argparse, gzip, json, subprocess, time
+import argparse, gzip, json, math, os, subprocess, time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
@@ -10,6 +10,12 @@ from .inspector import Inspector
 from .rollout import run as rollout_run
 from .env import TIERS
 from .mjcf_station import layout_bricks
+
+
+def _telemetry_configured() -> bool:
+    """Return whether this benchmark run has an explicit database target."""
+
+    return bool(os.environ.get("DRYRUN_DB_URL"))
 
 TIER_COUNTS = {"loose": 80, "messy": 70, "pile": 50}
 
@@ -54,9 +60,55 @@ class _ReplayCapture:
         })
 
 
+def _telemetry_samples(capture: _ReplayCapture, *, base_timestamp: float) -> list[dict[str, Any]]:
+    """Translate public recorder frames to the telemetry writer contract."""
+
+    samples = []
+    for frame in capture.frames:
+        joints = frame.get("joints") or frame.get("action") or []
+        joints = list(joints)
+        if len(joints) < 6:
+            continue
+        samples.append({
+            "ts": float(base_timestamp) + float(frame.get("t", 0.0)),
+            "qpos": [float(value) for value in joints[:6]],
+            "gripper": float(joints[5]),
+        })
+    return samples
+
+
+def _write_telemetry(row: dict[str, Any], capture: _ReplayCapture, *, base_timestamp: float) -> str:
+    """Persist one benchmark rollout through the shared telemetry boundary."""
+
+    if not _telemetry_configured():
+        return "not configured"
+    from . import telemetry
+
+    rollout_id = f"benchmark-{row['controller']}-{row['tier']}-{int(row['seed'])}-{row['commit'][:12]}"
+    events = []
+    for event in [*capture.events, *row.get("events", [])]:
+        event = _jsonable(event)
+        if isinstance(event, dict) and "name" not in event:
+            event["name"] = event.get("event", "event")
+        if isinstance(event, dict) and "ts" not in event and "t" in event:
+            event["ts"] = float(base_timestamp) + float(event["t"])
+        events.append(event)
+    telemetry.record_rollout(
+        _telemetry_samples(capture, base_timestamp=base_timestamp),
+        events,
+        _jsonable(row),
+        rollout_id=rollout_id,
+        seed=int(row["seed"]),
+        checkpoint=str(row["controller"]),
+    )
+    return "written"
+
+
 def _jsonable(value: Any) -> Any:
     if hasattr(value, "tolist"):
-        return value.tolist()
+        return _jsonable(value.tolist())
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
     if isinstance(value, dict):
         return {str(k): _jsonable(v) for k, v in value.items()}
     if isinstance(value, (list, tuple)):
@@ -107,7 +159,8 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
     # benchmark-only scene/controller path from drifting back to the
     # withdrawn fixed-position loose fixture.
     del workdir
-    capture = _ReplayCapture() if export_dir is not None else None
+    telemetry_enabled = _telemetry_configured()
+    capture = _ReplayCapture() if export_dir is not None or telemetry_enabled else None
     r = rollout_run(int(seed), controller, inspector=inspector, tier=tier, record=capture)
     specs = layout_bricks(int(seed), TIERS[tier])
     row = {
@@ -125,6 +178,7 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
     }
     if export_dir is not None:
         _write_replay(export_dir, row, capture)
+    row["telemetry"] = _write_telemetry(row, capture, base_timestamp=time.time()) if capture is not None else "not configured"
     return row
 
 def summarize(rows):
@@ -134,6 +188,10 @@ def summarize(rows):
 def run(seeds=None, workdir=Path("/bulk3/runs/dryrun/benchmark"), inspector=None, tier=None,
         export_replays: Path | None = None, controller: str = "expert", workers: int = 1):
     started = time.perf_counter(); workdir.mkdir(parents=True, exist_ok=True)
+    telemetry_enabled = _telemetry_configured()
+    if telemetry_enabled:
+        from . import telemetry
+        telemetry.setup()
     if seeds is None: seeds = range(200)
     seeds = list(seeds)
     groups = {tier: seeds[:TIER_COUNTS[tier]]} if tier else ({"loose": seeds[:80], "messy": seeds[80:150], "pile": seeds[150:200]} if len(seeds) == 200 else {"loose": seeds})
@@ -146,6 +204,9 @@ def run(seeds=None, workdir=Path("/bulk3/runs/dryrun/benchmark"), inspector=None
     else:
         rows = [_one(seed, name, workdir, inspector=inspector, export_dir=export_replays, controller=controller)
                 for seed, name in jobs]
+    if telemetry_enabled:
+        from . import telemetry
+        telemetry.refresh()
     rows.sort(key=lambda row: (row["tier"], row["seed"]))
     tiers = {name: summarize([r for r in rows if r["tier"] == name]) for name in groups}
     total = summarize(rows)

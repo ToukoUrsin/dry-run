@@ -68,6 +68,12 @@ def record_rollout(samples: Iterable[Mapping], events: Iterable[Mapping], outcom
     sample_rows, event_rows, out = list(samples), list(events), dict(outcome)
     with psycopg.connect(url or db_url()) as conn:
         with conn.cursor() as cur:
+            # Benchmark retries use a stable rollout id.  Avoid duplicating
+            # the 30 Hz hypertable rows when the same completed rollout is
+            # sent again (for example after a failed aggregate refresh).
+            cur.execute("SELECT 1 FROM rollout_results WHERE rollout_id=%s LIMIT 1", (rid,))
+            if cur.fetchone() is not None:
+                return rid
             for row in sample_rows:
                 q = (list(row.get("qpos", row.get("joint", [0] * 6))) + [0] * 6)[:6]
                 cur.execute("""INSERT INTO rollout_telemetry

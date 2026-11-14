@@ -50,3 +50,34 @@ The review process started but could not inspect the repository: its command run
 failed on a sandbox mount before repository commands ran. It also logged that
 Chrome DevTools required approval while the project approval policy was `never`.
 No review findings were produced; this is not a clean review result.
+
+## Page rounds and current proof (2026-11-14)
+
+The page rounds are preserved under `/bulk3/runs/dryrun/page-shots/`; each round
+has laptop and phone captures. The changes recorded here are the ones that are
+actually present in the source and were followed by browser checks:
+
+| Round | Change | Evidence |
+| --- | --- | --- |
+| 2 | Added the real seed-7 MuJoCo replay, embedded top/inspection videos, and the compressed SO-101 mesh asset. | `page-shots/round-2/` |
+| 3 | Added the public smoke gate and aggregate-backed inspector/API states. | `page-shots/round-3/` |
+| 4 | Reworked the viewer with a Z-up camera, lighting/shadows, smooth bowls, rounded bricks, and synchronized cameras. | `page-shots/round-4/` |
+| 5 | Added Scenes/Compare workspace views, hid unavailable views, and selected the failed replay honestly. | `page-shots/round-5/` |
+| 6 | Split the long report into hash-routed workspace views and made viewer readiness deterministic for the smoke test. | `page-shots/round-6/` |
+| 7 | Kept Station as the first workspace view and reran the public gate at both judge sizes. | `page-shots/round-7/` |
+
+Current deployment proof uses commit `c7b0f6b` and the clean-commit smoke run:
+
+```text
+uv run --project /home/ubuntu/junction/dryrun --no-sync \
+  python scripts/smoke_public.py --url https://dryrun-junction-2026.fly.dev \
+  --screenshot-dir /bulk3/runs/dryrun/page-shots/c7b0f6b
+-> 1440px non_background_pixels=280703, videos=[4,4], scroll_width=1440,
+   errors=[]; 390px non_background_pixels=89991, videos=[4,4],
+   scroll_width=390, errors=[]
+```
+
+The page and telemetry are live, but data-dependent sections remain explicit:
+there is one recorded failed seed-7 trace, no Nemotron diagnosis rows, no
+station requests, no second controller for Compare, and no attached measured
+reach-map artifact. No held-out loose-tier score is claimed.

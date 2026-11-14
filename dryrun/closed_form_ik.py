@@ -33,7 +33,9 @@ JOINT_LIMITS = np.asarray(
 
 # Geometry is expressed in the q0=0 radial/tangential/vertical frame.  The
 # radial frame rotates by -q0 in world XY because of the shoulder-pan mount.
-SHOULDER = np.asarray((0.0388353, 0.0, 0.0624), dtype=float)
+# The tiny y offset is present in the MJCF shoulder body pose and is retained
+# so analytic-vs-MuJoCo checks reach floating-point precision.
+SHOULDER = np.asarray((0.0388353, -8.97657e-09, 0.0624), dtype=float)
 A_FROM_SHOULDER = np.asarray((0.0303992, -0.0182778, 0.0542), dtype=float)
 L1 = np.asarray((0.028, 0.0, 0.11257), dtype=float)
 L2 = np.asarray((0.1349, 0.0, 0.0052), dtype=float)

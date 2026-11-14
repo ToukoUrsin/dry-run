@@ -88,6 +88,31 @@ def record_rollout(samples: Iterable[Mapping], events: Iterable[Mapping], outcom
         conn.commit()
     return rid
 
+def record_diagnosis(diagnosis: Mapping, *, url: str | None = None) -> str:
+    """Persist one validated camera-only analyst result for the page."""
+    _require_db()
+    required = ("rollout_id", "model", "version", "frame_paths", "failure_stage", "cause", "frame", "scene_features", "next_scenes")
+    missing = [name for name in required if name not in diagnosis]
+    if missing:
+        raise ValueError("diagnosis missing: " + ",".join(missing))
+    rid, version = str(diagnosis["rollout_id"]), str(diagnosis["version"])
+    with psycopg.connect(url or db_url()) as conn:
+        conn.execute(
+            """INSERT INTO failure_diagnoses
+               (rollout_id,model,analyst_version,frame_paths,failure_stage,cause,evidence_frame,scene_features,next_scenes)
+               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+               ON CONFLICT (rollout_id, analyst_version) DO UPDATE SET
+                 model=EXCLUDED.model, frame_paths=EXCLUDED.frame_paths,
+                 failure_stage=EXCLUDED.failure_stage, cause=EXCLUDED.cause,
+                 evidence_frame=EXCLUDED.evidence_frame,
+                 scene_features=EXCLUDED.scene_features, next_scenes=EXCLUDED.next_scenes""",
+            (rid, str(diagnosis["model"]), version, Jsonb(list(diagnosis["frame_paths"])),
+             str(diagnosis["failure_stage"]), str(diagnosis["cause"]), str(diagnosis["frame"]),
+             Jsonb(dict(diagnosis["scene_features"])), Jsonb(list(diagnosis["next_scenes"]))),
+        )
+        conn.commit()
+    return rid
+
 def refresh(url: str | None = None) -> None:
     _require_db()
     with psycopg.connect(url or db_url(), autocommit=True) as conn:
@@ -104,18 +129,25 @@ def dashboard_snapshot(url: str | None = None) -> dict:
         started = time.perf_counter()
         summary = conn.execute("SELECT checkpoint,sum(bricks),sum(correct),sum(drops),sum(false_accepts),sum(false_rejects),avg(cycle_time_s),sum(rollouts) FROM benchmark_checkpoint GROUP BY checkpoint ORDER BY checkpoint").fetchall()
         summary_ms = (time.perf_counter() - started) * 1000
-        raw_count = conn.execute("SELECT count(*) FROM rollout_telemetry").fetchone()[0]
-        result_count = conn.execute("SELECT count(*) FROM rollout_results").fetchone()[0]
+        # The page's row count is itself an aggregate: the API never scans the
+        # 30 Hz hypertable. `samples` is the exact count represented by each
+        # one-second continuous aggregate row.
+        raw_count = int(conn.execute("SELECT COALESCE(sum(samples),0) FROM rollout_1s").fetchone()[0] or 0)
+        result_count = int(conn.execute("SELECT count(*) FROM rollout_results").fetchone()[0] or 0)
         compression = conn.execute("SELECT COALESCE(sum(before_compression_total_bytes),0), COALESCE(sum(after_compression_total_bytes),0) FROM hypertable_compression_stats('rollout_telemetry')").fetchone()
         hypertable = conn.execute("SELECT compression_enabled FROM timescaledb_information.hypertables WHERE hypertable_name='rollout_telemetry'").fetchone()
         latest_rollout = conn.execute("SELECT max(finished_at) FROM rollout_results").fetchone()[0]
+        diagnosis_rows = conn.execute("""SELECT created_at,rollout_id,model,analyst_version,frame_paths,
+                   failure_stage,cause,evidence_frame,scene_features,next_scenes
+                   FROM failure_diagnoses ORDER BY created_at DESC LIMIT 100""").fetchall()
         keys = ("bucket","rollout_id","seed","checkpoint","q0","q1","q2","q3","q4","q5","gripper","samples","joint_effort","status")
         rows = []
         for row in rollups:
             item = dict(zip(keys, row)); item["bucket"] = item["bucket"].isoformat() if hasattr(item["bucket"], "isoformat") else item["bucket"]; rows.append(item)
         checkpoints = [{"checkpoint": r[0], "bricks": r[1], "correct": r[2], "drops": r[3], "false_accepts": r[4], "false_rejects": r[5], "cycle_time_s": r[6], "rollouts": r[7]} for r in summary]
     before, after = [int(x or 0) for x in compression]
-    return {"status":"ok","source":"timescale","rollups":rows,"checkpoints":checkpoints,"raw_rows":raw_count,"result_rows":result_count,"compression_enabled":bool(hypertable and hypertable[0]),"uncompressed_bytes":before,"compressed_bytes":after,"compression_ratio":round(before/after,3) if after else None,"latest_rollout_at":latest_rollout.isoformat() if hasattr(latest_rollout,"isoformat") else latest_rollout,"query_ms":{"rollup_aggregate":round(aggregate_ms,3),"checkpoint_aggregate":round(summary_ms,3)},"snapshot_at":datetime.now(timezone.utc).isoformat()}
+    diagnoses = [{"created_at": r[0].isoformat() if hasattr(r[0], "isoformat") else r[0], "rollout_id": r[1], "model": r[2], "version": r[3], "frame_paths": r[4], "failure_stage": r[5], "cause": r[6], "frame": r[7], "scene_features": r[8], "next_scenes": r[9]} for r in diagnosis_rows]
+    return {"status":"ok","source":"timescale","rollups":rows,"checkpoints":checkpoints,"diagnoses":diagnoses,"raw_rows":raw_count,"result_rows":result_count,"compression_enabled":bool(hypertable and hypertable[0]),"uncompressed_bytes":before,"compressed_bytes":after,"compression_ratio":round(before/after,3) if after else None,"latest_rollout_at":latest_rollout.isoformat() if hasattr(latest_rollout,"isoformat") else latest_rollout,"query_ms":{"rollup_aggregate":round(aggregate_ms,3),"checkpoint_aggregate":round(summary_ms,3)},"snapshot_at":datetime.now(timezone.utc).isoformat()}
 
 def counts(url: str | None = None) -> dict:
     snap = dashboard_snapshot(url); return {"telemetry_rows":snap["raw_rows"],"result_rows":snap["result_rows"],"aggregate_rows":len(snap["rollups"]),"compression":"enabled"}
@@ -160,15 +192,16 @@ def remote_stats(url: str | None = None) -> dict:
     """Numbers shown on the page, all read from Tiger's catalog and aggregates."""
     _require_db(); started = time.perf_counter()
     with psycopg.connect(url or db_url()) as conn:
-        raw = conn.execute("SELECT count(*) FROM rollout_telemetry").fetchone()[0]
-        rollouts = conn.execute("SELECT count(*) FROM rollout_results").fetchone()[0]
-        aggregates = conn.execute("SELECT count(*) FROM rollout_1s").fetchone()[0]
-        checkpoint_rows = conn.execute("SELECT count(*) FROM benchmark_checkpoint").fetchone()[0]
+        raw = int(conn.execute("SELECT COALESCE(sum(samples),0) FROM rollout_1s").fetchone()[0] or 0)
+        rollouts = int(conn.execute("SELECT count(*) FROM rollout_results").fetchone()[0] or 0)
+        aggregates = int(conn.execute("SELECT count(*) FROM rollout_1s").fetchone()[0] or 0)
+        checkpoint_rows = int(conn.execute("SELECT count(*) FROM benchmark_checkpoint").fetchone()[0] or 0)
+        diagnosis_rows = conn.execute("SELECT count(*) FROM failure_diagnoses").fetchone()[0]
         compression = conn.execute("SELECT COALESCE(sum(before_compression_total_bytes),0), COALESCE(sum(after_compression_total_bytes),0) FROM hypertable_compression_stats('rollout_telemetry')").fetchone()
         hypertable = conn.execute("SELECT compression_enabled FROM timescaledb_information.hypertables WHERE hypertable_name='rollout_telemetry'").fetchone()
     elapsed = (time.perf_counter() - started) * 1000
     uncompressed, compressed = [int(x or 0) for x in compression]
-    return {"telemetry_rows": raw, "rollouts": rollouts, "aggregate_rows": aggregates, "checkpoint_rows": checkpoint_rows, "compression_enabled": bool(hypertable and hypertable[0]), "uncompressed_bytes": uncompressed, "compressed_bytes": compressed, "compression_ratio": round(uncompressed / compressed, 3) if compressed else None, "catalog_query_ms": round(elapsed, 3)}
+    return {"telemetry_rows": raw, "rollouts": rollouts, "aggregate_rows": aggregates, "checkpoint_rows": checkpoint_rows, "diagnosis_rows": diagnosis_rows, "compression_enabled": bool(hypertable and hypertable[0]), "uncompressed_bytes": uncompressed, "compressed_bytes": compressed, "compression_ratio": round(uncompressed / compressed, 3) if compressed else None, "catalog_query_ms": round(elapsed, 3)}
 
 def write_rollout(seed: int = 7, seconds: float = 2.0, url: str | None = None):
     start = datetime.now(timezone.utc); n = int(seconds * 30)

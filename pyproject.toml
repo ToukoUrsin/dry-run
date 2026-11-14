@@ -3,6 +3,6 @@ name = "dryrun"
 version = "0.1.0"
 description = "Seeded MuJoCo-inspired SO-101 brick sorting dry run"
 requires-python = ">=3.10"
-dependencies = []
+dependencies = ["mujoco>=3.2", "numpy>=1.26", "imageio>=2.31", "imageio-ffmpeg>=0.4", "anomalib>=2.7", "openvino>=2026.0", "onnxscript>=0.7"]
 [project.scripts]
-dryrun = "dryrun.cli:main"
+dryrun = "dryrun.benchmark:main"

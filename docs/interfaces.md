@@ -20,7 +20,15 @@ The benchmark calls this at `present` and records the verdict before `drop`.
 `dryrun.defects.render_drawing_frame(drawing, seed=0, size="2x2", color="red")`
 accepts a PNG path or an `H x W x 3/4` NumPy drawing (RGBA alpha is preserved),
 places it on the visible face of a seeded brick at the inspection point, and
-returns the RGB `uint8[128,128,3]` frame to pass to `Inspector`.
+returns the RGB `uint8[384,384,3]` frame to pass to `Inspector`.
+
+The rebuilt inspector shot uses `INSPECTION_PRESENT_POSE = [0.28, 0.0, 0.16]`
+metres and `INSPECTION_CAMERA_POSITION = [0.28, -0.10, 0.23]` metres: a
+0.122 m fixed camera distance, 34 degree field of view, and a 384x384 RGB
+frame. `render_inspection` and `render_inspection_frame` use the same camera
+configuration; the rollout calls the latter after holding the brick at that
+pose. The top face is the judged face. Underside marks are outside this shot
+and are reported separately rather than silently treated as visible.
 
 `dryrun.live_defect.inspect_custom_defect(payload)` is the fast Modal boundary.
 `payload` has a PNG `drawing` data URI and optional `seed`, `size`, and `color`;

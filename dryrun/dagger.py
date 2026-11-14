@@ -15,7 +15,7 @@ def append_round(source: Path, target: Path, checkpoint: Path, round_no: int, se
     ds = LeRobotDataset("dryrun-so101", root=source, download_videos=False)
     out = LeRobotDataset.create("dryrun-so101", fps=30, features=FEATURES, root=target, robot_type="so101", use_videos=False, image_writer_processes=0, image_writer_threads=0)
     for i in range(len(ds)):
-        row = ds[i]; out.add_frame({"observation.images.top": (row["observation.images.top"].permute(1,2,0).numpy()*255).astype(np.uint8), "observation.images.inspection": (row["observation.images.inspection"].permute(1,2,0).numpy()*255).astype(np.uint8), "observation.state": row["observation.state"].numpy(), "action": row["action"].numpy(), "inspection.verdict": row["inspection.verdict"].numpy().astype(np.int8), "success": row["success"].numpy().astype(bool), "task": "sort brick"})
+        row = ds[i]; out.add_frame({"observation.images.top": (row["observation.images.top"].permute(1,2,0).numpy()*255).astype(np.uint8), "observation.images.inspection": (row["observation.images.inspection"].permute(1,2,0).numpy()*255).astype(np.uint8), "observation.state": row["observation.state"].numpy(), "action": row["action"].numpy(), "inspection.verdict": row["inspection.verdict"].numpy().astype(np.int8).reshape(1), "success": row["success"].numpy().astype(bool).reshape(1), "task": "sort brick"})
         if (i + 1) % 320 == 0: out.save_episode()
     policy = ACTController(checkpoint)
     added = 0

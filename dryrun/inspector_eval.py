@@ -35,7 +35,10 @@ def _metrics(rows: list[dict], threshold: float) -> dict:
     table = {}
     for typ in ["good", *DEFECT_TYPES]:
         rs = [r for r in rows if r["type"] == typ]; tp = sum(r["actual_defect"] and r["pred_defect"] for r in rs); tn = sum((not r["actual_defect"]) and (not r["pred_defect"]) for r in rs); fp = sum((not r["actual_defect"]) and r["pred_defect"] for r in rs); fn = sum(r["actual_defect"] and (not r["pred_defect"]) for r in rs)
-        table[typ] = {"n": len(rs), "tp": tp, "tn": tn, "fp": fp, "fn": fn, "recall": tp / max(1, tp + fn), "mean_score": float(np.mean([r["score"] for r in rs]))}
+        scores = [r["score"] for r in rs]
+        table[typ] = {"n": len(rs), "tp": tp, "tn": tn, "fp": fp, "fn": fn,
+                      "recall": tp / max(1, tp + fn),
+                      "mean_score": float(np.mean(scores)) if scores else None}
     y = np.asarray([r["actual_defect"] for r in rows], dtype=np.int32); s = np.asarray([r["score"] for r in rows]); order = np.argsort(s); ranks = np.empty_like(order); ranks[order] = np.arange(len(order)); pos = y == 1; neg = y == 0; auroc = float((ranks[pos].sum() - pos.sum() * (pos.sum() - 1) / 2) / max(1, pos.sum() * neg.sum()))
     tp = sum(r["actual_defect"] and r["pred_defect"] for r in rows); tn = sum((not r["actual_defect"]) and (not r["pred_defect"]) for r in rows); fp = sum((not r["actual_defect"]) and r["pred_defect"] for r in rows); fn = sum(r["actual_defect"] and (not r["pred_defect"]) for r in rows)
     # Operationally, a false accept is a defective frame accepted as good

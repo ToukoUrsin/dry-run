@@ -74,15 +74,23 @@ def score_payload(snap):
 
 def inspector_payload() -> dict:
     """Read the compact inspector artifact consumed by the page."""
+    path = INSPECTOR_EVALUATION
+    if not path.exists():
+        # Fly serves the measured text artifact committed with the page.  It
+        # avoids importing OpenVINO/CV dependencies just to read metrics.
+        path = ROOT / "data" / "inspector_evaluation.json"
     try:
-        from dryrun.inspector_eval import load_page_json
-        return load_page_json(INSPECTOR_EVALUATION)
+        metrics = json.loads(path.read_text())
+        metrics["status"] = "ok"
+        metrics["source"] = str(path)
+        return metrics
     except Exception as exc:
         return {
             "schema": "dryrun.inspector.v1", "status": "unavailable",
             "source": str(INSPECTOR_EVALUATION), "message": str(exc),
             "confusion": {}, "per_defect_recall": {}, "latency": {},
             "score_histograms": {"edges": [], "bins": [], "counts": [], "per_type": {}},
+            "score_histogram": {"edges": [], "bins": [], "counts": [], "per_type": {}},
         }
 
 class Handler(BaseHTTPRequestHandler):

@@ -27,23 +27,33 @@ def ik(model, data, target, q):
     return q
 
 
-def _solve_target(model, data, target, grip, *, tolerance=.004, wrist_roll=0.0):
+def _solve_target(model, data, target, grip, *, tolerance=.004, wrist_roll=0.0,
+                  allow_roll_search=False):
     """Solve physical pad targets with the finite closed-form path."""
     del model, data  # retained in the rollout call contract
     pitches = [*range(35, -1, -1), *range(-1, -36, -1)]
-    for degrees in pitches:
-        try:
-            result = ik_pad_pose(
-                target,
-                approach_pitch=float(np.deg2rad(degrees)),
-                wrist_roll=float(wrist_roll),
-                enforce_limits=True,
-                grip_q=float(grip),
-            )
-        except IKError:
-            continue
-        if result.error <= tolerance:
-            return result.q, float(result.error), True
+    def search(rolls):
+        for roll in rolls:
+            for degrees in pitches:
+                try:
+                    result = ik_pad_pose(
+                        target,
+                        approach_pitch=float(np.deg2rad(degrees)),
+                        wrist_roll=float(roll),
+                        enforce_limits=True,
+                        grip_q=float(grip),
+                    )
+                except IKError:
+                    continue
+                if result.error <= tolerance:
+                    return result.q, float(result.error), True
+        return None
+
+    solved = search((float(wrist_roll),))
+    if solved is None and allow_roll_search:
+        solved = search(np.linspace(-2.7438 + 1e-5, 2.8412 - 1e-5, 61))
+    if solved is not None:
+        return solved
     return np.zeros(5, dtype=float), float("inf"), False
 
 
@@ -215,6 +225,17 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
     remaining=set(brick_ids)
     processed_cycles = 0
     while remaining and (max_cycles is None or processed_cycles < int(max_cycles)):
+        if processed_cycles:
+            # Re-home between bricks so a failed drop or a high-contact retry
+            # cannot carry residual arm velocity into the next approach.
+            set_pad_collision(False)
+            set_bowl_collision(False)
+            qsafe, _, oksafe = _solve_target(
+                model, data, [.22, 0.0, .24], gopen,
+                wrist_roll=wrist_mid, allow_roll_search=True,
+            )
+            if oksafe:
+                _drive(model, data, qsafe, gopen, 350, None)
         body=min(remaining,key=lambda b: float(np.linalg.norm(data.xpos[b,:2])))
         remaining.remove(body)
         name=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,body); idx=int(name.split('_')[1])
@@ -241,7 +262,7 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
         for attempt in range(int(getattr(record, "max_attempts", 6)) if record is not None else 6):
             set_bowl_collision(False)
             set_pad_collision(False)
-            start=data.xpos[body].copy(); approach_q,ea,oka=_solve_target(model,data,[float(start[0]),float(start[1]),.075],gopen,wrist_roll=brick_roll)
+            start=data.xpos[body].copy(); approach_q,ea,oka=_solve_target(model,data,[float(start[0]),float(start[1]),.075],gopen,wrist_roll=brick_roll,allow_roll_search=True)
             if not oka: best={'failed_stage':'approach_ik','ik_error_m':ea}; continue
             _drive(model,data,approach_q,gopen,500,writer)
             if not safe_state(model,data,body): best={'failed_stage':'approach_unstable'}; continue

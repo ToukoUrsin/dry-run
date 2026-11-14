@@ -332,7 +332,7 @@ def wrist_roll_for_brick(
     else:
         raise ValueError("size must be '2x2' or '2x4'")
     rolls = np.linspace(JOINT_LIMITS[4, 0] + 1e-5, JOINT_LIMITS[4, 1] - 1e-5, 161)
-    candidates: list[tuple[float, float, float]] = []
+    candidates: list[tuple[float, float, float, float]] = []
     for wrist_roll in rolls:
         for degrees in range(int(round(approach_pitch_max)), -1, -1):
             try:
@@ -350,11 +350,16 @@ def wrist_roll_for_brick(
                 abs((actual - desired + math.pi / 2.0) % math.pi - math.pi / 2.0)
                 for desired in desired_angles
             )
-            candidates.append((float(diff), abs(float(wrist_roll) - float(reference)), float(wrist_roll)))
-            break
+            # Prefer a level jaw line so both fingertip pads meet the brick's
+            # side faces, while retaining the yaw match and neutral wrist as
+            # deterministic tie-breaks.
+            candidates.append((float(abs(v[2])), float(diff),
+                               abs(float(wrist_roll) - float(reference)),
+                               float(wrist_roll)))
     if not candidates:
         raise IKError("no wrist roll can reach the brick target")
-    return min(candidates)[2]
+    return min(candidates,
+               key=lambda row: (row[0] / 0.02 + row[1], row[2], row[3]))[3]
 
 
 def _normalise_angle(a: float) -> float:

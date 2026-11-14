@@ -119,14 +119,16 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
 
 
 def _bowl(name: str, x: float, y: float, material: str) -> str:
+    # 150 mm outside diameter: the real station's bowls are compact enough
+    # to leave the SO-101 workspace clear while still catching a drop.
     pieces = [f'<body name="{name}" pos="{x:.4f} {y:.4f} 0">',
-              f'<geom name="{name}_floor" type="cylinder" size="0.108 0.008" pos="0 0 0.008" material="{material}" friction="1.0 0.15 0.02"/>']
+              f'<geom name="{name}_floor" type="cylinder" size="0.066 0.008" pos="0 0 0.008" material="{material}" friction="1.0 0.15 0.02"/>']
     for j in range(16):
         a = 2 * math.pi * j / 16
         # Tangential boxes form an open bowl: a brick can be dropped inside
         # and the inspection camera can still see the contents.
-        px, py = .111 * math.cos(a), .111 * math.sin(a)
-        pieces.append(f'<geom name="{name}_wall_{j}" type="box" size="0.012 0.024 0.040" pos="{px:.5f} {py:.5f} 0.040"{_quat_z(a)} material="{material}" friction="1.0 0.15 0.02"/>')
+        px, py = .066 * math.cos(a), .066 * math.sin(a)
+        pieces.append(f'<geom name="{name}_wall_{j}" type="box" size="0.009 0.008 0.040" pos="{px:.5f} {py:.5f} 0.040"{_quat_z(a)} material="{material}" friction="1.0 0.15 0.02"/>')
     pieces.append('</body>')
     return "".join(pieces)
 
@@ -247,15 +249,27 @@ def check_station(path: str | Path) -> dict:
     brick_ids = [i for i in range(model.nbody) if (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, i) or "").startswith("brick_")]
     # At initial rest only table-brick and bowl-floor contacts are expected.
     bad_contacts = []
+    bowl_overlap = []
     table_id = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "table")
     brick_geom = set()
     for bi in brick_ids:
         for gi in range(model.body_geomadr[bi], model.body_geomadr[bi] + model.body_geomnum[bi]):
             brick_geom.add(gi)
+    bowl_geom = {}
+    for bowl_name in ("good_bowl", "defective_bowl"):
+        bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, bowl_name)
+        bowl_geom[bowl_name] = set(range(model.body_geomadr[bid], model.body_geomadr[bid] + model.body_geomnum[bid]))
+    good_bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "good_bowl")
+    bad_bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "defective_bowl")
+    centre_distance = float(np.linalg.norm(data.xpos[good_bid, :2] - data.xpos[bad_bid, :2]))
+    if centre_distance < 0.15:  # two 75 mm-radius bowls would overlap
+        bowl_overlap.append({"reason": "bowl_centres_too_close", "distance_m": centre_distance})
     for ci in range(data.ncon):
         c = data.contact[ci]
         if c.dist < -1e-6 and ((c.geom1 in brick_geom and c.geom2 != table_id) or (c.geom2 in brick_geom and c.geom1 != table_id)):
             bad_contacts.append((int(c.geom1), int(c.geom2), float(c.dist)))
+        if c.dist < -1e-6 and ((c.geom1 in bowl_geom["good_bowl"] and c.geom2 in bowl_geom["defective_bowl"]) or (c.geom2 in bowl_geom["good_bowl"] and c.geom1 in bowl_geom["defective_bowl"])):
+            bowl_overlap.append({"geom1": int(c.geom1), "geom2": int(c.geom2), "dist_m": float(c.dist)})
     # Test all brick centres plus both bowl centres with the same damped IK.
     reaches = {}
     for bi in brick_ids:
@@ -271,13 +285,15 @@ def check_station(path: str | Path) -> dict:
         forward = -data.cam_xmat[cid].reshape(3, 3)[:, 2]
         cam_checks[name] = {"forward_dot": float(np.dot(forward, to_target / np.linalg.norm(to_target))), "sees_station": bool(np.dot(forward, to_target) > 0)}
     return {"loaded": True, "nq": model.nq, "nv": model.nv, "nu": model.nu, "bodies": model.nbody, "geoms": model.ngeom, "camera_count": model.ncam,
-            "brick_count": len(brick_ids), "intersections": bad_contacts, "ik": {k: {"ok": v[0], "error_m": v[1]} for k, v in reaches.items()}, "camera_checks": cam_checks,
-            "pass": not bad_contacts and all(v[0] for v in reaches.values()) and all(v["sees_station"] for v in cam_checks.values())}
+            "brick_count": len(brick_ids), "intersections": bad_contacts, "bowl_overlap": bowl_overlap, "ik": {k: {"ok": v[0], "error_m": v[1]} for k, v in reaches.items()}, "camera_checks": cam_checks,
+            "pass": not bad_contacts and not bowl_overlap and all(v[0] for v in reaches.values()) and all(v["sees_station"] for v in cam_checks.values())}
 
 
 def rejection_reason(result: dict) -> str | None:
     if result.get("intersections"):
         return f"rest_intersections:{len(result['intersections'])}"
+    if result.get("bowl_overlap"):
+        return f"bowl_overlap:{len(result['bowl_overlap'])}"
     failed_ik = [name for name, value in result.get("ik", {}).items() if not value.get("ok")]
     if failed_ik:
         return "ik_unreachable:" + ",".join(failed_ik)

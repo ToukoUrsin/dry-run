@@ -129,4 +129,8 @@ scored on the fixed held-out set.
 
 ## Analyst/session request
 
-For the loose tier, please expose a deterministic measured-reach placement (the main expert's 10/10 single-brick gate) through `layout_bricks(..., tier="loose")` or an equivalent sentence contract. The benchmark currently passes `count=1` for loose, but the shared grid candidate order still selects marginal cells; keep the station owner as the source of truth and record rejected placements.
+Loose-tier scenes now use the normal seeded sentence contract: `layout_bricks(seed, TIERS["loose"])` returns 3–8 bricks with seed-dependent positions, sizes, colours and defects. The benchmark never edits generated XML or positions. The measured single-brick reach map remains a calibration artifact; scenes outside the measured margin are rejected by the station checker. The honest loose benchmark must be rerun after the closed-form IK/reach-map replacement lands.
+
+## Main request after loose-tier review
+
+Loose is not valid when a benchmark edits an XML position or repeats one brick. The station owner must expose seed-driven 3–8 brick loose scenes, with both sizes and yaw, whose placements come from the measured polar reach map. Main will consume those specs unchanged; the benchmark must not patch positions. The closed-form SO-101 IK and numeric cross-check should define the accepted work-area cells and the present pose before new loose results are published.

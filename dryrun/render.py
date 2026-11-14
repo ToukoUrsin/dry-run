@@ -197,14 +197,9 @@ def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=N
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--seed',type=int,default=7); ap.add_argument('--tier',choices=sorted(TIERS),default='messy'); ap.add_argument('--out',type=Path,required=True); ap.add_argument('--json',type=Path)
     a=ap.parse_args(); os.environ.setdefault('MUJOCO_GL','egl'); a.out.parent.mkdir(parents=True,exist_ok=True)
-    sentence=TIERS[a.tier]; count=1 if a.tier=='loose' else None
-    xml=a.out.with_suffix('.xml'); xml_text=station_xml(a.seed,sentence,count=count,robot_include=str((ROOT/'assets/SO101/Simulation/SO101/so101_dryrun.xml').resolve()))
-    specs=layout_bricks(a.seed,sentence,count=count)
-    if a.tier=='loose':
-        import re
-        xml_text=re.sub(r'(<body name="brick_0" pos=")[^"]+(">)',r'\g<1>0.2600 -0.0400 0.00960\2',xml_text,count=1)
-        from dataclasses import replace
-        specs=[replace(specs[0],x=.26,y=-.04)]
+    sentence=TIERS[a.tier]
+    xml=a.out.with_suffix('.xml'); xml_text=station_xml(a.seed,sentence,robot_include=str((ROOT/'assets/SO101/Simulation/SO101/so101_dryrun.xml').resolve()))
+    specs=layout_bricks(a.seed,sentence)
     xml.write_text(xml_text)
     model=mujoco.MjModel.from_xml_path(str(xml)); data=mujoco.MjData(model); mujoco.mj_forward(model,data)
     writer=imageio.get_writer(a.out,fps=30,codec='libx264',quality=7); renderers={c:mujoco.Renderer(model,360,640) for c in ('free_view','top_view','inspection_view')}

@@ -290,8 +290,14 @@ def main() -> None:
     parser.add_argument("--checkpoint", default="expert")
     parser.add_argument("--max-steps", type=int, default=3600)
     parser.add_argument("--count", type=int)
+    parser.add_argument("--inspector-model", type=Path, help="run the OpenVINO inspector at each present event")
+    parser.add_argument("--inspector-threads", type=int, default=1)
     args = parser.parse_args()
-    print(json.dumps(export(args.seed, args.out, args.checkpoint, args.tier, args.max_steps, count=args.count), indent=2))
+    inspector = None
+    if args.inspector_model is not None:
+        from .inspector import Inspector
+        inspector = Inspector(model_path=args.inspector_model, threads=args.inspector_threads)
+    print(json.dumps(export(args.seed, args.out, args.checkpoint, args.tier, args.max_steps, inspector=inspector, count=args.count), indent=2))
 
 
 if __name__ == "__main__":

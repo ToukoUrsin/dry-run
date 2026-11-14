@@ -3,19 +3,42 @@
 from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
 import json, random, time
+import os
 ROOT=Path(__file__).resolve().parents[1]
 
+def aggregates():
+    url=os.environ.get('DRYRUN_DB_URL')
+    if not url:
+        return {'status':'unavailable','reason':'DRYRUN_DB_URL is not set','rows':[]}
+    try:
+        import psycopg
+        with psycopg.connect(url) as c:
+            rows=c.execute('SELECT bucket, rollout_id, seed, q0, q1, samples, status FROM rollout_1s ORDER BY bucket DESC LIMIT 100').fetchall()
+        keys=('bucket','rollout_id','seed','q0','q1','samples','status')
+        clean=[]
+        for r in rows:
+            row=dict(zip(keys,r))
+            if hasattr(row.get('bucket'),'isoformat'): row['bucket']=row['bucket'].isoformat()
+            clean.append(row)
+        return {'status':'ok','rows':clean}
+    except Exception as e:
+        return {'status':'error','reason':str(e),'rows':[]}
+
 def score():
+    agg=aggregates()
+    if agg['status']=='ok':
+        return {'status':'ok','source':'timescale:rollout_1s','aggregate_rows':len(agg['rows']),'telemetry_samples':sum(r['samples'] for r in agg['rows'])}
     p=ROOT/'data'/'benchmark.json'
     if p.exists():
         try:return json.loads(p.read_text())
         except Exception: pass
-    return {'accuracy':0.0,'bricks':0,'total':0,'cycle_s':0,'drops':0,'false_accepts':0,'false_rejects':0,'checkpoint':'demo'}
+    return {'status':'unavailable','source':'timescale:rollout_1s','reason':agg.get('reason','no aggregate data'),'aggregate_rows':0,'telemetry_samples':0}
 class Handler(BaseHTTPRequestHandler):
     def _json(self,obj,status=200):
         b=json.dumps(obj).encode(); self.send_response(status); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(b))); self.end_headers(); self.wfile.write(b)
     def do_GET(self):
         if self.path=='/api/score': return self._json(score())
+        if self.path=='/api/telemetry': return self._json(aggregates())
         if self.path=='/api/rollouts':
             rows=[]
             p=ROOT/'data'/'rollouts.jsonl'
@@ -23,7 +46,7 @@ class Handler(BaseHTTPRequestHandler):
                 for line in p.read_text().splitlines()[-20:]:
                     try: rows.append(json.loads(line))
                     except: pass
-            return self._json(rows or [{'id':'demo-001','seed':42,'status':'success','bricks':6,'cycle_s':18.4,'reason':'clean separation'}])
+            return self._json(rows)
         if self.path in ('/','/index.html'):
             b=(ROOT/'web'/'index.html').read_bytes(); self.send_response(200); self.send_header('Content-Type','text/html'); self.send_header('Content-Length',str(len(b))); self.end_headers(); self.wfile.write(b); return
         self.send_error(404)

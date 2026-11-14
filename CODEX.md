@@ -65,15 +65,16 @@ actually present in the source and were followed by browser checks:
 | 5 | Added Scenes/Compare workspace views, hid unavailable views, and selected the failed replay honestly. | `page-shots/round-5/` |
 | 6 | Split the long report into hash-routed workspace views and made viewer readiness deterministic for the smoke test. | `page-shots/round-6/` |
 | 7 | Kept Station as the first workspace view and reran the public gate at both judge sizes. | `page-shots/round-7/` |
+| 8 | Replaced the long report navigation with a persistent workspace sidebar, separate failure/defect/station/Codex routes, responsive mobile tabs, a tighter first viewport, and a level Z-up viewer. | `/bulk3/runs/dryrun/page-shots/d083bf9-public-final/` |
 
-Current deployment proof uses commit `c7b0f6b` and the clean-commit smoke run:
+Current deployment proof uses commit `d083bf9` and the clean-worktree smoke run:
 
 ```text
 uv run --project /home/ubuntu/junction/dryrun --no-sync \
   python scripts/smoke_public.py --url https://dryrun-junction-2026.fly.dev \
-  --screenshot-dir /bulk3/runs/dryrun/page-shots/c7b0f6b
--> 1440px non_background_pixels=280703, videos=[4,4], scroll_width=1440,
-   errors=[]; 390px non_background_pixels=89991, videos=[4,4],
+  --screenshot-dir /bulk3/runs/dryrun/page-shots/d083bf9-public-final
+-> 1440px non_background_pixels=203593, videos=[4,4], scroll_width=1440,
+   errors=[]; 390px non_background_pixels=84526, videos=[4,4],
    scroll_width=390, errors=[]
 ```
 
@@ -82,3 +83,5 @@ there is one recorded failed seed-7 trace. No Nemotron diagnosis rows, station
 requests, second controller for Compare, or measured reach-map artifact are
 attached to the release. No held-out loose-tier score is claimed. The withdrawn
 fixed-scene loose run is never used as a benchmark or training result.
+
+The page is prepared for the measured expert replacement in `prompts/019-grasp-recipe-measured.md` and `prompts/020-present-pose-and-what-changes.md`. The old failed replay remains labelled as an earlier recorded trace; it is not used as a benchmark or training result. Fresh replays must replace it after main's expert commit lands.

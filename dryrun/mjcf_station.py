@@ -18,7 +18,6 @@ import mujoco
 import numpy as np
 
 from .closed_form_ik import nearest_symmetric_yaw
-from .reach import measured_cells, reach_margin, scene_reachable
 
 ROOT = Path(__file__).resolve().parents[1]
 ROBOT_INCLUDE = "SO101/Simulation/SO101/so101_dryrun.xml"
@@ -92,26 +91,31 @@ def _rects_overlap(a: tuple[float, float, float, float], b: tuple[float, float, 
 
 
 def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[BrickSpec]:
-    """Return a seeded 3--8 brick scene from measured >=95% cells."""
+    """Return the measured loose-tier layout envelope from prompt 019.
+
+    Positions are sampled in polar coordinates about the pan axis.  This is
+    deliberately independent of the old reach-map fixture: the recipe's
+    planner owns the clear-grasp and IK gate, while this function only emits
+    seeded scene geometry for the MJCF.
+    """
     opts = parse_sentence(sentence)
     rng = random.Random(seed + {"grid": 0, "messy": 100_003, "pile": 200_009, "tray": 300_007}[opts["layout"]])
-    # Scene candidates must come from the measured physics gate, not merely
-    # from analytic reach.  ``scene_reachable`` is a useful secondary check
-    # for the pickup and presentation poses, but it cannot promote a cell
-    # whose measured pick/lift rate is below the 95% threshold.  Keeping this
-    # filter here prevents a seed from quietly selecting the old low-success
-    # rim cells that were responsible for the rigged one-brick fixture.
-    accepted = [dict(row) for size in ("2x2", "2x4") for row in measured_cells(size, threshold=.95)
-                if scene_reachable(float(row["x"]), float(row["y"]))]
-    if not accepted:
-        raise ValueError("measured reach map has no accepted cells")
-    n = int(count) if count is not None else rng.randint(3, min(8, len(accepted)))
-    if n < 1 or n > 8:
-        raise ValueError("scene count must be between 1 and 8")
-    if opts["bowls"] == "behind":
-        bowls = ((.16, .22), (.16, -.22))
-    else:
-        bowls = ((.16, -.22), (.16, .22))
+    n = int(count) if count is not None else rng.randint(3, 7)
+    if n < 3 or n > 7:
+        raise ValueError("loose scenes contain 3 to 7 bricks")
+    # Prompt 019: radius 0.12--0.24 m and azimuth ±0.85 rad from the pan
+    # axis (0.0388, 0). Keep the deterministic candidate lattice dense
+    # enough that every seed gets a distinct, well-spaced scene.
+    pan_x = 0.0388
+    accepted = []
+    for radius in np.linspace(.12, .24, 9):
+        for azimuth in np.linspace(-.85, .85, 18):
+            accepted.append({"x": pan_x + float(radius) * math.cos(float(azimuth)),
+                             "y": float(radius) * math.sin(float(azimuth)),
+                             "radius": float(radius), "azimuth": float(azimuth),
+                             "tested_yaws_rad": (0.0, math.pi / 2.0, math.pi)})
+    # The measured bowls are outside the brick envelope; good is -y.
+    bowls = ((-.0093, -.2657), (-.0093, .2657))
 
     def add_row(row: dict, index: int, size: str, used: set[tuple[float, float]], rects: list[tuple[float, float, float, float]], placed: list[BrickSpec]) -> bool:
         x, y = round(float(row["x"]), 4), round(float(row["y"]), 4)
@@ -124,12 +128,25 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
         branch_rng = random.Random(int(seed) * 9176 + index * 131 + int(x * 1000) + int(y * 1000) + 17)
         for yaw_base in yaws:
             yaw = float(yaw_base) + branch_rng.randrange(4 if size == "2x2" else 2) * period
+            yaw += branch_rng.uniform(-math.pi / 8.0, math.pi / 8.0)
             cy, sy = math.cos(yaw), math.sin(yaw)
             bx, by = abs(hx * cy) + abs(hy * sy), abs(hx * sy) + abs(hy * cy)
             rect = (x - bx, y - by, x + bx, y + by)
-            if any((x - cx) ** 2 + (y - cy) ** 2 < .10 ** 2 for cx, cy in bowls):
+            if any((x - cx) ** 2 + (y - cy) ** 2 < .095 ** 2 for cx, cy in bowls):
                 continue
-            if any(_rects_overlap(rect, old) for old in rects):
+            # Measured recipe spacing: 78 mm for two 2x2s and 95 mm when a
+            # 2x4 is involved.  Use centre distance, then the visual rectangle
+            # check as a second guard against corner contact.
+            for old_spec, old in zip(placed, rects):
+                minimum = .078 if size == old_spec.size == "2x2" else .095
+                if math.hypot(x - old_spec.x, y - old_spec.y) < minimum:
+                    break
+            else:
+                if any(_rects_overlap(rect, old) for old in rects):
+                    continue
+                # accepted candidate
+                pass
+            if len(placed) and any(math.hypot(x - old_spec.x, y - old_spec.y) < (.078 if size == old_spec.size == "2x2" else .095) for old_spec in placed):
                 continue
             defect_rng = random.Random(int(seed) * 65537 + index * 101)
             defect = "none" if defect_rng.random() < .58 else defect_rng.choice(DEFECTS[1:])
@@ -139,36 +156,31 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
             return True
         return False
 
-    longs = [row for row in accepted if row["size"] == "2x4"]
-    rng.shuffle(longs)
-    # One long brick proves both measured footprints without constraining the
-    # 2x2 packing; the bounded retries only change seeded candidate order.
-    for long in longs + [None]:
-        for attempt in range(24):
-            used: set[tuple[float, float]] = set(); rects: list[tuple[float, float, float, float]] = []; placed: list[BrickSpec] = []
-            if long is not None and not add_row(long, 0, "2x4", used, rects, placed):
-                continue
-            rows2 = [row for row in accepted if row["size"] == "2x2"]
-            random.Random(int(seed) * 7919 + attempt * 313).shuffle(rows2)
-            for row in rows2:
-                if len(placed) >= n:
-                    break
-                add_row(row, len(placed), "2x2", used, rects, placed)
-            if len(placed) == n:
-                return placed
+    for attempt in range(200):
+        used: set[tuple[float, float]] = set(); rects: list[tuple[float, float, float, float]] = []; placed: list[BrickSpec] = []
+        rows = accepted[:]
+        random.Random(int(seed) * 7919 + attempt * 313).shuffle(rows)
+        for idx, row in enumerate(rows):
+            if len(placed) >= n:
+                break
+            size = "2x4" if (idx == 0 or (rng.random() < .34 and not any(p.size == "2x4" for p in placed))) else "2x2"
+            add_row(row, len(placed), size, used, rects, placed)
+        if len(placed) == n and any(p.size == "2x4" for p in placed) and any(p.size == "2x2" for p in placed):
+            return placed
     raise ValueError(f"could not place measured {n}-brick scene in seed {seed}")
 
 def _bowl(name: str, x: float, y: float, material: str) -> str:
-    # 150 mm outside diameter: the real station's bowls are compact enough
-    # to leave the SO-101 workspace clear while still catching a drop.
+    # Measured 190 mm inner diameter with a 60 mm wall.  The centre is kept
+    # outside the loose brick work area so a top-down grasp has clearance.
+    radius = .095
     pieces = [f'<body name="{name}" pos="{x:.4f} {y:.4f} 0">',
-              f'<geom name="{name}_floor" type="cylinder" size="0.066 0.008" pos="0 0 0.008" material="{material}" friction="1.0 0.15 0.02"/>']
-    for j in range(16):
-        a = 2 * math.pi * j / 16
+              f'<geom name="{name}_floor" type="cylinder" size="0.095 0.004" pos="0 0 0.004" material="{material}" friction="0.6 0.05 0.01"/>']
+    for j in range(24):
+        a = 2 * math.pi * j / 24
         # Tangential boxes form an open bowl: a brick can be dropped inside
         # and the inspection camera can still see the contents.
-        px, py = .066 * math.cos(a), .066 * math.sin(a)
-        pieces.append(f'<geom name="{name}_wall_{j}" type="box" size="0.009 0.008 0.040" pos="{px:.5f} {py:.5f} 0.040"{_quat_z(a)} material="{material}" friction="1.0 0.15 0.02"/>')
+        px, py = radius * math.cos(a), radius * math.sin(a)
+        pieces.append(f'<geom name="{name}_wall_{j}" type="box" size="0.005 0.0135 0.030" pos="{px:.5f} {py:.5f} 0.030"{_quat_z(a)} material="{material}" friction="0.6 0.05 0.01"/>')
     pieces.append('</body>')
     return "".join(pieces)
 
@@ -177,7 +189,7 @@ def _brick(spec: BrickSpec) -> str:
     hx, hy = ((.032, .016) if spec.size == "2x4" else (.016, .016))
     cols = 4 if spec.size == "2x2" else 8
     bits = [f'<body name="brick_{spec.index}" pos="{spec.x:.4f} {spec.y:.4f} {BRICK_H/2:.5f}"{_quat_z(float(spec.yaw))}><freejoint/>',
-            f'<geom name="brick_{spec.index}_body" type="box" size="{hx:.4f} {hy:.4f} {BRICK_H/2:.5f}" material="brick_{spec.color}" mass="0.018" friction="1.8 0.01 0.001" condim="4"/>']
+            f'<geom name="brick_{spec.index}_body" type="box" size="{hx:.4f} {hy:.4f} {BRICK_H/2:.5f}" material="brick_{spec.color}" mass="0.018" friction="0.5 0.01 0.001" condim="4"/>']
     # Stud centres are at the standard 16 mm Duplo pitch.  Missing/chipped
     # studs are represented by absent/reduced collision geometry, not labels.
     stud_i = 0
@@ -189,7 +201,7 @@ def _brick(spec: BrickSpec) -> str:
             if not missing:
                 rad = .003 if spec.defect == "chipped_stud" and stud_i == cols - 1 else STUD_R
                 hh = .0012 if spec.defect == "chipped_stud" and stud_i == cols - 1 else STUD_H / 2
-                bits.append(f'<geom name="brick_{spec.index}_stud_{stud_i}" type="cylinder" size="{rad:.4f} {hh:.4f}" pos="{xx:.4f} {yy:.4f} {BRICK_H/2 + STUD_H/2:.5f}" material="brick_{spec.color}" friction="1.2 0.2 0.05"/>')
+                bits.append(f'<geom name="brick_{spec.index}_stud_{stud_i}" type="cylinder" size="{rad:.4f} {hh:.4f}" pos="{xx:.4f} {yy:.4f} {BRICK_H/2 + STUD_H/2:.5f}" material="brick_{spec.color}" friction="0.5 0.2 0.05"/>')
             stud_i += 1
     top = BRICK_H / 2 + STUD_H + .0002
     # Stud defects are judged from this top-face shot. Add a visible dark
@@ -221,12 +233,10 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     # changes their arrangement while preserving camera and reach validity.
     # Both bowls are on reachable, separated drop points; the sentence only
     # changes which side is labelled good versus defective.
-    if opts["bowls"] == "behind":
-        good, bad = (.16, .22), (.16, -.22)
-    elif opts["bowls"] == "front":
-        good, bad = (.16, -.22), (.16, .22)
-    else:
-        good, bad = (.16, -.22), (.16, .22)
+    # Prompt 019: side bowls at ±0.27 m from the pan axis, with good on -y.
+    # Sentence variants may change the camera, but the measured loose station
+    # keeps this safe drop arrangement.
+    good, bad = (-.0093, -.2657), (-.0093, .2657)
     if opts["inspection"] == "left":
         cam = np.array([-.48, -.23, .34])
     elif opts["inspection"] == "right":
@@ -251,7 +261,7 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
   </asset>
   <worldbody>
     <light name="key" pos="0.25 -0.45 1.5" dir="-0.2 0.3 -1" directional="true" castshadow="true"/>
-  <geom name="table" type="box" pos="0.15 0 -0.045" size="0.62 0.48 0.045" material="table_mat" friction="0.8 0.1 0.02" solref="0.0002 1" solimp="0.99 0.999 0.001"/>
+  <geom name="table" type="box" pos="0.15 0 -0.045" size="0.62 0.48 0.045" material="table_mat" friction="0.5 0.1 0.02" solref="0.0002 1" solimp="0.99 0.999 0.001"/>
     <geom name="table_edge" type="box" pos="0.15 0.47 0.04" size="0.62 0.025 0.08" material="table_mat"/>
     {_bowl("good_bowl", *good, "good_bowl")}
     {_bowl("defective_bowl", *bad, "bad_bowl")}

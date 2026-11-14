@@ -111,8 +111,8 @@
                 <!-- Collision pads are at the fingertips, where the real SO-101 grips. -->
                 <!-- Site is the pad midpoint at the brick-closing opening (q=0.35). -->
                 <site group="3" name="gripperframe" pos="0.013744 0.000400 -0.0895812" quat="0.707107 -0 0.707107 -2.37788e-17"/>
-                <!-- Thin, level fingertip pad: its local z face is the opening axis. -->
-                <geom name="fixed_grip_pad" type="box" size="0.004 0.018 0.010" pos="-0.003 -0.0004 -0.085" quat="0.706897338 -0.017209108 0.706897338 0.017209108" friction="1.8 0.01 0.001" condim="4" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1"/>
+                <site group="3" name="dryrun_tcp" pos="0.0225 0 -0.086" quat="1 0 0 0"/>
+                <geom name="fixed_grip_pad" type="box" size="0.005 0.018 0.012" pos="0.001 0 -0.085" friction="1.5 0.01 0.001" priority="1" solref="0.005 1" solimp="0.95 0.995 0.001" condim="4" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1"/>
                 <!-- Link moving_jaw_so101_v1 -->
                 <body name="moving_jaw_so101_v1" pos="0.0202 0.0188 -0.0234" quat="0.707107 0.707107 -1.85362e-08 1.85362e-08">
                   <!-- Joint from gripper to moving_jaw_so101_v1 -->
@@ -121,11 +121,7 @@
                   <!-- Part moving_jaw_so101_v1 -->
                   <geom type="mesh" class="visual" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
                   <geom type="mesh" class="visual" pos="-5.55112e-17 -5.55112e-17 0.0189" quat="1 -0 3.00524e-16 -2.00834e-17" mesh="moving_jaw_so101_v1" material="moving_jaw_so101_v1_material"/>
-                  <!-- At gripper q=.35 this sits 49.8 mm from the fixed pad,
-                       with opposing faces level; the opening remains >45 mm
-                       at full q=1.745.  The nested quaternion aligns both
-                       pad faces at the calibrated close pose. -->
-                  <geom name="moving_grip_pad" type="box" size="0.004 0.018 0.010" pos="-0.059980440 -0.096658480 0.019200000" quat="0.395324981 -0.415053287 0.593347212 -0.565144242" friction="1.8 0.01 0.001" condim="4" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1"/>
+                  <geom name="moving_grip_pad" type="box" size="0.005 0.012 0.018" pos="-0.01596 -0.06371 0.0188" quat="0.955336 0 0 -0.295520" friction="1.5 0.01 0.001" priority="1" solref="0.005 1" solimp="0.95 0.995 0.001" condim="4" contype="1" conaffinity="1" rgba="0.1 0.1 0.1 1"/>
                 </body>
               </body>
             </body>
@@ -168,7 +164,7 @@
     <position class="sts3215" name="elbow_flex" joint="elbow_flex" forcerange="-15 15" ctrlrange="-1.69 1.69"/>
     <position class="sts3215" name="wrist_flex" joint="wrist_flex" forcerange="-15 15" ctrlrange="-1.65806 1.65806"/>
     <position class="sts3215" name="wrist_roll" joint="wrist_roll" forcerange="-15 15" ctrlrange="-2.74385 2.84121"/>
-    <position class="sts3215" name="gripper" joint="gripper" forcerange="-12 12" ctrlrange="-0.17453 1.74533"/>
+    <position class="sts3215" name="gripper" joint="gripper" forcerange="-1.0 1.0" ctrlrange="-0.17453 1.74533"/>
   </actuator>
   <equality/>
 </mujoco>

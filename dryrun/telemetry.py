@@ -178,6 +178,15 @@ def dashboard_snapshot(url: str | None = None) -> dict:
         started = time.perf_counter()
         summary = conn.execute("SELECT checkpoint,sum(bricks),sum(correct),sum(drops),sum(false_accepts),sum(false_rejects),avg(cycle_time_s),sum(rollouts) FROM benchmark_checkpoint GROUP BY checkpoint ORDER BY checkpoint").fetchall()
         summary_ms = (time.perf_counter() - started) * 1000
+        # Keep the aggregate score tied to the source revision that produced
+        # the newest result. Older rows may predate commit provenance, so the
+        # API returns None instead of attributing them to the page release.
+        source_rows = conn.execute("""
+            SELECT DISTINCT ON (checkpoint) checkpoint, NULLIF(outcome->>'commit', '')
+            FROM rollout_results
+            ORDER BY checkpoint, finished_at DESC
+        """).fetchall()
+        source_commits = {str(row[0]): row[1] for row in source_rows}
         # The page's row count is itself an aggregate: the API never scans the
         # 30 Hz hypertable. `samples` is the exact count represented by each
         # one-second continuous aggregate row.
@@ -193,7 +202,7 @@ def dashboard_snapshot(url: str | None = None) -> dict:
         rows = []
         for row in rollups:
             item = dict(zip(keys, row)); item["bucket"] = item["bucket"].isoformat() if hasattr(item["bucket"], "isoformat") else item["bucket"]; rows.append(item)
-        checkpoints = [{"checkpoint": r[0], "bricks": r[1], "correct": r[2], "drops": r[3], "false_accepts": r[4], "false_rejects": r[5], "cycle_time_s": r[6], "rollouts": r[7]} for r in summary]
+        checkpoints = [{"checkpoint": r[0], "bricks": r[1], "correct": r[2], "drops": r[3], "false_accepts": r[4], "false_rejects": r[5], "cycle_time_s": r[6], "rollouts": r[7], "source_commit": source_commits.get(str(r[0]))} for r in summary]
     before, after = [int(x or 0) for x in compression]
     diagnoses = [{"created_at": r[0].isoformat() if hasattr(r[0], "isoformat") else r[0], "rollout_id": r[1], "model": r[2], "version": r[3], "frame_paths": r[4], "failure_stage": r[5], "cause": r[6], "frame": r[7], "scene_features": r[8], "next_scenes": r[9]} for r in diagnosis_rows]
     # Station requests are an optional analyst-session extension. Keep the

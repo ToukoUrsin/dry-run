@@ -10,10 +10,11 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "web"
 if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 os.environ.setdefault("MUJOCO_GL", "egl")
-REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", "/bulk2/runs/dryrun/replays/seed-7c"))
-INSPECTOR_EVALUATION = Path(os.environ.get("DRYRUN_INSPECTOR_EVALUATION", "/bulk2/runs/dryrun/m2/evaluation.json"))
+RUNS = Path("/bulk3/runs/dryrun")
+REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", str(RUNS / "_b2/replays/seed-7c")))
+INSPECTOR_EVALUATION = Path(os.environ.get("DRYRUN_INSPECTOR_EVALUATION", str(RUNS / "_b2/m2/evaluation.json")))
 # Prefer the current rebuild's compact page projection when it exists and is
-# populated.  The old /bulk2 artifact is retained only as a compatibility
+# populated.  The archived `_b2` artifact is retained only as a compatibility
 # fallback; it must never hide a newer measured result on the page.
 INSPECTOR_PAGE_CANDIDATES = (
     Path("/bulk3/runs/dryrun/m2_rebuild/final_model/inspector_page.json"),
@@ -21,7 +22,7 @@ INSPECTOR_PAGE_CANDIDATES = (
     ROOT / "data" / "inspector_evaluation.json",
 )
 CODEX_LOG = ROOT / "data" / "codex_log.jsonl"
-CODEX_CAST = Path("/bulk2/runs/dryrun/codex-casts/main-001.cast")
+CODEX_CAST = RUNS / "_b2/codex-casts/main-001.cast"
 
 def commit() -> str:
     value = os.environ.get("RELEASE_SHA")
@@ -90,8 +91,10 @@ def replay_list():
 def score_payload(snap):
     cps=snap.get("checkpoints") or []
     if not cps: return {"status":"unavailable","message":"No benchmark checkpoint has been recorded in telemetry yet.","commit":snap.get("commit"),"checkpoints":[]}
-    latest=cps[-1]; latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
-    return {"status":"ok","checkpoint":latest,"commit":snap.get("commit"),"checkpoints":cps,"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at")}
+    latest=dict(cps[-1]); latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
+    latest["benchmarkable"]=bool(latest.get("source_commit"))
+    message = None if latest["benchmarkable"] else "Recorded result has no source commit; validation only, not a benchmark."
+    return {"status":"ok","checkpoint":latest,"commit":snap.get("commit"),"data_commit":latest.get("source_commit"),"message":message,"checkpoints":cps,"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at")}
 
 
 def inspector_payload() -> dict:
@@ -181,7 +184,7 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_bytes((WEB/"index.html").read_bytes(),"text/html; charset=utf-8")
         if path=="/favicon.svg": return self.send_bytes(b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12253d"/><path d="M8 22 16 7l8 15-8-4z" fill="#a7e34b"/></svg>',"image/svg+xml")
         if path=="/so101.glb":
-            candidate=Path("/bulk2/runs/dryrun/page-assets/so101.glb")
+            candidate=RUNS / "page-assets/so101.glb"
             if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"model/gltf-binary")
             try:
                 encoded=(replay_payload(7) or {}).get("mesh_data")

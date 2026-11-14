@@ -1,141 +1,286 @@
-"""Export a compact, replayable trace of a real MuJoCo rollout.
+"""Export a compact replay from the public StationEnv rollout boundary.
 
-The browser receives poses, never simulator state or a reimplemented IK model.
-Large camera recordings stay beside the compressed trace in the run directory.
+The page receives recorded body poses and camera frames. It never rebuilds
+the arm kinematics, and this exporter never drives a second legacy expert
+path: every action goes through ``StationEnv.expert_action`` and
+``StationEnv.step``.
 """
 from __future__ import annotations
-import argparse, gzip, json, math, os, time
+
+import argparse
+import gzip
+import json
+import os
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Callable
+
 import imageio.v2 as imageio
+
 os.environ.setdefault("MUJOCO_GL", "egl")
 import mujoco
 import numpy as np
 
-from .grasp_test import ARM_NAMES, ids, pad_force, solve_ik, controls
-from .mjcf_station import ROOT, layout_bricks, station_xml
+from .env import StationEnv, TIERS
 
-DT = 0.002
-SAMPLE_STEPS = 17  # ~29.4 Hz, with the exact simulation time retained
 
-def _quat(q):
+def _commit() -> str:
+    try:
+        return subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL
+        ).strip()
+    except Exception:
+        return "unknown"
+
+
+def _quat(q: np.ndarray | list[float]) -> list[int]:
     return [int(max(-32767, min(32767, round(float(v) * 32767)))) for v in q]
 
-def _scene(model):
-    bodies=[]
+
+def _scene(model: mujoco.MjModel) -> dict[str, Any]:
+    bodies = []
     for bid in range(model.nbody):
-        name=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,bid) or f"body_{bid}"
-        parent=int(model.body_parentid[bid])
-        geoms=[]
-        for gid in range(model.body_geomadr[bid],model.body_geomadr[bid]+model.body_geomnum[bid]):
-            typ=int(model.geom_type[gid]); geom={"name":mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_GEOM,gid) or f"geom_{gid}","type":typ,"pos":[round(float(x),6) for x in model.geom_pos[gid]],"quat":_quat(model.geom_quat[gid]),"size":[round(float(x),6) for x in model.geom_size[gid]],"rgba":[round(float(x),4) for x in model.mat_rgba[model.geom_matid[gid]]] if model.geom_matid[gid]>=0 else [0.5,0.5,0.5,1]}
-            if typ==int(mujoco.mjtGeom.mjGEOM_MESH): geom["mesh"]=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_MESH,int(model.geom_dataid[gid]))
+        name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, bid) or f"body_{bid}"
+        geoms = []
+        start = int(model.body_geomadr[bid])
+        end = start + int(model.body_geomnum[bid])
+        for gid in range(start, end):
+            typ = int(model.geom_type[gid])
+            matid = int(model.geom_matid[gid])
+            geom = {
+                "name": mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, gid) or f"geom_{gid}",
+                "type": typ,
+                "pos": [round(float(x), 6) for x in model.geom_pos[gid]],
+                "quat": _quat(model.geom_quat[gid]),
+                "size": [round(float(x), 6) for x in model.geom_size[gid]],
+                "rgba": [round(float(x), 4) for x in model.mat_rgba[matid]] if matid >= 0 else [0.5, 0.5, 0.5, 1.0],
+            }
+            if typ == int(mujoco.mjtGeom.mjGEOM_MESH):
+                geom["mesh"] = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_MESH, int(model.geom_dataid[gid]))
             geoms.append(geom)
-        bodies.append({"id":bid,"name":name,"parent":parent,"geoms":geoms})
-    cameras=[]
+        bodies.append({"id": bid, "name": name, "parent": int(model.body_parentid[bid]), "geoms": geoms})
+
+    cameras = []
     for cid in range(model.ncam):
         cameras.append({
-            "name":mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_CAMERA,cid),
-            "id":cid,
-            "pos":[round(float(x),6) for x in model.cam_pos[cid]],
-            "quat":_quat(model.cam_quat[cid]),
-            "fovy":round(float(model.cam_fovy[cid]),4),
+            "name": mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_CAMERA, cid),
+            "id": cid,
+            "pos": [round(float(x), 6) for x in model.cam_pos[cid]],
+            "quat": _quat(model.cam_quat[cid]),
+            "fovy": round(float(model.cam_fovy[cid]), 4),
         })
-    meshes=[]
+    meshes = []
     for mid in range(model.nmesh):
-        name=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_MESH,mid)
-        meshes.append({"name":name,"file":name + ".stl" if name else None})
-    return {"bodies":bodies,"cameras":cameras,"meshes":meshes,"mesh_root":"assets/SO101/Simulation/SO101/assets","units":"metres","pose_quantization":{"position_m":1e-4,"quaternion":1/32767}}
+        name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_MESH, mid)
+        meshes.append({"name": name, "file": name + ".stl" if name else None})
+    return {
+        "bodies": bodies,
+        "cameras": cameras,
+        "meshes": meshes,
+        "mesh_root": "assets/SO101/Simulation/SO101/assets",
+        "units": "metres",
+        "pose_quantization": {"position_m": 1e-4, "quaternion": 1 / 32767},
+    }
+
 
 class Recorder:
-    def __init__(self, model, data, writers):
-        self.model,self.data,self.writers=model,data,writers; self.frames=[]; self.events=[]; self.last_sample=-1; self.render_count=0
-        self.joints=[mujoco.mj_name2id(model,mujoco.mjtObj.mjOBJ_JOINT,n) for n in (*ARM_NAMES,"gripper")]
-    def sample(self, force=False):
-        tick=int(round(self.data.time / (1/30)))
-        if not force and tick==self.last_sample: return
-        self.last_sample=tick
-        poses=[]
-        for bid in range(self.model.nbody): poses.append([int(round(float(v)*10000)) for v in self.data.xpos[bid]]+_quat(self.data.xquat[bid]))
-        q=[float(self.data.qpos[self.model.jnt_qposadr[j]]) for j in self.joints]
-        self.frames.append({"t":round(float(self.data.time),4),"poses":poses,"qpos":[round(v,5) for v in q[:5]],"gripper":round(q[5],5)})
-        # MuJoCo still records every 30 Hz pose. Rendering every third pose
-        # keeps export usable on a CPU box; the player treats the camera file
-        # as a companion view and uses the recorded pose clock for sync.
-        self.render_count += 1
-        if self.render_count % 3 == 0 or force:
-            for cam,writer in self.writers.items():
-                writer.update_scene(self.data,cam); writer._writer.append_data(writer.render())
-    def event(self,name,**extra):
-        self.events.append({"t":round(float(self.data.time),4),"name":name,"frame":max(0,len(self.frames)-1),**extra})
+    """Capture public observations plus the live MuJoCo pose."""
 
-def _set_ctrl(model,data,q,grip): controls(model,data,{n:float(v) for n,v in zip(ARM_NAMES,q)}|{"gripper":float(grip)})
+    def __init__(self, env: StationEnv, out: Path, width: int = 240, height: int = 320):
+        self.env = env
+        self.model = env.model
+        self.data = env.data
+        self.frames: list[dict[str, Any]] = []
+        self.events: list[dict[str, Any]] = []
+        self._seen_events: set[tuple[Any, ...]] = set()
+        self._last_tick = -1
+        self._render_count = 0
+        self._renderers = {
+            "top_view": mujoco.Renderer(self.model, width, height),
+            "inspection_view": mujoco.Renderer(self.model, width, height),
+        }
+        self._writers = {
+            "top_view": imageio.get_writer(out / "top-view.mp4", fps=10, codec="libx264", quality=6, macro_block_size=1),
+            "inspection_view": imageio.get_writer(out / "inspection-camera.mp4", fps=10, codec="libx264", quality=6, macro_block_size=1),
+        }
 
-def export(seed:int, out:Path, checkpoint="expert", sentence="good and defective bowls on the sides, inspection camera in front", count: int | None = None):
-    out.mkdir(parents=True,exist_ok=True); xml=out/f"station-{seed}.xml"
-    xml.write_text(station_xml(seed,sentence,count=count,robot_include=str((ROOT/'assets/SO101/Simulation/SO101/so101_dryrun.xml').resolve())))
-    model=mujoco.MjModel.from_xml_path(str(xml)); data=mujoco.MjData(model); mujoco.mj_forward(model,data)
-    writers={}
-    for key,filename in (("top_view","top-view.mp4"),("inspection_view","inspection-camera.mp4")):
-        renderer=mujoco.Renderer(model,240,320)
-        renderer._writer=imageio.get_writer(out/filename,fps=10,codec="libx264",quality=6,macro_block_size=1)
-        writers[key]=renderer
-    recorder=Recorder(model,data,writers); recorder.sample(force=True)
-    brick_ids=[i for i in range(model.nbody) if (mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,i) or "").startswith("brick_")]
-    specs=layout_bricks(seed,sentence,count=count); arm=ids(model); q=np.zeros(5); opened=1.7; successes=0; drops=0; failures=[]; start_time=time.perf_counter()
-    def step(n,qtarget,grip):
-        nonlocal q
-        for _ in range(n):
-            _set_ctrl(model,data,qtarget,grip); mujoco.mj_step(model,data); recorder.sample()
-        q=np.array(qtarget,dtype=float)
-    for body in brick_ids:
-        name=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,body); idx=int(name.split("_")[1]); spec=specs[idx]
-        recorder.event("approach",brick=idx,defect=spec.defect)
-        start=data.xpos[body].copy(); q0,e0,ok0=solve_ik(model,data,[float(start[0]),float(start[1]),.075],arm,opened)
-        if not ok0:
-            recorder.event("failed",brick=idx,reason="approach_ik",ik_error_m=round(e0,5)); failures.append("approach_ik"); continue
-        step(500,q0,opened); current=data.xpos[body].copy(); q1,e1,ok1=solve_ik(model,data,[float(current[0]),float(current[1]),.035],arm,opened)
-        if not ok1:
-            recorder.event("failed",brick=idx,reason="pick_ik",ik_error_m=round(e1,5)); failures.append("pick_ik"); continue
-        step(650,q1,opened); current=data.xpos[body].copy(); q1,e1,ok1=solve_ik(model,data,[float(current[0]),float(current[1]),.035],arm,opened); step(300,q1,opened)
-        touched=set(); peak=0.; close=opened
-        for i in range(700):
-            grip=opened+(1.0-opened)*min(1.,i/500); _set_ctrl(model,data,q1,grip); mujoco.mj_step(model,data); recorder.sample(); force,pads=pad_force(model,data); peak=max(peak,force); touched |= pads
-            if len(touched)==2 and force>.5: close=grip; break
-        picked=bool(len(touched)==2 and data.xpos[body,2]>.012)
-        recorder.event("grasp" if picked else "failed",brick=idx,reason=None if picked else "no_two_pad_contact",pad_contacts=len(touched),peak_force_N=round(peak,3))
-        if not picked:
-            failures.append("grasp"); continue
-        recorder.event("lift_start",brick=idx)
-        inspect_y=-.24; qi,ei,oki=solve_ik(model,data,[.0,inspect_y,.19],arm,close)
-        if not oki: recorder.event("failed",brick=idx,reason="inspection_ik"); failures.append("inspection_ik"); continue
-        for i in range(900): stepq=q1+(qi-q1)*min(1.,i/650.); _set_ctrl(model,data,stepq,close); mujoco.mj_step(model,data); recorder.sample()
-        q=qi; recorder.event("lift",brick=idx,z=round(float(data.xpos[body,2]),4)); recorder.event("at_inspection",brick=idx); step(90,qi,close); recorder.event("present",brick=idx); verdict="defective" if spec.defect!="none" else "good"; recorder.event("verdict",brick=idx,verdict=verdict)
-        by=.30 if spec.defect!="none" else -.30; qb,eb,okb=solve_ik(model,data,[.35,by,.13],arm,close)
-        if not okb: recorder.event("failed",brick=idx,reason="bowl_ik",ik_error_m=round(eb,5)); failures.append("bowl_ik"); continue
-        for i in range(1000): stepq=qi+(qb-qi)*min(1.,i/700.); _set_ctrl(model,data,stepq,close); mujoco.mj_step(model,data); recorder.sample()
-        q=qb; recorder.event("release",brick=idx); recorder.event("drop",brick=idx); step(180,qb,opened); final=data.xpos[body].copy(); in_bowl=bool(np.linalg.norm(final[:2]-np.array([.35,by]))<.14 and final[2]<.10)
-        if in_bowl: successes+=1; recorder.event("in_bowl",brick=idx,xyz=[round(float(v),4) for v in final])
-        else: drops+=1; failures.append("dropped"); recorder.event("dropped",brick=idx,xyz=[round(float(v),4) for v in final])
-    recorder.sample(force=True)
-    for r in writers.values(): r._writer.close(); r.close()
-    bricks=len(brick_ids); outcome={"status":"success" if not failures else "failed","bricks":bricks,"correct":successes,"successes":successes,"drops":drops,"score":successes/bricks if bricks else 0,"failure_reason":failures[0] if failures else None,"cycle_time_s":round((time.perf_counter()-start_time)/max(1,bricks),3),"seed":seed}
-    payload={"format":"dryrun-replay-v1","seed":seed,"checkpoint":checkpoint,"created_at":datetime.now(timezone.utc).isoformat(),"model":"SO-101 official MJCF","scene":_scene(model),"frames":recorder.frames,"events":recorder.events,"outcome":outcome,"videos":{"top":"top-view.mp4","inspection":"inspection-camera.mp4","fps":10,"source_pose_hz":30,"frame_stride":3}}
-    replay=out/"replay.json.gz"
-    with gzip.open(replay,"wt",encoding="utf-8",compresslevel=9) as fh: json.dump(payload,fh,separators=(",",":"))
-    # Optional Tiger/Timescale write is deliberately best-effort: the replay remains useful offline.
-    telemetry_status="not configured"
-    if os.environ.get("DRYRUN_DB_URL"):
-        try:
-            from .telemetry import record_rollout, refresh
-            base=datetime.now(timezone.utc); samples=[]
-            for frame in recorder.frames: samples.append({"ts":base.timestamp()+frame["t"],"qpos":frame["qpos"]+[frame["gripper"]],"gripper":frame["gripper"]})
-            record_rollout(samples,recorder.events,outcome,rollout_id=f"seed-{seed}-{int(time.time())}",seed=seed,checkpoint=checkpoint); refresh(); telemetry_status="written"
-        except Exception as exc: telemetry_status=f"error: {exc}"
-    manifest={"replay":str(replay),"replay_bytes":replay.stat().st_size,"frames":len(recorder.frames),"events":len(recorder.events),"videos":payload["videos"],"outcome":outcome,"telemetry":telemetry_status}
-    (out/"manifest.json").write_text(json.dumps(manifest,indent=2)); return manifest
+    def sample(self, obs: dict[str, Any], *, force: bool = False) -> None:
+        tick = int(round(float(self.data.time) * 30.0))
+        if not force and tick == self._last_tick:
+            return
+        self._last_tick = tick
+        poses = []
+        for bid in range(self.model.nbody):
+            poses.append([int(round(float(v) * 10000)) for v in self.data.xpos[bid]] + _quat(self.data.xquat[bid]))
+        joints = np.asarray(obs.get("joints", []), dtype=float).reshape(-1).tolist()
+        joints = (joints + [0.0] * 6)[:6]
+        self.frames.append({
+            "t": round(float(self.data.time), 4),
+            "poses": poses,
+            "qpos": [round(float(v), 5) for v in joints[:5]],
+            "gripper": round(float(joints[5]), 5),
+        })
+        self._render_count += 1
+        if force or self._render_count % 3 == 0:
+            for camera, renderer in self._renderers.items():
+                renderer.update_scene(self.data, camera)
+                self._writers[camera].append_data(renderer.render())
 
-def main():
-    p=argparse.ArgumentParser(); p.add_argument("--seed",type=int,default=7); p.add_argument("--out",type=Path,required=True); p.add_argument("--checkpoint",default="expert"); a=p.parse_args(); os.environ.setdefault("MUJOCO_GL","egl"); print(json.dumps(export(a.seed,a.out,a.checkpoint),indent=2))
+    def events_from(self, rows: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> list[dict[str, Any]]:
+        added = []
+        for row in rows:
+            if not isinstance(row, dict) or "event" not in row:
+                continue
+            key = tuple(sorted((str(k), repr(v)) for k, v in row.items()))
+            if key in self._seen_events:
+                continue
+            self._seen_events.add(key)
+            event = {
+                "t": round(float(row.get("t", self.data.time)), 4),
+                "name": str(row["event"]),
+                "frame": max(0, len(self.frames) - 1),
+            }
+            event.update({k: v for k, v in row.items() if k not in {"event", "t"}})
+            self.events.append(event)
+            added.append(event)
+        return added
 
-if __name__=="__main__": main()
+    def close(self) -> None:
+        for writer in self._writers.values():
+            writer.close()
+        for renderer in self._renderers.values():
+            renderer.close()
+
+
+def export(
+    seed: int,
+    out: Path,
+    checkpoint: str = "expert",
+    tier: str = "loose",
+    max_steps: int = 3600,
+    inspector: Callable[[np.ndarray], Any] | None = None,
+    count: int | None = None,
+) -> dict[str, Any]:
+    """Run and export one real rollout through ``StationEnv.step``."""
+    if tier not in TIERS:
+        raise ValueError(f"unknown tier {tier!r}")
+    out.mkdir(parents=True, exist_ok=True)
+    env = StationEnv(int(seed), tier=tier, count=count, render_size=64)
+    recorder = Recorder(env, out)
+    commit = _commit()
+    inspector_status = "not configured"
+    try:
+        obs = env.reset()
+        recorder.sample(obs, force=True)
+        done = False
+        steps = 0
+        while not done and steps < int(max_steps):
+            action = np.asarray(env.expert_action(), dtype=np.float32)
+            obs, _, done, info = env.step(action)
+            recorder.sample(obs)
+            new_events = recorder.events_from(info.get("events", []))
+            if inspector is not None:
+                for event in new_events:
+                    if event["name"] != "present":
+                        continue
+                    decision = inspector(obs["inspection"])
+                    if isinstance(decision, dict):
+                        verdict = decision.get("verdict")
+                        event_data = {k: decision[k] for k in ("score", "threshold") if k in decision}
+                    else:
+                        verdict, event_data = decision, {}
+                    recorder.events.append({
+                        "t": round(float(env.data.time), 4),
+                        "name": "verdict",
+                        "frame": max(0, len(recorder.frames) - 1),
+                        "brick": event.get("brick"),
+                        "verdict": str(verdict),
+                        **event_data,
+                    })
+                    inspector_status = "written"
+            steps += 1
+
+        recorder.sample(obs, force=True)
+        result = env.result()
+        bricks = len(env.brick_ids)
+        successes = len(result.get("good_bowl", []))
+        failures = [e for e in recorder.events if e.get("name") in {"unstable", "miss", "slip", "ik_fail"}]
+        outcome = {
+            "status": "success" if bricks and successes == bricks else "failed",
+            "bricks": bricks,
+            "correct": successes,
+            "successes": successes,
+            "wrong_bowl": len(result.get("wrong_bowl", [])),
+            "drops": len(result.get("dropped", [])),
+            "score": successes / bricks if bricks else 0.0,
+            "failure_reason": failures[0].get("name") if failures else None,
+            "cycle_time_s": round(float(env.data.time) / max(1, bricks), 3),
+            "seed": int(seed),
+            "tier": tier,
+            "steps": steps,
+            "commit": commit,
+        }
+        payload = {
+            "format": "dryrun-replay-v2",
+            "seed": int(seed),
+            "checkpoint": checkpoint,
+            "tier": tier,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "commit": commit,
+            "model": "SO-101 official MJCF",
+            "scene": _scene(env.model),
+            "frames": recorder.frames,
+            "events": recorder.events,
+            "outcome": outcome,
+            "videos": {"top": "top-view.mp4", "inspection": "inspection-camera.mp4", "fps": 10, "source_pose_hz": 30, "frame_stride": 3},
+        }
+        replay = out / "replay.json.gz"
+        with gzip.open(replay, "wt", encoding="utf-8", compresslevel=9) as fh:
+            json.dump(payload, fh, separators=(",", ":"))
+        if getattr(env, "xml_path", None) and Path(env.xml_path).exists():
+            (out / f"station-{int(seed)}.xml").write_text(Path(env.xml_path).read_text())
+
+        telemetry_status = "not configured"
+        if os.environ.get("DRYRUN_DB_URL"):
+            try:
+                from .telemetry import record_rollout, refresh
+                base = datetime.now(timezone.utc).timestamp()
+                samples = [{"ts": base + float(frame["t"]), "qpos": frame["qpos"] + [frame["gripper"]], "gripper": frame["gripper"]} for frame in recorder.frames]
+                record_rollout(samples, recorder.events, outcome, rollout_id=f"replay-seed-{seed}-{commit[:12]}", seed=int(seed), checkpoint=checkpoint)
+                refresh()
+                telemetry_status = "written"
+            except Exception as exc:
+                telemetry_status = f"error: {exc}"
+        manifest = {
+            "replay": str(replay),
+            "replay_bytes": replay.stat().st_size,
+            "frames": len(recorder.frames),
+            "events": len(recorder.events),
+            "videos": payload["videos"],
+            "outcome": outcome,
+            "telemetry": telemetry_status,
+            "inspector": inspector_status,
+            "commit": commit,
+        }
+        (out / "manifest.json").write_text(json.dumps(manifest, indent=2))
+        return manifest
+    finally:
+        recorder.close()
+        env.close()
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--seed", type=int, default=7)
+    parser.add_argument("--tier", choices=sorted(TIERS), default="loose")
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--checkpoint", default="expert")
+    parser.add_argument("--max-steps", type=int, default=3600)
+    parser.add_argument("--count", type=int)
+    args = parser.parse_args()
+    print(json.dumps(export(args.seed, args.out, args.checkpoint, args.tier, args.max_steps, count=args.count), indent=2))
+
+
+if __name__ == "__main__":
+    main()

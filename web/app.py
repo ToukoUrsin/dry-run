@@ -1,62 +1,115 @@
 #!/usr/bin/env python3
-"""Dry Run dashboard: zero dependency local server."""
-from http.server import ThreadingHTTPServer, BaseHTTPRequestHandler
+"""Small dependency-light server for the Dry Run evidence page."""
+from __future__ import annotations
+import json, os, subprocess, time, sys
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-import json, random, time
-import os
-ROOT=Path(__file__).resolve().parents[1]
+from urllib.parse import unquote, urlparse
 
-def aggregates():
-    url=os.environ.get('DRYRUN_DB_URL')
-    if not url:
-        return {'status':'unavailable','reason':'DRYRUN_DB_URL is not set','rows':[]}
+ROOT = Path(__file__).resolve().parents[1]
+WEB = ROOT / "web"
+if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
+REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", "/bulk2/runs/dryrun/replays/seed-7c"))
+
+def commit() -> str:
+    value = os.environ.get("RELEASE_SHA")
+    if value: return value[:12]
+    try: return subprocess.check_output(["git", "rev-parse", "--short=12", "HEAD"], cwd=ROOT, text=True, stderr=subprocess.DEVNULL).strip()
+    except Exception: return "local"
+
+def read_jsonl(path: Path):
+    if not path.exists(): return []
+    rows=[]
+    for line in path.read_text().splitlines():
+        try: rows.append(json.loads(line))
+        except json.JSONDecodeError: pass
+    return rows
+
+def snapshot() -> dict:
     try:
-        import psycopg
-        with psycopg.connect(url) as c:
-            rows=c.execute('SELECT bucket, rollout_id, seed, q0, q1, samples, status FROM rollout_1s ORDER BY bucket DESC LIMIT 100').fetchall()
-        keys=('bucket','rollout_id','seed','q0','q1','samples','status')
-        clean=[]
-        for r in rows:
-            row=dict(zip(keys,r))
-            if hasattr(row.get('bucket'),'isoformat'): row['bucket']=row['bucket'].isoformat()
-            clean.append(row)
-        return {'status':'ok','rows':clean}
-    except Exception as e:
-        return {'status':'error','reason':str(e),'rows':[]}
+        from dryrun.telemetry import dashboard_snapshot
+        snap = dashboard_snapshot()
+        snap["commit"] = commit(); return snap
+    except Exception as exc:
+        p=ROOT/"data"/"snapshot.json"
+        if p.exists():
+            try:
+                snap=json.loads(p.read_text()); snap["commit"]=commit(); snap["source"]="local snapshot"; return snap
+            except Exception: pass
+        return {"status":"unavailable","source":"none","reason":"No telemetry aggregate is connected yet.","error":str(exc),"commit":commit(),"checkpoints":[],"rollups":[],"raw_rows":0,"result_rows":0,"query_ms":{}}
 
-def score():
-    agg=aggregates()
-    if agg['status']=='ok':
-        return {'status':'ok','source':'timescale:rollout_1s','aggregate_rows':len(agg['rows']),'telemetry_samples':sum(r['samples'] for r in agg['rows'])}
-    p=ROOT/'data'/'benchmark.json'
-    if p.exists():
-        try:return json.loads(p.read_text())
+def replay_payload(seed: int) -> dict | None:
+    candidates=[REPLAY_DIR/f"seed-{seed}"/"replay.json.gz", REPLAY_DIR/f"seed-{seed}c"/"replay.json.gz", ROOT/"data"/f"replay-seed{seed}.jsonl"]
+    for path in candidates:
+        if not path.exists(): continue
+        try:
+            if path.suffix==".gz":
+                import gzip
+                with gzip.open(path,"rt",encoding="utf-8") as fh: return json.load(fh)
+            rows=read_jsonl(path); return rows[-1] if rows else None
+        except Exception: continue
+    return None
+
+def replay_list():
+    rows=[]
+    for path in sorted((ROOT/"data").glob("replay-*.jsonl")):
+        try:
+            obj=read_jsonl(path)[-1]; rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint"),"outcome":obj.get("outcome"),"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"recorded trace"})
         except Exception: pass
-    return {'status':'unavailable','source':'timescale:rollout_1s','reason':agg.get('reason','no aggregate data'),'aggregate_rows':0,'telemetry_samples':0}
+    if REPLAY_DIR.exists():
+        for path in sorted(REPLAY_DIR.glob("seed-*/manifest.json")):
+            try: rows.append(json.loads(path.read_text()) | {"source":"local MuJoCo export"})
+            except Exception: pass
+    unique={int(r.get("seed")):r for r in rows if r.get("seed") is not None}
+    return list(unique.values())
+
+def score_payload(snap):
+    cps=snap.get("checkpoints") or []
+    if not cps: return {"status":"unavailable","message":"No benchmark checkpoint has been recorded in telemetry yet.","commit":snap.get("commit"),"checkpoints":[]}
+    latest=cps[-1]; latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
+    return {"status":"ok","checkpoint":latest,"commit":snap.get("commit"),"checkpoints":cps,"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0)}
+
 class Handler(BaseHTTPRequestHandler):
-    def _json(self,obj,status=200):
-        b=json.dumps(obj).encode(); self.send_response(status); self.send_header('Content-Type','application/json'); self.send_header('Content-Length',str(len(b))); self.end_headers(); self.wfile.write(b)
+    def send_bytes(self, body: bytes, content_type: str, status=200):
+        self.send_response(status); self.send_header("Content-Type",content_type); self.send_header("Cache-Control","no-cache"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
+    def send_json(self,obj,status=200): self.send_bytes(json.dumps(obj,separators=(",",":"),default=str).encode(),"application/json; charset=utf-8",status)
     def do_GET(self):
-        if self.path=='/api/score': return self._json(score())
-        if self.path=='/api/telemetry': return self._json(aggregates())
-        if self.path=='/api/rollouts':
-            rows=[]
-            p=ROOT/'data'/'rollouts.jsonl'
-            if p.exists():
-                for line in p.read_text().splitlines()[-20:]:
-                    try: rows.append(json.loads(line))
-                    except: pass
-            return self._json(rows)
-        if self.path in ('/','/index.html'):
-            b=(ROOT/'web'/'index.html').read_bytes(); self.send_response(200); self.send_header('Content-Type','text/html'); self.send_header('Content-Length',str(len(b))); self.end_headers(); self.wfile.write(b); return
-        self.send_error(404)
+        parsed=urlparse(self.path); path=unquote(parsed.path)
+        if path=="/api/score": return self.send_json(score_payload(snapshot()))
+        if path=="/api/telemetry": return self.send_json(snapshot())
+        if path=="/api/rollouts": return self.send_json(replay_list())
+        if path=="/api/replays": return self.send_json(replay_list())
+        if path.startswith("/api/replays/"):
+            try: obj=replay_payload(int(path.rsplit("/",1)[1]))
+            except (ValueError,TypeError): obj=None
+            return self.send_json(obj or {"status":"unavailable","message":"That rollout is not in the recorded set."}, 200 if obj else 404)
+        if path.startswith("/replays/"):
+            bits=path.strip("/").split("/"); file=bits[-1]; seed=bits[-2] if len(bits)>1 else ""
+            candidate=REPLAY_DIR/seed/file
+            if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"video/mp4")
+            return self.send_json({"status":"unavailable","message":"Camera video is available in the local replay export."},404)
+        if path.startswith("/replay-video/"):
+            candidate=REPLAY_DIR/path.rsplit("/",1)[1]
+            if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"video/mp4")
+            return self.send_json({"status":"unavailable","message":"Camera video is available in the local replay export."},404)
+        if path=="/api/health": return self.send_json({"status":"ok","commit":commit(),"replay_count":len(replay_list())})
+        if path in ("/","/index.html"):
+            return self.send_bytes((WEB/"index.html").read_bytes(),"text/html; charset=utf-8")
+        if path=="/favicon.svg": return self.send_bytes(b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12253d"/><path d="M8 22 16 7l8 15-8-4z" fill="#a7e34b"/></svg>',"image/svg+xml")
+        if path=="/so101.glb":
+            candidate=Path("/bulk2/runs/dryrun/page-assets/so101.glb")
+            if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"model/gltf-binary")
+            return self.send_json({"status":"unavailable","message":"The compressed SO-101 mesh bundle is present in the local run assets."},404)
+        self.send_json({"error":"not found"},404)
     def do_POST(self):
-        if self.path!='/api/defect': return self._json({'error':'not found'},404)
-        n=int(self.headers.get('Content-Length','0')); raw=self.rfile.read(n)
-        try: obj=json.loads(raw); obj['created_at']=time.time()
-        except: return self._json({'error':'invalid json'},400)
-        p=ROOT/'data'/'defects.jsonl'; p.parent.mkdir(exist_ok=True); p.open('a').write(json.dumps(obj)+'\n')
-        return self._json({'ok':True,'defect_id':f"custom-{int(time.time())}"},201)
+        if self.path!="/api/defect": return self.send_json({"error":"not found"},404)
+        try:
+            body=json.loads(self.rfile.read(int(self.headers.get("Content-Length","0"))))
+            body.update({"created_at":time.time(),"status":"queued","verdict":"pending"})
+            p=ROOT/"data"/"defects.jsonl"; p.parent.mkdir(exist_ok=True); p.open("a").write(json.dumps(body,separators=(",",":"))+"\n")
+            return self.send_json({"ok":True,"defect_id":f"custom-{int(time.time()*1000)}","verdict":"pending","message":"Saved. A rollout will run when the inspector worker is connected."},201)
+        except Exception as exc: return self.send_json({"error":f"invalid defect: {exc}"},400)
     def log_message(self,*args): pass
-if __name__=='__main__':
-    port=int(__import__('os').environ.get('PORT','8787')); print(f'Dry Run dashboard http://localhost:{port}'); ThreadingHTTPServer(('0.0.0.0',port),Handler).serve_forever()
+
+if __name__=="__main__":
+    port=int(os.environ.get("PORT","8787")); print(f"Dry Run dashboard http://localhost:{port}"); ThreadingHTTPServer(("0.0.0.0",port),Handler).serve_forever()

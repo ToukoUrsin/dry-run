@@ -1,3 +1,5 @@
 # Dry Run dashboard
 
-Run `python web/app.py` and open http://localhost:8787. The zero-dependency server exposes `/api/score`, `/api/rollouts`, and `/api/defect`; set `PORT` to change the port. The dashboard reads benchmark numbers from `data/benchmark.json` and keeps custom defects as JSONL.
+Run locally with `PORT=8898 DRYRUN_DB_URL=postgresql://... python web/app.py` and open `/`. `/api/score` and `/api/telemetry` read the Timescale continuous aggregate when configured; without a database they report `unavailable` instead of inventing a score. `/api/defect` records a custom defect request as JSONL for the next rollout.
+
+The deployed smoke-test URL is https://dryrun-junction-2026.fly.dev/.

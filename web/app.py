@@ -36,7 +36,7 @@ def snapshot() -> dict:
             try:
                 snap=json.loads(p.read_text()); snap["commit"]=commit(); snap["source"]="local snapshot"; return snap
             except Exception: pass
-        return {"status":"unavailable","source":"none","reason":"No telemetry aggregate is connected yet.","error":str(exc),"commit":commit(),"checkpoints":[],"rollups":[],"raw_rows":0,"result_rows":0,"query_ms":{}}
+        return {"status":"unavailable","source":"none","reason":"No telemetry aggregate is connected yet.","error":str(exc),"commit":commit(),"checkpoints":[],"rollups":[],"diagnoses":[],"raw_rows":0,"result_rows":0,"query_ms":{}}
 
 def replay_payload(seed: int) -> dict | None:
     candidates=[REPLAY_DIR/f"seed-{seed}"/"replay.json.gz", REPLAY_DIR/f"seed-{seed}c"/"replay.json.gz", ROOT/"data"/f"replay-seed{seed}.jsonl"]
@@ -77,6 +77,7 @@ class Handler(BaseHTTPRequestHandler):
         parsed=urlparse(self.path); path=unquote(parsed.path)
         if path=="/api/score": return self.send_json(score_payload(snapshot()))
         if path=="/api/telemetry": return self.send_json(snapshot())
+        if path=="/api/failures": return self.send_json(snapshot().get("diagnoses", []))
         if path=="/api/rollouts": return self.send_json(replay_list())
         if path=="/api/replays": return self.send_json(replay_list())
         if path.startswith("/api/replays/"):
@@ -109,6 +110,13 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/so101.glb":
             candidate=Path("/bulk2/runs/dryrun/page-assets/so101.glb")
             if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"model/gltf-binary")
+            try:
+                encoded=(replay_payload(7) or {}).get("mesh_data")
+                if encoded:
+                    import base64
+                    return self.send_bytes(base64.b64decode(encoded),"model/gltf-binary")
+            except Exception:
+                pass
             return self.send_json({"status":"unavailable","message":"The compressed SO-101 mesh bundle is present in the local run assets."},404)
         self.send_json({"error":"not found"},404)
     def do_POST(self):

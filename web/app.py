@@ -38,6 +38,12 @@ def read_jsonl(path: Path):
         except json.JSONDecodeError: pass
     return rows
 
+def replay_provenance(payload: dict) -> str:
+    """Classify replay evidence without treating placeholder commits as proof."""
+    outcome = payload.get("outcome") if isinstance(payload.get("outcome"), dict) else {}
+    commit_value = payload.get("commit") or outcome.get("commit")
+    return "post-main" if commit_value and str(commit_value).lower() not in {"unknown", "local"} else "archived pre-handoff"
+
 def codex_payload() -> dict:
     """Return the page-safe Codex timeline and truthful cast availability."""
     entries = read_jsonl(CODEX_LOG)
@@ -74,21 +80,41 @@ def replay_payload(seed: int) -> dict | None:
             else:
                 rows=read_jsonl(path); payload = rows[-1] if rows else None
             if payload is not None:
-                payload.setdefault("provenance", "post-main" if payload.get("commit") else "archived pre-handoff")
+                payload.setdefault("provenance", replay_provenance(payload))
             return payload
         except Exception: continue
+    if REPLAY_DIR.exists():
+        import gzip
+        for path in sorted(REPLAY_DIR.rglob("*.json.gz")):
+            try:
+                with gzip.open(path, "rt", encoding="utf-8") as fh: payload = json.load(fh)
+                if int(payload.get("seed", -1)) != int(seed): continue
+                payload.setdefault("provenance", replay_provenance(payload))
+                return payload
+            except Exception: continue
     return None
 
 def replay_list():
     rows=[]
     for path in sorted((ROOT/"data").glob("replay-*.jsonl")):
         try:
-            obj=read_jsonl(path)[-1]; rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint"),"outcome":obj.get("outcome"),"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"recorded trace","provenance":"post-main" if obj.get("commit") else "archived pre-handoff"})
+            obj=read_jsonl(path)[-1]; rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint"),"outcome":obj.get("outcome"),"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"recorded trace","provenance":replay_provenance(obj)})
         except Exception: pass
     if REPLAY_DIR.exists():
         for path in sorted(REPLAY_DIR.glob("seed-*/manifest.json")):
             try:
-                obj=json.loads(path.read_text()); obj.setdefault("provenance", "post-main" if obj.get("commit") else "archived pre-handoff"); rows.append(obj | {"source":"local MuJoCo export"})
+                obj=json.loads(path.read_text()); obj.setdefault("provenance", replay_provenance(obj)); rows.append(obj | {"source":"local MuJoCo export"})
+            except Exception: pass
+        # Benchmark exports are compact gzip traces without a manifest. Keep
+        # their scene/result rows visible to the workspace while the featured
+        # replay can still come from the full video export above.
+        import gzip
+        for path in sorted(REPLAY_DIR.rglob("*.json.gz")):
+            try:
+                with gzip.open(path, "rt", encoding="utf-8") as fh: obj=json.load(fh)
+                if obj.get("seed") is None: continue
+                outcome=obj.get("outcome") or {}
+                rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint") or obj.get("controller"),"tier":obj.get("tier"),"outcome":outcome,"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"benchmark replay export","commit":obj.get("commit"),"provenance":replay_provenance(obj)})
             except Exception: pass
     unique={int(r.get("seed")):r for r in rows if r.get("seed") is not None}
     return list(unique.values())

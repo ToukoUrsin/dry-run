@@ -31,6 +31,7 @@ def best_pose(target, *, min_margin=MARGIN_FRACTION):
     first valid result is the steepest approach that solves. The returned
     tuple is ``(accepted, margin, IKResult|None)``.
     """
+    fallback = None
     for degrees in range(APPROACH_PITCH_DEG, -1, -1):
         try:
             # The rollout targets the open-jaw pad midpoint, so the measured
@@ -41,8 +42,14 @@ def best_pose(target, *, min_margin=MARGIN_FRACTION):
             continue
         margin = pose_margin(result.q)
         if result.error < 1e-5:
-            return bool(margin >= min_margin), margin, result
-    return False, -1.0, None
+            if fallback is None:
+                fallback = (margin, result)
+            if margin >= min_margin:
+                return True, margin, result
+    if fallback is None:
+        return False, -1.0, None
+    margin, result = fallback
+    return False, margin, result
 
 
 def reach_margin(target, *, min_margin=MARGIN_FRACTION):
@@ -77,7 +84,8 @@ def measured_pick_rate(x: float, y: float, size: str, yaw: float) -> float:
     tested = np.asarray(rows[0].get("tested_yaws_rad", ()), dtype=float)
     if not len(tested):
         return 0.0
-    delta = np.abs(np.angle(np.exp(1j * (float(yaw) - tested))))
+    period = math.pi / 2.0 if size == "2x2" else math.pi
+    delta = np.abs((float(yaw) - tested + period / 2.0) % period - period / 2.0)
     if float(np.min(delta)) > 1e-6:
         return 0.0
     return float(rows[0].get("pick_rate", 0.0))

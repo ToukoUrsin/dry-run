@@ -27,8 +27,11 @@ metres and `INSPECTION_CAMERA_POSITION = [0.28, -0.10, 0.23]` metres: a
 0.122 m fixed camera distance, 34 degree field of view, and a 384x384 RGB
 frame. `render_inspection` and `render_inspection_frame` use the same camera
 configuration; the rollout calls the latter after holding the brick at that
-pose. The top face is the judged face. Underside marks are outside this shot
-and are reported separately rather than silently treated as visible.
+pose. Both functions use a fixed brick crop: arm and bowl geometry remains in
+the physical rollout and top/free cameras, but is excluded from this crop so
+the judged top face and its defects cannot be occluded. Underside marks are
+outside this shot and are reported separately rather than silently treated as
+visible.
 
 `dryrun.live_defect.inspect_custom_defect(payload)` is the fast Modal boundary.
 `payload` has a PNG `drawing` data URI and optional `seed`, `size`, and `color`;
@@ -112,7 +115,7 @@ The benchmark and replay exporter call `dryrun.telemetry.record_rollout(samples,
 
 ## Page session request from Soren review
 
-Main provides `benchmark.py --export-replays DIR` rows for every held-out seed and controller. Each replay row is JSONL with `controller`, `seed`, `tier`, brick count, correct count, event rows, and scene values from `BrickSpec` (size, x, y, defect, color); the directory contains a top-camera thumbnail per row. Replay files and thumbnails live outside the database under the run directory or Fly volume. The page displays the commit that produced each row and marks missing live workers honestly.
+Main provides `benchmark.py --export-replays DIR` rows for every held-out seed and controller. Each replay row is JSONL with `controller`, `seed`, `tier`, brick count, correct count, event rows, and scene values from `BrickSpec` (size, x, y, yaw, defect, color); the directory contains a top-camera thumbnail per row. Replay files and thumbnails live outside the database under the run directory or Fly volume. The page displays the commit that produced each row and marks missing live workers honestly.
 ## Policy records and analyst scene batches
 
 `data/policy_scores.jsonl` contains one row per `(controller, checkpoint,
@@ -129,7 +132,7 @@ scored on the fixed held-out set.
 
 ## Analyst/session request
 
-Loose-tier scenes now use the normal seeded sentence contract: `layout_bricks(seed, TIERS["loose"])` returns 3–8 bricks with seed-dependent positions, sizes, colours and defects. The benchmark never edits generated XML or positions. The measured single-brick reach map remains a calibration artifact; scenes outside the measured margin are rejected by the station checker. The honest loose benchmark must be rerun after the closed-form IK/reach-map replacement lands.
+Loose-tier scenes use the normal seeded sentence contract: `layout_bricks(seed, TIERS["loose"])` returns 3–8 bricks with seed-dependent positions, sizes, colours, defects and symmetry-equivalent yaw branches. The benchmark never edits generated XML or positions. `data/reach_map_polar.json` is the measured physics pick/lift map; only cells with at least 95% measured pick rate are eligible, and closed-form pad IK rejects cells outside a 5% joint-limit margin at pickup and presentation.
 
 ## Main request after loose-tier review
 

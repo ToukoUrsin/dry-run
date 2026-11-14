@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Dry Run station. SO-101 body is included unchanged from TheRobotStudio/SO-ARM100;
+     see assets/SO101/LICENSE. Scene objects and cameras are original project code. -->
+<mujoco model="dryrun_station">
+  <compiler angle="radian" autolimits="true"/>
+  <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81"/>
+  <include file="so101_new_calib_local.xml"/>
+  <visual>
+    <headlight diffuse="0.8 0.8 0.8" ambient="0.35 0.35 0.35" specular="0.1 0.1 0.1"/>
+    <global azimuth="135" elevation="-25" offwidth="960" offheight="720"/>
+  </visual>
+  <asset>
+    <material name="table_mat" rgba="0.18 0.21 0.24 1"/>
+    <material name="good_bowl" rgba="0.08 0.55 0.25 1"/>
+    <material name="bad_bowl" rgba="0.75 0.12 0.12 1"/>
+    <material name="brick_red" rgba="0.75 0.08 0.04 1"/>
+    <material name="brick_blue" rgba="0.05 0.25 0.8 1"/>
+    <material name="brick_yellow" rgba="0.95 0.65 0.04 1"/>
+    <material name="brick_green" rgba="0.1 0.65 0.2 1"/>
+    <material name="sticker" rgba="0.95 0.95 0.95 1"/>
+  </asset>
+  <worldbody>
+    <light name="key" pos="0.3 -0.4 1.5" dir="-0.2 0.3 -1" directional="true" castshadow="true"/>
+    <geom name="table" type="box" pos="0.15 0 -0.045" size="0.62 0.48 0.045" material="table_mat" friction="0.8 0.1 0.02"/>
+    <geom name="table_edge" type="box" pos="0.15 0.47 0.04" size="0.62 0.025 0.08" material="table_mat"/>
+    <body name="good_bowl" pos="0.14 -0.31 0.04"><geom type="cylinder" size="0.12 0.04" material="good_bowl" contype="1" conaffinity="1"/><geom type="cylinder" size="0.095 0.055" pos="0 0 0.02" material="table_mat"/></body>
+    <body name="defective_bowl" pos="0.14 0.31 0.04"><geom type="cylinder" size="0.12 0.04" material="bad_bowl" contype="1" conaffinity="1"/><geom type="cylinder" size="0.095 0.055" pos="0 0 0.02" material="table_mat"/></body>
+    <!-- seeded bricks: free joints make each a true rigid body in contact physics -->
+    <body name="brick_0" pos="0.34 0 0.02"><freejoint/><geom name="brick_0_body" type="box" size="0.016 0.016 0.005" material="brick_red" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_red"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_red"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_red"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_red"/></body>
+    <body name="brick_1" pos="0.34 0 0.02"><freejoint/><geom name="brick_1_body" type="box" size="0.016 0.016 0.005" material="brick_blue" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_blue"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_blue"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_blue"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_blue"/></body>
+    <body name="brick_2" pos="0.34 0 0.02"><freejoint/><geom name="brick_2_body" type="box" size="0.016 0.016 0.005" material="brick_yellow" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_yellow"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_yellow"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_yellow"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_yellow"/></body>
+    <body name="brick_3" pos="0.34 0 0.02"><freejoint/><geom name="brick_3_body" type="box" size="0.016 0.016 0.005" material="brick_green" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_green"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_green"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_green"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_green"/></body>
+    <body name="brick_4" pos="0.34 0 0.02"><freejoint/><geom name="brick_4_body" type="box" size="0.016 0.016 0.005" material="brick_red" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_red"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_red"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_red"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_red"/></body>
+    <body name="brick_5" pos="0.34 0 0.02"><freejoint/><geom name="brick_5_body" type="box" size="0.016 0.016 0.005" material="brick_blue" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_blue"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_blue"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_blue"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_blue"/></body>
+    <body name="brick_6" pos="0.34 0 0.02"><freejoint/><geom name="brick_6_body" type="box" size="0.016 0.016 0.005" material="brick_yellow" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_yellow"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_yellow"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_yellow"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_yellow"/></body>
+    <body name="brick_7" pos="0.34 0 0.02"><freejoint/><geom name="brick_7_body" type="box" size="0.016 0.016 0.005" material="brick_green" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_green"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_green"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_green"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_green"/></body>
+    <body name="brick_8" pos="0.34 0 0.02"><freejoint/><geom name="brick_8_body" type="box" size="0.016 0.016 0.005" material="brick_red" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_red"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_red"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_red"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_red"/></body>
+    <body name="brick_9" pos="0.34 0 0.02"><freejoint/><geom name="brick_9_body" type="box" size="0.016 0.016 0.005" material="brick_blue" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_blue"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_blue"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_blue"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_blue"/></body>
+    <body name="brick_10" pos="0.34 0 0.02"><freejoint/><geom name="brick_10_body" type="box" size="0.016 0.016 0.005" material="brick_yellow" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_yellow"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_yellow"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_yellow"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_yellow"/></body>
+    <body name="brick_11" pos="0.34 0 0.02"><freejoint/><geom name="brick_11_body" type="box" size="0.016 0.016 0.005" material="brick_green" mass="0.006" friction="1.2 0.2 0.05"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 -0.008 0.009" material="brick_green"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 -0.008 0.009" material="brick_green"/><geom type="cylinder" size="0.0035 0.002" pos="-0.008 0.008 0.009" material="brick_green"/><geom type="cylinder" size="0.0035 0.002" pos="0.008 0.008 0.009" material="brick_green"/></body>
+    <camera name="free_view" pos="0.95 -1.15 0.85" xyaxes="0.76 0.65 0 -0.27 0.32 0.91"/>
+    <camera name="top_view" pos="0.15 0 1.35" xyaxes="1 0 0 0 1 0"/>
+    <camera name="inspection_view" pos="0.62 -0.38 0.33" xyaxes="0.95 0.25 0 -0.12 0.46 0.88"/>
+  </worldbody>
+</mujoco>

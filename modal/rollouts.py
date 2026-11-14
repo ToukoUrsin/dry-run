@@ -35,7 +35,7 @@ class RawRecorder:
             self.frames.append({"t": row.get("t", 0), "state": obs["joints"].tolist(), "action": row["action"].tolist(), "verdict": int(row.get("verdict", 0))})
 
 
-@app.function(image=image, timeout=900, volumes={"/runs": volume}, cpu=4)
+@app.function(image=image, timeout=900, retries=2, volumes={"/runs": volume}, cpu=4)
 def rollout_seed(seed: int, tier: str = "loose", max_steps: int = 1800, max_cycles: int | None = None):
     sys.path.insert(0, "/root/repo")
     import os; os.environ.setdefault("MUJOCO_GL", "osmesa")

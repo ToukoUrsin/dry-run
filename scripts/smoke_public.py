@@ -55,6 +55,20 @@ def check_viewport(page, width: int, height: int, screenshot: Path | None) -> di
                   document.querySelector('#replay-state')?.textContent.startsWith('seed ')""",
         timeout=60_000,
     )
+    page.wait_for_function(
+        """() => {
+          const canvas = document.querySelector('#viewer');
+          const gl = canvas && (canvas.getContext('webgl2') || canvas.getContext('webgl'));
+          if (!gl || canvas.width < 400 || canvas.height < 300) return false;
+          const pixels = new Uint8Array(canvas.width * canvas.height * 4);
+          gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+          let lit = 0;
+          for (let i = 0; i < pixels.length; i += 4)
+            if (pixels[i] > 45 || pixels[i + 1] > 55 || pixels[i + 2] > 75) lit++;
+          return lit > 1000;
+        }""",
+        timeout=60_000,
+    )
     # Camera videos are evidence, so an empty fallback is a failure.
     page.wait_for_function(
         """() => [...document.querySelectorAll('video')].every(v => v.readyState >= 2 && !v.classList.contains('hide'))""",
@@ -75,7 +89,7 @@ def check_viewport(page, width: int, height: int, screenshot: Path | None) -> di
               const pixels = new Uint8Array(canvas.width * canvas.height * 4);
               gl.readPixels(0, 0, canvas.width, canvas.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
               for (let i = 0; i < pixels.length; i += 4) {
-                if (pixels[i] !== 20 || pixels[i+1] !== 38 || pixels[i+2] !== 60) nonBackground++;
+                if (pixels[i] > 45 || pixels[i+1] > 55 || pixels[i+2] > 75) nonBackground++;
               }
             }
           }

@@ -141,11 +141,12 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
                 random.Random(int(seed) * 9176 + i * 131 + int(x * 1000) + int(y * 1000)).shuffle(yaws)
                 hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
                 for yaw_base in yaws:
-                    yaw = nearest_symmetric_yaw(
-                        float(yaw_base) + random.Random(int(seed) * 9176 + i * 131 + int(x * 1000) + int(y * 1000) + 17).uniform(-0.12, 0.12),
-                        size,
-                        reference=0.0,
-                    )
+                    # Emit equivalent symmetry branches of a measured yaw:
+                    # 2x2 repeats every 90 degrees and 2x4 every 180.
+                    # Physics calibration is compared modulo that period.
+                    period = math.pi / 2.0 if size == "2x2" else math.pi
+                    branch_rng = random.Random(int(seed) * 9176 + i * 131 + int(x * 1000) + int(y * 1000) + 17)
+                    yaw = float(yaw_base) + branch_rng.randrange(4 if size == "2x2" else 2) * period
                     cy, sy = math.cos(yaw), math.sin(yaw)
                     bx, by = abs(hx * cy) + abs(hy * sy), abs(hx * sy) + abs(hy * cy)
                     rect = (x - bx, y - by, x + bx, y + by)

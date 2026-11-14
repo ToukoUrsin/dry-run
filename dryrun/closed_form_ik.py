@@ -49,9 +49,18 @@ class IKError(ValueError):
 
 @dataclass(frozen=True)
 class IKResult:
+    """One finite, analytic IK solution.
+
+    ``q`` is in the actuator order used by the SO-101 XML (pan, lift, elbow,
+    wrist-flex, wrist-roll).  ``approach_pitch`` is the sum of the three
+    planar pitch joints.  It is zero for the calibrated straight-down pose.
+    """
+
     q: np.ndarray
     position: np.ndarray
     error: float
+    approach_pitch: float = 0.0
+    jaw_yaw: float | None = None
 
 
 def _ry(angle: float, v: np.ndarray) -> np.ndarray:
@@ -81,6 +90,140 @@ def forward_position(q: Iterable[float]) -> np.ndarray:
     c, s = math.cos(q0), math.sin(q0)
     x, y = local[0] * c + local[1] * s, -local[0] * s + local[1] * c
     return SHOULDER + np.asarray((x, y, local[2]))
+
+
+def jaw_vector(q: Iterable[float]) -> np.ndarray:
+    """Return the fixed-pad to moving-pad vector analytically.
+
+    The vector is useful for selecting an equivalent wrist-roll branch for a
+    symmetric brick.  It is derived from the two pad centres in the XML and
+    has the same radial-frame convention as :func:`forward_position`.
+    """
+
+    q = np.asarray(tuple(q), dtype=float)
+    if q.shape != (5,):
+        raise ValueError("q must contain shoulder_pan through wrist_roll")
+    q0, q1, q2, q3, q4 = q
+    # At the zero pose the pad-centre difference in the gripper frame is the
+    # following calibrated vector.  q1+q2+q3 rotates about the tangential axis;
+    # wrist roll rotates its y/z components about the radial x axis.
+    base = np.asarray((0.0258, 0.00117963, 0.00866767), dtype=float)
+    local = _ry(q1 + q2 + q3, _rx_minus(q4, base))
+    c, s = math.cos(q0), math.sin(q0)
+    return np.asarray((local[0] * c + local[1] * s,
+                       -local[0] * s + local[1] * c,
+                       local[2]), dtype=float)
+
+
+def _jaw_yaw(q: np.ndarray) -> float:
+    v = jaw_vector(q)
+    return math.atan2(float(v[1]), float(v[0]))
+
+
+def _planar_solution(radial: float, z: float, approach_pitch: float,
+                     wrist_roll: float, elbow: int) -> tuple[float, float, float]:
+    """Solve q1, q2 and q3 after pan and wrist roll are separated out."""
+
+    v4 = _rx_minus(wrist_roll, SITE_FROM_GRIPPER)
+    wrist = L3 + v4
+    # The wrist-flex axis is the point obtained by backing off the target by
+    # the calibrated wrist offset at the requested approach pitch.
+    off = _ry(approach_pitch, wrist)
+    p = np.asarray((radial - A_FROM_SHOULDER[0] - off[0],
+                    z - SHOULDER[2] - A_FROM_SHOULDER[2] - off[2]))
+    l1 = float(np.hypot(L1[0], L1[2]))
+    l2 = float(np.hypot(L2[0], L2[2]))
+    dist = float(np.hypot(p[0], p[1]))
+    cos_eta = (dist * dist - l1 * l1 - l2 * l2) / (2.0 * l1 * l2)
+    if cos_eta < -1.0 - 1e-10 or cos_eta > 1.0 + 1e-10:
+        raise IKError("target is outside the two-link position workspace")
+    eta = int(elbow) * math.acos(float(np.clip(cos_eta, -1.0, 1.0)))
+    psi = math.atan2(float(p[1]), float(p[0]))
+    alpha1 = psi - math.atan2(l2 * math.sin(eta), l1 + l2 * math.cos(eta))
+    phi1 = math.atan2(float(L1[2]), float(L1[0]))
+    phi2 = math.atan2(float(L2[2]), float(L2[0]))
+    q1 = _normalise_angle(phi1 - alpha1)
+    q12 = _normalise_angle(phi2 - (alpha1 + eta))
+    q2 = _normalise_angle(q12 - q1)
+    q3 = _normalise_angle(approach_pitch - q1 - q2)
+    return q1, q2, q3
+
+
+def ik_pose(
+    target: Iterable[float],
+    *,
+    approach_pitch: float = 0.0,
+    wrist_roll: float = 0.0,
+    elbow: int | None = None,
+    radial_sign: int | None = None,
+    enforce_limits: bool = True,
+) -> IKResult:
+    """Solve a target point and planar approach pitch without iteration.
+
+    The pan angle is obtained from ``atan2`` after removing the fixed
+    tangential offset.  The wrist-flex point is then found by backing off the
+    target along the requested pitch, and the shoulder/elbow pair is the
+    ordinary two-link cosine-law solution.  ``elbow`` and ``radial_sign`` can
+    be left unset to enumerate both analytic branches and select the one with
+    the smallest joint displacement.
+    """
+
+    target = np.asarray(tuple(target), dtype=float)
+    if target.shape != (3,) or not np.all(np.isfinite(target)):
+        raise ValueError("target must be three finite coordinates")
+    if not np.isfinite(approach_pitch) or not np.isfinite(wrist_roll):
+        raise ValueError("approach_pitch and wrist_roll must be finite")
+    elbows = (int(elbow),) if elbow in (-1, 1) else (1, -1)
+    radials = (int(radial_sign),) if radial_sign in (-1, 1) else (1, -1)
+    h = target[:2] - SHOULDER[:2]
+    v4 = _rx_minus(wrist_roll, SITE_FROM_GRIPPER)
+    tangent = float(A_FROM_SHOULDER[1] + L3[1] + v4[1])
+    radius_sq = float(np.dot(h, h))
+    radial_sq = radius_sq - tangent * tangent
+    if radial_sq < -1e-10:
+        raise IKError("target horizontal radius is smaller than the fixed tangential offset")
+    h_angle = math.atan2(float(h[1]), float(h[0]))
+    candidates: list[IKResult] = []
+    for rs in radials:
+        radial = int(rs) * math.sqrt(max(0.0, radial_sq))
+        q0 = _normalise_angle(math.atan2(tangent, radial) - h_angle)
+        for eb in elbows:
+            try:
+                q1, q2, q3 = _planar_solution(float(radial), float(target[2]),
+                                               float(approach_pitch), float(wrist_roll), eb)
+            except IKError:
+                continue
+            q = np.asarray((q0, q1, q2, q3, wrist_roll), dtype=float)
+            if enforce_limits and np.any((q < JOINT_LIMITS[:, 0] - 1e-8) | (q > JOINT_LIMITS[:, 1] + 1e-8)):
+                continue
+            position = forward_position(q)
+            candidates.append(IKResult(q=q, position=position,
+                                       error=float(np.linalg.norm(position - target)),
+                                       approach_pitch=float(approach_pitch),
+                                       jaw_yaw=_jaw_yaw(q)))
+    if not candidates:
+        raise IKError("target has no closed-form solution within joint limits")
+    return min(candidates, key=lambda x: float(np.linalg.norm(x.q)))
+
+
+def symmetry_period(size: str) -> float:
+    """Return the jaw-yaw repeat period for a Duplo footprint."""
+
+    if size == "2x2":
+        return math.pi / 2.0
+    if size == "2x4":
+        return math.pi
+    raise ValueError("size must be '2x2' or '2x4'")
+
+
+def nearest_symmetric_yaw(yaw: float, size: str, reference: float | None = None) -> float:
+    """Choose the equivalent brick yaw nearest the wrist-roll midpoint."""
+
+    period = symmetry_period(size)
+    if reference is None:
+        reference = float((JOINT_LIMITS[4, 0] + JOINT_LIMITS[4, 1]) / 2.0)
+    k = round((float(reference) - float(yaw)) / period)
+    return float(yaw + k * period)
 
 
 def _normalise_angle(a: float) -> float:
@@ -189,4 +332,8 @@ def solve_position(
     return min(candidates, key=lambda r: float(np.linalg.norm(r.q)))
 
 
-__all__ = ["IKError", "IKResult", "JOINT_LIMITS", "forward_position", "ik_position", "solve_position"]
+__all__ = [
+    "IKError", "IKResult", "JOINT_LIMITS", "forward_position", "jaw_vector",
+    "ik_pose", "ik_position", "solve_position", "symmetry_period",
+    "nearest_symmetric_yaw",
+]

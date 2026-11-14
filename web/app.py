@@ -9,6 +9,7 @@ from urllib.parse import unquote, urlparse
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "web"
 if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
+os.environ.setdefault("MUJOCO_GL", "egl")
 REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", "/bulk2/runs/dryrun/replays/seed-7c"))
 
 def commit() -> str:
@@ -125,7 +126,25 @@ class Handler(BaseHTTPRequestHandler):
             body=json.loads(self.rfile.read(int(self.headers.get("Content-Length","0"))))
             body.update({"created_at":time.time(),"status":"queued","verdict":"pending"})
             p=ROOT/"data"/"defects.jsonl"; p.parent.mkdir(exist_ok=True); p.open("a").write(json.dumps(body,separators=(",",":"))+"\n")
-            return self.send_json({"ok":True,"defect_id":f"custom-{int(time.time()*1000)}","verdict":"pending","message":"Saved. A rollout will run when the inspector worker is connected."},201)
+            result={"ok":True,"defect_id":f"custom-{int(time.time()*1000)}","verdict":"pending","message":"Saved. A rollout will run when the inspector worker is connected."}
+            # On the full local box, use the exact render-trained OpenVINO
+            # inspector. Fly remains honest when its optional model is absent.
+            drawing=body.get("drawing","")
+            if drawing.startswith("data:image"):
+                try:
+                    import base64, io
+                    import numpy as np
+                    from PIL import Image
+                    from dryrun.defects import render_drawing_frame
+                    from dryrun.inspector import Inspector
+                    raw=base64.b64decode(drawing.split(",",1)[1]); arr=np.asarray(Image.open(io.BytesIO(raw)).convert("RGBA"))
+                    frame=render_drawing_frame(arr,seed=int(body.get("seed",0)))
+                    decision=Inspector().inspect(frame); heat=Image.fromarray(decision["heatmap"])
+                    buf=io.BytesIO(); heat.save(buf,format="PNG")
+                    result.update({"verdict":decision["verdict"],"score":decision["score"],"threshold":decision["threshold"],"heatmap":"data:image/png;base64,"+base64.b64encode(buf.getvalue()).decode(),"message":"Inspector result from the rendered custom brick. The live sort is queued."})
+                except Exception as exc:
+                    result["message"]="Saved; local inspector unavailable: "+str(exc)
+            return self.send_json(result,201)
         except Exception as exc: return self.send_json({"error":f"invalid defect: {exc}"},400)
     def log_message(self,*args): pass
 

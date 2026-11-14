@@ -38,3 +38,5 @@ analyst and Astra streams must append their request/response paths and exact
 review output here when their proof runs finish. A `codex review` is required
 before the commit that includes those changes; the root session owns that
 final review because it sees all shared paths.
+
+2026-11-14 20:00 UTC — Main rollout API and tier benchmark (`gpt-6-astra`, ultra): published `dryrun.env.StationEnv` and `dryrun.rollout.run` with camera/state-only observations, exact 30 Hz substep accumulation, six-target actions, recorder cycle markers, inspector hook and the shared event vocabulary. Added fixed 80/70/50 loose/messy/pile benchmark partitioning and page replay/thumbnail contract in `docs/interfaces.md`. Smoke proof: `MUJOCO_GL=egl uv run python - <<'PY' ... StationEnv.reset/step ... PY` returned uint8 top/inspection frames and float32[6] joints; loose five-seed benchmark was 1/5 (honest open gate; marginal generated cells remain under station-owner review).

@@ -70,8 +70,12 @@ def replay_payload(seed: int) -> dict | None:
         try:
             if path.suffix==".gz":
                 import gzip
-                with gzip.open(path,"rt",encoding="utf-8") as fh: return json.load(fh)
-            rows=read_jsonl(path); return rows[-1] if rows else None
+                with gzip.open(path,"rt",encoding="utf-8") as fh: payload = json.load(fh)
+            else:
+                rows=read_jsonl(path); payload = rows[-1] if rows else None
+            if payload is not None:
+                payload.setdefault("provenance", "post-main" if payload.get("commit") else "archived pre-handoff")
+            return payload
         except Exception: continue
     return None
 
@@ -79,11 +83,12 @@ def replay_list():
     rows=[]
     for path in sorted((ROOT/"data").glob("replay-*.jsonl")):
         try:
-            obj=read_jsonl(path)[-1]; rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint"),"outcome":obj.get("outcome"),"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"recorded trace"})
+            obj=read_jsonl(path)[-1]; rows.append({"seed":obj.get("seed"),"checkpoint":obj.get("checkpoint"),"outcome":obj.get("outcome"),"events":len(obj.get("events",[])),"frames":len(obj.get("frames",[])),"source":"recorded trace","provenance":"post-main" if obj.get("commit") else "archived pre-handoff"})
         except Exception: pass
     if REPLAY_DIR.exists():
         for path in sorted(REPLAY_DIR.glob("seed-*/manifest.json")):
-            try: rows.append(json.loads(path.read_text()) | {"source":"local MuJoCo export"})
+            try:
+                obj=json.loads(path.read_text()); obj.setdefault("provenance", "post-main" if obj.get("commit") else "archived pre-handoff"); rows.append(obj | {"source":"local MuJoCo export"})
             except Exception: pass
     unique={int(r.get("seed")):r for r in rows if r.get("seed") is not None}
     return list(unique.values())

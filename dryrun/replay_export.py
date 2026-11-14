@@ -99,10 +99,12 @@ class Recorder:
         self._last_tick = -1
         self._render_count = 0
         self._renderers = {
+            "free_view": mujoco.Renderer(self.model, width, height),
             "top_view": mujoco.Renderer(self.model, width, height),
             "inspection_view": mujoco.Renderer(self.model, width, height),
         }
         self._writers = {
+            "free_view": imageio.get_writer(out / "free-view.mp4", fps=10, codec="libx264", quality=6, macro_block_size=1),
             "top_view": imageio.get_writer(out / "top-view.mp4", fps=10, codec="libx264", quality=6, macro_block_size=1),
             "inspection_view": imageio.get_writer(out / "inspection-camera.mp4", fps=10, codec="libx264", quality=6, macro_block_size=1),
         }
@@ -269,7 +271,7 @@ def export(
             "events": recorder.events,
             "inspection_present_frames": recorder.inspection_present_frames,
             "outcome": outcome,
-            "videos": {"top": "top-view.mp4", "inspection": "inspection-camera.mp4", "fps": 10, "source_pose_hz": 30, "frame_stride": 3},
+            "videos": {"free": "free-view.mp4", "top": "top-view.mp4", "inspection": "inspection-camera.mp4", "fps": 10, "source_pose_hz": 30, "frame_stride": 3},
         }
         replay = out / "replay.json.gz"
         with gzip.open(replay, "wt", encoding="utf-8", compresslevel=9) as fh:

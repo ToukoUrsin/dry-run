@@ -130,7 +130,14 @@ class Recorder:
     def events_from(self, rows: list[dict[str, Any]] | tuple[dict[str, Any], ...]) -> list[dict[str, Any]]:
         added = []
         for row in rows:
-            if not isinstance(row, dict) or "event" not in row:
+            if not isinstance(row, dict):
+                continue
+            # The public rollout recorder uses ``event`` for physics rows;
+            # mapped demo/evaluation writers use ``type`` for cycle markers.
+            # Keep both forms in the replay so no real event disappears at
+            # the export boundary.
+            event_name = row.get("event") or row.get("type")
+            if not event_name:
                 continue
             key = tuple(sorted((str(k), repr(v)) for k, v in row.items()))
             if key in self._seen_events:
@@ -138,10 +145,10 @@ class Recorder:
             self._seen_events.add(key)
             event = {
                 "t": round(float(row.get("t", self.data.time)), 4),
-                "name": str(row["event"]),
+                "name": str(event_name),
                 "frame": max(0, len(self.frames) - 1),
             }
-            event.update({k: v for k, v in row.items() if k not in {"event", "t"}})
+            event.update({k: v for k, v in row.items() if k not in {"event", "type", "t"}})
             self.events.append(event)
             added.append(event)
         return added

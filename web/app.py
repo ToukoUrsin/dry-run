@@ -167,15 +167,24 @@ class Handler(BaseHTTPRequestHandler):
             return self.send_json(obj or {"status":"unavailable","message":"That rollout is not in the recorded set."}, 200 if obj else 404)
         if path.startswith("/replays/"):
             bits=path.strip("/").split("/"); file=bits[-1]; seed=bits[-2] if len(bits)>1 else ""
-            candidate=REPLAY_DIR/seed/file
-            if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"video/mp4")
+            candidates = [REPLAY_DIR/seed/file]
+            if seed.isdigit():
+                candidates.extend(REPLAY_DIR.glob(f"seed-{seed}*/{file}"))
+            for candidate in candidates:
+                if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"video/mp4")
             return self.send_json({"status":"unavailable","message":"Camera video is available in the local replay export."},404)
         if path.startswith("/replay-video/"):
-            candidate=REPLAY_DIR/path.rsplit("/",1)[1]
-            if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"video/mp4")
+            bits=path.strip("/").split("/")
+            name=bits[-1]
+            seed_text=bits[-2] if len(bits) >= 3 else "7"
+            candidates=[]
+            if seed_text.isdigit():
+                candidates.extend(REPLAY_DIR.glob(f"seed-{seed_text}*/{name}"))
+            candidates.append(REPLAY_DIR/name)
+            for candidate in candidates:
+                if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"video/mp4")
             try:
-                seed_record = replay_payload(7)
-                name = path.rsplit("/",1)[1]
+                seed_record = replay_payload(int(seed_text)) if seed_text.isdigit() else None
                 key = "top" if name == "top-view.mp4" else "inspection"
                 encoded = (seed_record or {}).get("video_data", {}).get(key)
                 if encoded:

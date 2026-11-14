@@ -28,6 +28,27 @@ returns the RGB `uint8[128,128,3]` frame to pass to `Inspector`.
 
 Event names are `approach`, `grasp`, `lift`, `at_inspection`, `present`, `verdict`, `release`, `drop`, `in_bowl`, `dropped`, and `failed`. Failure events include a `reason`; brick events include `brick` and the event frame.
 
+## Failure analyst and sentence stations (analyst)
+
+`dryrun.nemotron` selects six to eight local frames around a failed rollout,
+including both `top` and `inspection` cameras. The request contains those
+images only; event-log labels and scene truth are used later for scoring. A
+validated response has `failure_stage`, one-sentence `cause`, a supplied
+`frame`, `scene_features`, and `next_scenes`. Each next scene has generator
+fields `tier`, `brick_count`, `spacing`, `yaw_spread`, `positions`, and
+`lighting`. Requests, raw responses, retries and final responses are saved
+under `/bulk2/runs/dryrun/m5/diagnoses/`.
+
+`dryrun.telemetry.record_diagnosis(row)` writes the validated result to
+`failure_diagnoses`; `dashboard_snapshot()` and `/api/failures` expose the
+frame paths, sentence, scene features and next-scene batch to the page. The
+row is keyed by `(rollout_id, analyst_version)` so retries do not duplicate a
+diagnosis.
+
+`dryrun.stations.generate_and_check(...)` turns each plain sentence into MJCF,
+keeps every XML and rejection reason in its JSONL record, and optionally sends
+accepted stations through the shared `dryrun.render.rollout` expert API.
+
 ## Rollout API (main, published 2026-11-14)
 
 `dryrun.env.StationEnv(seed, tier=None)` is the public MuJoCo environment. `reset()` returns an observation. `step(action)` accepts six finite joint position targets in the order shoulder pan, shoulder lift, elbow flex, wrist flex, wrist roll, gripper, advances the 2 ms simulator at the public 30 Hz boundary, and returns `(observation, reward, done, info)`. `observe()` returns exactly `{"top": uint8[H,W,3], "inspection": uint8[H,W,3], "joints": float32[6]}`. `expert_action()` may read simulator truth and returns one six-target action. `result()` returns good-bowl, wrong-bowl, dropped brick ids and cycle times.

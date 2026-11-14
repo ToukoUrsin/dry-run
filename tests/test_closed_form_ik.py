@@ -6,7 +6,7 @@ from pathlib import Path
 import mujoco
 import numpy as np
 
-from dryrun.closed_form_ik import forward_position, ik_pose, nearest_symmetric_yaw
+from dryrun.closed_form_ik import forward_pad_midpoint, forward_position, ik_pad_pose, ik_pose, nearest_symmetric_yaw
 from dryrun.mjcf_station import ROOT, station_xml
 
 
@@ -48,3 +48,23 @@ def test_closed_form_matches_mujoco_on_10000_reachable_poses(tmp_path: Path) -> 
 def test_symmetric_yaw_uses_brick_period() -> None:
     assert abs(nearest_symmetric_yaw(0.1, "2x2") - nearest_symmetric_yaw(0.1 + np.pi / 2, "2x2")) < 1e-12
     assert abs(nearest_symmetric_yaw(0.1, "2x4") - nearest_symmetric_yaw(0.1 + np.pi, "2x4")) < 1e-12
+
+
+def test_open_jaw_pad_midpoint_is_closed_form() -> None:
+    """The point driven by the contact expert also has no Newton correction."""
+
+    # This uses analytic FK for the target and checks the inverse's exact
+    # reconstruction.  The MuJoCo-backed site cross-check above covers the
+    # XML model; this test isolates the open-jaw calibration used by rollout.
+    rng = np.random.default_rng(101)
+    limits = np.asarray(
+        [(-1.8, 1.8), (-1.6, 1.6), (-1.55, 1.55), (-1.5, 1.5), (-2.5, 2.5)],
+        dtype=float,
+    )
+    max_error = 0.0
+    for _ in range(2_000):
+        q = limits[:, 0] + rng.random(5) * (limits[:, 1] - limits[:, 0])
+        target = forward_pad_midpoint(q)
+        solved = ik_pad_pose(target, approach_pitch=float(q[1] + q[2] + q[3]), wrist_roll=float(q[4]))
+        max_error = max(max_error, float(np.linalg.norm(forward_pad_midpoint(solved.q) - target)))
+    assert max_error < 1e-6, max_error

@@ -25,17 +25,21 @@ can be rerun. Open milestones are deliberately called open.
   sentence-to-station machinery and bounded local worker. Their proof is in
   `status/M5.md`; `data/codex_log.jsonl` is the page-readable build ledger.
 
+The expert is being ported from the measured external reference in
+`prompts/021-reference-expert.md`. Earlier expert rollouts are validation traces
+only; M1 does not claim a score until main's port is committed and rerun.
+
 ## Reproduce the checks
 
 Run these from the repository. Keep videos, checkpoints and other large
-outputs under `/bulk2/runs/dryrun/`; the repository keeps source and small
+outputs under `/bulk3/runs/dryrun/`; the repository keeps source and small
 text records.
 
 ```bash
 uv run python -c 'import mujoco; print(mujoco.__version__)'
 uv run python -m dryrun.mjcf_station check assets/station.xml
 uv run python -m dryrun.mjcf_station batch --seeds 32
-MUJOCO_GL=egl uv run python -m dryrun.render --seed 7 --out /bulk2/runs/dryrun/m1/seed7.mp4
+MUJOCO_GL=egl uv run python -m dryrun.render --seed 7 --out /bulk3/runs/dryrun/m1/seed7.mp4
 python -m dryrun benchmark --seeds 200
 ```
 

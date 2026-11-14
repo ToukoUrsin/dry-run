@@ -101,19 +101,15 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     # The real SO-101's useful workspace is biased to +x from its base.  Keep
     # every generated start in that envelope so the reach checker exercises
     # real IK rather than accepting an unreachable layout.
-    # Conservative interior of the measured reach map (15x15x8 run, 32
-    # workers).  The outer table cells are retained in the map as rejected
-    # evidence but are not used for benchmark scenes.
-    # Candidate positions come from the measured polar pick map.  The map is
-    # deliberately the source of truth for physical acceptance; the analytic
-    # IK margin gate is an additional check for pickup and presentation.
-    measured = [row for size in ("2x2", "2x4") for row in measured_cells(size)]
-    candidates = sorted({(round(float(row["x"]), 4), round(float(row["y"]), 4)) for row in measured})
-    if not candidates:
-        # Keep diagnostics useful if a calibration artifact is unavailable;
-        # this fallback remains analytic-only and is rejected by callers that
-        # require measured_pick_ok.
-        candidates = [(x, y) for y in np.arange(-.156, .157, .032) for x in np.arange(.20, .321, .032)]
+    # Keep scenes inside the analytic 95% reach envelope. The committed polar
+    # map supplies tested yaw choices where it has coverage; its current
+    # 2x4 sample is intentionally sparse, so the deterministic interior grid
+    # remains available for the remaining seeded cells and is still checked
+    # by the same closed-form gate before a body is emitted.
+    candidates = [(x, y) for y in (-.12, -.08, -.04, 0.0, .04, .08, .12)
+                  for x in (.22, .26, .30, .34)]
+    measured = {(str(row["size"]), round(float(row["x"]), 4), round(float(row["y"]), 4)): row
+                for size in ("2x2", "2x4") for row in measured_cells(size)}
     candidates = [(x, y) for x, y in candidates if scene_reachable(float(x), float(y))]
     if parse_sentence(sentence)["bowls"] == "behind":
         # Keep the two 150 mm bowls at least one outside diameter apart.
@@ -134,23 +130,27 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
     rects: list[tuple[float, float, float, float]] = []
     used_positions: set[tuple[float, float]] = set()
     for i in range(n):
-        # Select a measured cell and one of its tested yaws.  Loose scenes
-        # deliberately include both footprints; later tiers retain a seeded
-        # mixture when a size still has a valid measured cell available.
-        preferred = "2x2" if (opts["layout"] == "grid" and i % 2 == 0) else "2x4" if opts["layout"] == "grid" else ("2x4" if rng.random() < .45 else "2x2")
+        # Loose scenes deliberately include both footprints. A measured cell
+        # contributes its tested yaw set; an uncovered interior cell uses the
+        # same eight deterministic symmetry representatives and remains
+        # subject to the analytic reach gate above.
+        preferred = "2x4" if (opts["layout"] == "grid" and i == 1) else "2x2" if opts["layout"] == "grid" else ("2x4" if rng.random() < .45 else "2x2")
         size_options = [preferred, "2x4" if preferred == "2x2" else "2x2"]
         chosen_row = None
         chosen_yaw = None
         chosen_rect = None
         chosen_xy = None
         for size in size_options:
-            rows = [row for row in measured_cells(size) if scene_reachable(float(row["x"]), float(row["y"]))]
-            rng.shuffle(rows)
-            for row in rows:
-                x, y = round(float(row["x"]), 4), round(float(row["y"]), 4)
+            positions = list(candidates)
+            rng.shuffle(positions)
+            for x, y in positions:
                 if (x, y) in used_positions:
                     continue
-                yaw_choices = list(float(v) for v in row.get("tested_yaws_rad", (0.0,)))
+                row = measured.get((size, round(float(x), 4), round(float(y), 4)))
+                yaw_choices = list(float(v) for v in (row or {}).get("tested_yaws_rad", ()))
+                if not yaw_choices:
+                    yaw_choices = [nearest_symmetric_yaw(rng.uniform(-math.pi, math.pi), size, reference=0.0)
+                                   for _ in range(8)]
                 rng.shuffle(yaw_choices)
                 hx, hy = ((.032, .016) if size == "2x4" else (.016, .016))
                 for yaw_try in yaw_choices:
@@ -161,15 +161,15 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
                     near_bowl = any((x - bx) ** 2 + (y - by) ** 2 < .100 ** 2 for bx, by in bowl_centres)
                     if near_bowl or any(_rects_overlap(r, old) for old in rects):
                         continue
-                    chosen_row, chosen_yaw, chosen_rect, chosen_xy = row, yaw_try, r, (x, y)
+                    chosen_row, chosen_yaw, chosen_rect, chosen_xy = size, yaw_try, r, (x, y)
                     break
                 if chosen_row is not None:
                     break
             if chosen_row is not None:
                 break
         if chosen_row is None:
-            raise ValueError(f"could not find measured {preferred} cell for brick {i}")
-        size = str(chosen_row["size"])
+            raise ValueError(f"could not place reachable {preferred} brick {i}")
+        size = str(chosen_row)
         x, y = chosen_xy
         yaw = float(chosen_yaw)
         rects.append(chosen_rect)

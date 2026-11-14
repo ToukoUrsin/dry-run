@@ -202,6 +202,15 @@ def _brick(spec: BrickSpec) -> str:
                 bits.append(f'<geom name="brick_{spec.index}_stud_{stud_i}" type="cylinder" size="{rad:.4f} {hh:.4f}" pos="{xx:.4f} {yy:.4f} {BRICK_H/2 + STUD_H/2:.5f}" material="brick_{spec.color}" friction="1.2 0.2 0.05"/>')
             stud_i += 1
     top = BRICK_H / 2 + STUD_H + .0002
+    # Stud defects are judged from this top-face shot. Add a visible dark
+    # cavity/chip mark at the altered stud so a person and a camera can see
+    # the defect; the collision geometry above still models the physical
+    # missing/reduced stud.
+    if spec.defect in {"missing_stud", "chipped_stud"}:
+        mx, my = xvals[-1], yvals[-1]
+        radius = .006 if spec.defect == "missing_stud" else .0045
+        depth = .00035 if spec.defect == "missing_stud" else .00025
+        bits.append(f'<geom name="brick_{spec.index}_{spec.defect}_mark" type="cylinder" size="{radius:.4f} {depth:.4f}" pos="{mx:.4f} {my:.4f} {top:.5f}" material="defect_black" contype="0" conaffinity="0"/>')
     if spec.defect == "sticker":
         bits.append(f'<geom name="brick_{spec.index}_sticker" type="cylinder" size="0.010 0.0005" pos="0 0 {top:.5f}" material="sticker" contype="0" conaffinity="0"/>')
     elif spec.defect == "dot":

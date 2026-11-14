@@ -9,10 +9,11 @@
 3. Copy the photographs to the box and run the inspector on each one:
 
    ```bash
-   uv run python -m dryrun.inspect_photo PHOTO.jpg --out PHOTO.result.json
+   # X Y W H is the tight crop around the visible studded top face.
+   uv run python -m dryrun.inspect_photo PHOTO.jpg --crop X Y W H --out PHOTO.result.json
    ```
 
-Replace `PHOTO.jpg` with the actual copied filename. The command writes the
+Replace `PHOTO.jpg` with the actual copied filename and replace `X Y W H` with the crop rectangle in source pixels. Crop tightly around the visible studded top face, keeping the whole brick and no arm or bowl. The command writes the
 JSON result and a sibling `PHOTO.result_heatmap.png`; it can be repeated once
 per photo, including photos in a new output directory.
 

@@ -39,6 +39,14 @@ review output here when their proof runs finish. A `codex review` is required
 before the commit that includes those changes; the root session owns that
 final review because it sees all shared paths.
 
-2026-11-14 20:00 UTC — Main rollout API and tier benchmark (`gpt-6-astra`, ultra): published `dryrun.env.StationEnv` and `dryrun.rollout.run` with camera/state-only observations, exact 30 Hz substep accumulation, six-target actions, recorder cycle markers, inspector hook and the shared event vocabulary. Added fixed 80/70/50 loose/messy/pile benchmark partitioning and page replay/thumbnail contract in `docs/interfaces.md`. Smoke proof: `MUJOCO_GL=egl uv run python - <<'PY' ... StationEnv.reset/step ... PY` returned uint8 top/inspection frames and float32[6] joints; loose five-seed benchmark was 1/5 (honest open gate; marginal generated cells remain under station-owner review).
+2026-11-14 20:00 UTC — Main rollout API and tier benchmark (`gpt-6-astra`, ultra): published `dryrun.env.StationEnv` and `dryrun.rollout.run` with camera/state-only observations, exact 30 Hz substep accumulation, six-target actions, recorder cycle markers, inspector hook and the shared event vocabulary. Added fixed 80/70/50 loose/messy/pile benchmark partitioning and page replay/thumbnail contract in `docs/interfaces.md`. Smoke proof: `MUJOCO_GL=egl uv run python - <<'PY' ... StationEnv.reset/step ... PY` returned uint8 top/inspection frames and float32[6] joints. The loose benchmark number was withheld: the seeded multi-brick generator and closed-form reach gate were still being replaced, so no score from that run is evidence.
 
 2026-11-14 19:51 UTC — M5/Soren integration (`/root`): ran `codex review --uncommitted` before integration; Codex could not inspect because its MCP runner requested approval under `approval=never`. Manual gates `git diff --check` and `.venv/bin/python -m compileall -q dryrun web modal modal_live_defect.py` passed. Added camera-only diagnosis storage, equal curriculum hook, 36-sentence station gallery, bounded station queue/worker heartbeat, and `data/codex_log.jsonl`; proof is in `status/M5.md`.
+
+## Codex review — 2026-11-14
+
+Command: `codex review --uncommitted` (run from `/home/ubuntu/junction/dryrun`).
+The review process started but could not inspect the repository: its command runner
+failed on a sandbox mount before repository commands ran. It also logged that
+Chrome DevTools required approval while the project approval policy was `never`.
+No review findings were produced; this is not a clean review result.

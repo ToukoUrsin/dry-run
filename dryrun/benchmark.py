@@ -27,7 +27,7 @@ def run(seeds=None, workdir=Path("/bulk3/runs/dryrun/benchmark"), inspector=None
     started = time.perf_counter(); workdir.mkdir(parents=True, exist_ok=True)
     if seeds is None: seeds = range(200)
     seeds = list(seeds)
-    groups = {tier: seeds} if tier else ({"loose": seeds[:80], "messy": seeds[80:150], "pile": seeds[150:200]} if len(seeds) == 200 else {"loose": seeds})
+    groups = {tier: seeds[:TIER_COUNTS[tier]]} if tier else ({"loose": seeds[:80], "messy": seeds[80:150], "pile": seeds[150:200]} if len(seeds) == 200 else {"loose": seeds})
     rows = [_one(seed, name, workdir, inspector=inspector) for name, values in groups.items() for seed in values]
     tiers = {name: summarize([r for r in rows if r["tier"] == name]) for name in groups}
     total = summarize(rows)

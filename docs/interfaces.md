@@ -22,6 +22,15 @@ accepts a PNG path or an `H x W x 3/4` NumPy drawing (RGBA alpha is preserved),
 places it on the visible face of a seeded brick at the inspection point, and
 returns the RGB `uint8[128,128,3]` frame to pass to `Inspector`.
 
+The page can render the measured inspector artifacts directly from
+`/bulk2/runs/dryrun/m2/evaluation.json` (confusion, per-defect recall, held-out
+types, OpenVINO version and one/four-thread latency) and
+`/bulk3/runs/dryrun/m2/contact_sheet_real_station.png`. A present event carries
+the scalar `score`, selected `threshold` and the heat-map array; callers that
+persist it should write a PNG beside the replay and retain its path in the
+event row. The pure `render_drawing_frame` function is the payload boundary for
+an on-demand worker or Modal endpoint.
+
 ## Replay export format
 
 `uv run python -m dryrun.replay_export --seed N --out DIR` writes a compressed `replay.json.gz` plus MuJoCo camera videos. The JSON contains `scene.bodies` (parent, primitive or mesh geoms, sizes, and RGBA), `scene.cameras`, `scene.meshes`, 30 Hz `frames`, `events`, and `outcome`. A frame pose is `[x, y, z, qw, qx, qy, qz]`; positions use `1e-4 m` quantisation and quaternion components use signed int16 scale (`32767`). The pose clock in `frame.t` is authoritative. Videos carry `fps=10`, `source_pose_hz=30`, and `frame_stride=3` because each camera frame is rendered from every third pose.
@@ -60,3 +69,20 @@ accepted stations through the shared `dryrun.render.rollout` expert API.
 The benchmark and replay exporter call `dryrun.telemetry.record_rollout(samples, events, outcome, seed=seed, checkpoint="expert")`. Samples are 30 Hz rows with `ts`, six joint values and `gripper`; events and the final outcome are written with the same rollout ID. The writer targets the local `DRYRUN_DB_URL` container during runs.
 
 `uv run python -m dryrun.telemetry sync` copies completed local rollout IDs to the Tiger Cloud URL held in `DRYRUN_TIGER_DB_URL`. It skips IDs already present, so repeating it is safe. `remote-stats` reads Tiger's hypertable catalog, compression stats, aggregate counts, and query time. The dashboard reads `rollout_1s` and `benchmark_checkpoint`, and displays the raw row count, compression ratio, aggregate query time, and last rollout timestamp as database health metadata.
+
+## Page session request from Soren review
+
+Main provides `benchmark.py --export-replays DIR` rows for every held-out seed and controller. Each replay row is JSONL with `controller`, `seed`, `tier`, brick count, correct count, event rows, and scene values from `BrickSpec` (size, x, y, defect, color); the directory contains a top-camera thumbnail per row. Replay files and thumbnails live outside the database under the run directory or Fly volume. The page displays the commit that produced each row and marks missing live workers honestly.
+## Policy records and analyst scene batches
+
+`data/policy_scores.jsonl` contains one row per `(controller, checkpoint,
+tier, seed)` with `controller`, `checkpoint`, `seed`, `tier`, `bricks`,
+`correct`, `score`, `events`, and `commit`. The page uses these rows for
+checkpoint curves and scene cards. Featured replay binaries stay under
+`/bulk2/runs/dryrun/<run>/` and are keyed by the same seed/checkpoint pair.
+
+Analyst scene batches are JSONL objects of the form
+`{"seed": 123, "tier": "messy", "sentence": "...", "source": "nemotron"}`.
+`source` is `nemotron` or `random`; unknown keys are rejected. Nemotron and
+equal-size random batches are trained from the same starting checkpoint and
+scored on the fixed held-out set.

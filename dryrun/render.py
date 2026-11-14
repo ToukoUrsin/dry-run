@@ -10,17 +10,17 @@ import numpy as np
 import mujoco
 import imageio.v2 as imageio
 from .mjcf_station import station_xml, ROOT, layout_bricks
+from .grasp_test import ARM_NAMES, ids, solve_restarted, pad_force, safe_state
 
 
 def ik(model, data, target, q):
+    """Compatibility wrapper for callers that use the site-based solver."""
     sid = model.site("gripperframe").id; q = np.array(q, dtype=float).copy()
     for _ in range(180):
-        data.qpos[:6] = q; mujoco.mj_forward(model, data)
-        err = np.asarray(target) - data.site_xpos[sid]
-        if np.linalg.norm(err) < .002: break
-        J = np.zeros((3, model.nv)); mujoco.mj_jacSite(model, data, J, None, sid); J = J[:, :6]
-        q += .45 * J.T @ np.linalg.solve(J @ J.T + .002*np.eye(3), err)
-        q = np.clip(q, model.jnt_range[:6,0], model.jnt_range[:6,1])
+        data.qpos[:6] = q; mujoco.mj_forward(model, data); err=np.asarray(target)-data.site_xpos[sid]
+        if np.linalg.norm(err)<.002: break
+        J=np.zeros((3,model.nv));mujoco.mj_jacSite(model,data,J,None,sid);J=J[:,:6]
+        q += .45*J.T@np.linalg.solve(J@J.T+.002*np.eye(3),err);q=np.clip(q,model.jnt_range[:6,0],model.jnt_range[:6,1])
     return q
 
 
@@ -35,30 +35,140 @@ def contact_with_arm(model, data, body_id):
     return False
 
 
+_ACTIVE_RECORD = None
+_ACTIVE_RECORDERS = None
+_ACTIVE_TICK = 0
+_ACTIVE_VERDICT = 0
+
+
+def _record_frame(model, data, action):
+    """Sample camera pixels and joints at the public 30 Hz boundary."""
+    global _ACTIVE_TICK
+    if _ACTIVE_RECORD is None or _ACTIVE_RECORDERS is None:
+        return
+    _ACTIVE_TICK += 1
+    if _ACTIVE_TICK % 17:
+        return
+    obs = {}
+    for cam, renderer in _ACTIVE_RECORDERS.items():
+        renderer.update_scene(data, cam)
+        obs[cam.replace("_view", "")] = renderer.render().copy()
+    payload = {
+        "t": float(data.time),
+        "observation": {
+            "top": obs.get("top", np.zeros((64, 64, 3), np.uint8)),
+            "inspection": obs.get("inspection", np.zeros((64, 64, 3), np.uint8)),
+            "joints": np.asarray(data.qpos[:6], dtype=np.float32).copy(),
+        },
+        "action": np.asarray(action, dtype=np.float32).copy(),
+        "verdict": int(_ACTIVE_VERDICT),
+        "events": [],
+    }
+    if callable(_ACTIVE_RECORD):
+        _ACTIVE_RECORD(payload)
+    elif hasattr(_ACTIVE_RECORD, "record"):
+        _ACTIVE_RECORD.record(payload)
+
+
 def _drive(model, data, q, grip, steps, writer):
     for step in range(steps):
-        data.ctrl[:6]=q; data.ctrl[5]=grip; mujoco.mj_step(model,data)
+        controls = {n: float(v) for n, v in zip(ARM_NAMES, q)} | {"gripper": float(grip)}
+        for a in range(model.nu):
+            n=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_ACTUATOR,a)
+            if n in controls: data.ctrl[a]=controls[n]
+        mujoco.mj_step(model,data)
+        _record_frame(model, data, np.r_[np.asarray(q, dtype=np.float32), float(grip)])
         if writer and step % 60 == 0:
-            for cam,r in writer.items(): r.update_scene(data,cam); _VIDEO.append_data(r.render())
+            for cam,r in writer.items():
+                r.update_scene(data,cam)
+                if "_VIDEO" in globals(): _VIDEO.append_data(r.render())
 
-def rollout(model, data, seed, writer=None, specs=None):
+
+def rollout(model, data, seed, writer=None, specs=None, inspector=None, record=None):
+    """Run a contact-only expert, replanning from the live state per brick."""
+    global _ACTIVE_RECORD, _ACTIVE_RECORDERS, _ACTIVE_TICK, _ACTIVE_VERDICT
     brick_ids=[i for i in range(model.nbody) if (mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,i) or '').startswith('brick_')]
-    bowls={n:model.body(n).id for n in ('good_bowl','defective_bowl')}; q=np.zeros(6); events=[]; successes=0
-    for body in brick_ids:
-        name=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,body); adr=model.jnt_qposadr[model.body_jntadr[body]]
-        start=data.qpos[adr:adr+3].copy(); q=ik(model,data,[float(start[0])+.06,float(start[1]),.055],q)
-        _drive(model,data,q,1.7,180,writer)
-        _drive(model,data,q,-.17,180,writer)
-        picked=bool(data.xpos[body,2]>.035 and contact_with_arm(model,data,body))
-        # The demonstrator knows the seeded label; this is the only privileged branch.
-        spec = specs[int(name.split('_')[1])] if specs is not None else None
-        target=np.array([.35,-.30 if spec is None or spec.defect == 'none' else .30,.22]); q=ik(model,data,target,q)
-        _drive(model,data,q,-.17,240,writer)
-        _drive(model,data,q,1.7,120,writer)
-        final=data.xpos[body].copy(); in_bowl=bool(np.linalg.norm(final[:2]-target[:2])<.14 and final[2]<.10); ok=picked and in_bowl; successes+=int(ok)
-        events.append({'brick':name,'defect':(spec.defect if spec is not None else 'unknown'),'picked_by_contact':picked,'final_xyz':[round(float(v),4) for v in final],'in_bowl':in_bowl,'success':ok})
-        if writer:
-            for cam,r in writer.items(): r.update_scene(data,cam); _VIDEO.append_data(r.render())
+    old_record, old_recorders, old_tick, old_verdict = _ACTIVE_RECORD, _ACTIVE_RECORDERS, _ACTIVE_TICK, _ACTIVE_VERDICT
+    _ACTIVE_RECORD, _ACTIVE_TICK, _ACTIVE_VERDICT = record, 0, 0
+    if record is not None:
+        _ACTIVE_RECORDERS = {
+            "top_view": mujoco.Renderer(model, 64, 64),
+            "inspection_view": mujoco.Renderer(model, 64, 64),
+        }
+    arm=ids(model); events=[]; successes=0; gopen=1.7
+    inspection_renderer = mujoco.Renderer(model, 128, 128) if inspector is not None and writer is None else None
+    remaining=set(brick_ids)
+    while remaining:
+        body=min(remaining,key=lambda b: float(np.linalg.norm(data.xpos[b,:2])))
+        remaining.remove(body)
+        name=mujoco.mj_id2name(model,mujoco.mjtObj.mjOBJ_BODY,body); idx=int(name.split('_')[1])
+        spec=specs[idx] if specs is not None and idx < len(specs) else None; start_z=float(data.xpos[body,2]); best=None
+        if record is not None:
+            event = {"type": "cycle_start", "brick": name, "t": float(data.time)}
+            if callable(record): record(event)
+            elif hasattr(record, "cycle_start"): record.cycle_start(name)
+        for attempt in range(6):
+            start=data.xpos[body].copy(); q,ea,oka=solve_restarted(model,data,[float(start[0]),float(start[1]),.075],arm,gopen)
+            if not oka: best={'failed_stage':'approach_ik','ik_error_m':ea}; continue
+            _drive(model,data,q,gopen,500,writer)
+            if not safe_state(model,data,body): best={'failed_stage':'approach_unstable'}; continue
+            xy=data.xpos[body,:2].copy(); q,ep,okp=solve_restarted(model,data,[float(xy[0]),float(xy[1]),.034],arm,gopen,tol=.0025)
+            if not okp: best={'failed_stage':'lower_approach_ik','ik_error_m':ep}; continue
+            _drive(model,data,q,gopen,650,writer)
+            touched=set(); peak=0.; close_g=gopen
+            for step in range(700):
+                g=gopen+(1.-gopen)*min(1.,step/500.)
+                _drive(model,data,q,g,1,None); f,t=pad_force(model,data); peak=max(peak,f); touched |= t
+                if not safe_state(model,data,body): break
+                if len(t)==2 and f>.5: close_g=g; break
+            if len(touched)<2 or not safe_state(model,data,body): best={'failed_stage':'contact','pad_contacts':len(touched),'peak_pad_force_N':peak}; continue
+            close_g=min(close_g,.75)
+            for _ in range(120):
+                _drive(model,data,q,close_g,1,None); f,t=pad_force(model,data); peak=max(peak,f); touched |= t
+            picked=bool(len(touched)==2 and data.xpos[body,2]>start_z+.005)
+            if not picked: best={'failed_stage':'lift_contact','pad_contacts':len(touched),'peak_pad_force_N':peak}; continue
+            inspect=np.array([.28,0.,.16]); qi,ei,oki=solve_restarted(model,data,inspect,arm,close_g)
+            if not oki: best={'failed_stage':'inspection_ik','ik_error_m':ei}; continue
+            for step in range(900):
+                qq=q+(qi-q)*min(1.,step/700.); _drive(model,data,qq,close_g,1,writer)
+            for _ in range(180): _drive(model,data,qi,close_g,1,writer)
+            verdict = None
+            if inspector is not None:
+                view = writer.get('inspection_view') if writer is not None else inspection_renderer
+                view.update_scene(data, 'inspection_view'); result = inspector(view.render().copy())
+                verdict = result['verdict']; events.append({'brick': name, 'event': 'verdict', 'verdict': verdict, 'score': float(result['score']), 'threshold': float(result['threshold'])})
+                _ACTIVE_VERDICT = 1 if verdict == 'good' else -1
+            is_defective = verdict == 'defective' if verdict is not None else (spec is None or spec.defect != 'none')
+            bowl=np.array([.36, .18 if is_defective else -.18, .125]); qb,eb,okb=solve_restarted(model,data,bowl,arm,close_g)
+            if not okb: best={'failed_stage':'bowl_ik','ik_error_m':eb}; continue
+            for step in range(1100):
+                qq=qi+(qb-qi)*min(1.,step/800.); _drive(model,data,qq,close_g,1,writer)
+            # Release fully and give the brick enough real physics time to
+            # settle inside the bowl before judging the drop.
+            _drive(model,data,qb,gopen,1500,writer)
+            qaway,eaway,okaway=solve_restarted(model,data,[.28,0.,.24],arm,gopen)
+            if okaway: _drive(model,data,qaway,gopen,500,writer)
+            final=data.xpos[body].copy(); in_bowl=bool(np.linalg.norm(final[:2]-bowl[:2])<.14 and final[2]<.10); ok=bool(in_bowl)
+            best={'picked_by_contact':True,'pad_contacts':len(touched),'peak_pad_force_N':peak,'final_xyz':[round(float(v),4) for v in final],'in_bowl':in_bowl,'success':ok,'attempts':attempt+1}
+            if ok:
+                successes += 1
+                break
+            best['failed_stage'] = 'drop'
+            # A missed drop is a physical failure, but the expert gets the
+            # same bounded retry opportunity as a missed grasp.
+            continue
+        if best is None: best={'failed_stage':'no_attempt'}
+        best.setdefault('picked_by_contact',False); best.setdefault('pad_contacts',0); best.setdefault('peak_pad_force_N',0.0); best.setdefault('final_xyz',[round(float(v),4) for v in data.xpos[body]]); best.setdefault('in_bowl',False); best.setdefault('success',False)
+        cycle_ok = bool(best.get("success", False))
+        events.append({'brick':name,'defect':spec.defect if spec else 'unknown',**best})
+        if record is not None:
+            event = {"type": "cycle_end", "brick": name, "success": cycle_ok, "t": float(data.time)}
+            if callable(record): record(event)
+            elif hasattr(record, "cycle_end"): record.cycle_end(cycle_ok)
+    if inspection_renderer is not None: inspection_renderer.close()
+    if _ACTIVE_RECORDERS:
+        for renderer in _ACTIVE_RECORDERS.values(): renderer.close()
+    _ACTIVE_RECORD, _ACTIVE_RECORDERS, _ACTIVE_TICK, _ACTIVE_VERDICT = old_record, old_recorders, old_tick, old_verdict
     return {'seed':seed,'bricks':len(brick_ids),'successes':successes,'score':successes/len(brick_ids) if brick_ids else 0,'events':events}
 
 

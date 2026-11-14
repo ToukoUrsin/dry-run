@@ -12,6 +12,10 @@
    uv run python -m dryrun.inspect_photo PHOTO.jpg --out PHOTO.result.json
    ```
 
+Replace `PHOTO.jpg` with the actual copied filename. The command writes the
+JSON result and a sibling `PHOTO.result_heatmap.png`; it can be repeated once
+per photo, including photos in a new output directory.
+
    Save the verdict and heat map, and note which face was visible. Turn a
    brick before relying on a verdict about a hidden face.
 4. Capture both station cameras and run one teleoperated demonstration. Record

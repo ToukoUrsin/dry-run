@@ -24,15 +24,16 @@ DEFECT_TYPES = ("scribble", "dot", "sticker", "chipped_stud", "missing_stud", "d
 SEEN_FOR_THRESHOLD = ("scribble", "dot", "sticker", "discolouring")
 HELD_OUT_TYPES = ("chipped_stud", "missing_stud")
 COLORS = ("red", "blue", "yellow", "green")
-# The expert and the synthetic renderer share this measured presentation
-# envelope.  The point is the gripper/brick target, not the brick's initial
-# table pose.  ``solve_restarted`` reaches this target on the vendored SO-101
-# model (2.7 mm residual in the station check).
-INSPECTION_PRESENT_POSE = np.array((0.28, 0.0, 0.16), dtype=np.float64)
-INSPECTION_CAMERA_POSITION = np.array((0.28, -0.10, 0.23), dtype=np.float64)
+# Prompt-020's measured presentation point is the brick centre (the TCP is
+# several centimetres above/behind it).  Keep this contract identical to the
+# station camera and to real expert ``present`` frames.
+INSPECTION_PRESENT_POSE = np.array((0.1715, -0.1009, 0.1300), dtype=np.float64)
+INSPECTION_CAMERA_POSITION = np.array((0.1194, -0.1430, 0.2296), dtype=np.float64)
+INSPECTION_CAMERA_XYAXES = np.array((0.6290, -0.7774, 0.0, 0.6449, 0.5218, 0.5584), dtype=np.float64)
 INSPECTION_CAMERA_DISTANCE_M = float(np.linalg.norm(INSPECTION_CAMERA_POSITION - INSPECTION_PRESENT_POSE))
-INSPECTION_CAMERA_FOVY_DEG = 34.0
+INSPECTION_CAMERA_FOVY_DEG = 40.0
 INSPECTION_FRAME_SIZE = 384
+INSPECTION_PRESENT_Q = np.asarray((0.5527, -1.2042, 0.8575, 1.0175, -2.3), dtype=np.float64)
 _POOLS: dict[tuple[str, str, str, int, int], tuple[mujoco.MjModel, mujoco.MjData, mujoco.Renderer, np.ndarray, np.ndarray]] = {}
 
 
@@ -50,6 +51,20 @@ def _camera_quat(camera: np.ndarray, target: np.ndarray) -> np.ndarray:
     yaxis = np.cross(-forward, xaxis)
     yaxis /= np.linalg.norm(yaxis)
     rotation = np.column_stack((xaxis, yaxis, -forward))
+    quat = np.empty(4, dtype=np.float64)
+    mujoco.mju_mat2Quat(quat, rotation.ravel())
+    return quat
+
+
+def _xyaxes_quat(xyaxes: np.ndarray) -> np.ndarray:
+    """Convert MuJoCo camera ``xyaxes`` (x and y columns) to a quaternion."""
+    axes = np.asarray(xyaxes, dtype=np.float64).reshape(2, 3)
+    xaxis, yaxis = axes
+    xaxis = xaxis / np.linalg.norm(xaxis)
+    yaxis = yaxis - xaxis * float(np.dot(xaxis, yaxis))
+    yaxis = yaxis / np.linalg.norm(yaxis)
+    zaxis = np.cross(xaxis, yaxis)
+    rotation = np.column_stack((xaxis, yaxis, zaxis))
     quat = np.empty(4, dtype=np.float64)
     mujoco.mju_mat2Quat(quat, rotation.ravel())
     return quat
@@ -81,7 +96,10 @@ def configure_inspection_camera(
     mount = model.body("inspection_camera_mount").id
     model.body_pos[mount] = camera_position
     model.cam_pos[cid] = np.zeros(3, dtype=np.float64)
-    model.cam_quat[cid] = _camera_quat(camera_position, target)
+    if target is not None and np.allclose(target, INSPECTION_PRESENT_POSE) and np.allclose(camera_position, INSPECTION_CAMERA_POSITION):
+        model.cam_quat[cid] = _xyaxes_quat(INSPECTION_CAMERA_XYAXES)
+    else:
+        model.cam_quat[cid] = _camera_quat(camera_position, target)
     model.cam_fovy[cid] = float(fovy)
     for geom_id in range(model.body_geomadr[mount], model.body_geomadr[mount] + model.body_geomnum[mount]):
         model.geom_contype[geom_id] = 0
@@ -135,11 +153,22 @@ def _hide_noninspection_geometry(
     for geom_id in range(model.ngeom):
         body_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(model.geom_bodyid[geom_id])) or ""
         geom_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id) or ""
-        keep = body_name == "table" or geom_name == "table"
+        keep = body_name == "table" or geom_name == "table" or geom_name in {"fixed_grip_pad", "moving_grip_pad"}
         if body_name.startswith("brick_") or geom_name.startswith("brick_"):
             keep = focus_name is None or body_name == focus_name
         if not keep:
             model.geom_rgba[geom_id, 3] = 0.0
+
+
+def _set_inspection_pose(model: mujoco.MjModel, data: mujoco.MjData) -> None:
+    """Place the synthetic arm at the measured Present A configuration."""
+    for name, value in zip(("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"), INSPECTION_PRESENT_Q):
+        jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
+        if jid >= 0:
+            data.qpos[model.jnt_qposadr[jid]] = float(value)
+    jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "gripper")
+    if jid >= 0:
+        data.qpos[model.jnt_qposadr[jid]] = .60
 
 
 def _replace_brick(xml: str, spec: BrickSpec) -> str:
@@ -162,8 +191,11 @@ def render_inspection(seed: int, defect: str = "none", *, size: str | None = Non
     spec = BrickSpec(0, size, float(INSPECTION_PRESENT_POSE[0]), float(INSPECTION_PRESENT_POSE[1]), defect, color)
     key = (defect, size, color, width, height)
     if key not in _POOLS:
+        # The honest loose generator intentionally requires 3--7 bricks.  A
+        # single-brick inspection shot therefore loads the smallest legal
+        # scene and hides the two non-focused bodies in the shared crop.
         xml = station_xml(0, "good and defective bowls on the sides, inspection camera in front",
-                      count=1, robot_include=str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve()))
+                      count=3, robot_include=str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve()))
         xml = _replace_brick(xml, spec)
         model = mujoco.MjModel.from_xml_string(xml)
         data = mujoco.MjData(model)
@@ -179,6 +211,7 @@ def render_inspection(seed: int, defect: str = "none", *, size: str | None = Non
                                INSPECTION_PRESENT_POSE[1] + rng.uniform(-.006, .006),
                                INSPECTION_PRESENT_POSE[2] + rng.uniform(-.006, .010)]
     data.qpos[adr + 3:adr + 7] = [math.cos(yaw / 2), 0, 0, math.sin(yaw / 2)]
+    _set_inspection_pose(model, data)
     # The camera remains at the fixed station pose.  Small key-light jitter is
     # part of the render distribution; camera jitter would make train and
     # rollout crops disagree and is intentionally omitted here.
@@ -187,7 +220,7 @@ def render_inspection(seed: int, defect: str = "none", *, size: str | None = Non
     model.light_diffuse[:] = light_base
     for li in range(model.nlight):
         model.light_diffuse[li] *= rng.uniform(.82, 1.18)
-    return render_inspection_frame(model, data, renderer)
+    return render_inspection_frame(model, data, renderer, focus_body="brick_0")
 
 
 def render_drawing_frame(drawing: str | Path | np.ndarray, seed: int = 0, *, size: str = "2x2",

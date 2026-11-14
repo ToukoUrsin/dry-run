@@ -41,6 +41,10 @@ L1 = np.asarray((0.028, 0.0, 0.11257), dtype=float)
 L2 = np.asarray((0.1349, 0.0, 0.0052), dtype=float)
 L3 = np.asarray((0.0611, 0.0181, 0.0), dtype=float)
 SITE_FROM_GRIPPER = np.asarray((0.0981274, 0.00016655369, -0.007901255384), dtype=float)
+# The pad midpoint is calibrated at the public open-jaw target (gripper
+# actuator q=1.7).  Keeping this separate from the site offset lets the exact
+# solver drive the same pad point used by the contact expert.
+PAD_FROM_GRIPPER_OPEN = np.asarray((0.02706052, -0.00058105, 0.02014697), dtype=float)
 
 
 class IKError(ValueError):
@@ -75,13 +79,13 @@ def _rx_minus(angle: float, v: np.ndarray) -> np.ndarray:
     return np.asarray((v[0], c * v[1] + s * v[2], -s * v[1] + c * v[2]))
 
 
-def forward_position(q: Iterable[float]) -> np.ndarray:
-    """Return the analytic world position of ``gripperframe`` for q0..q4."""
+def _forward_with_distal(q: Iterable[float], distal: np.ndarray) -> np.ndarray:
+    """Forward position with a calibrated vector fixed in the gripper body."""
     q = np.asarray(tuple(q), dtype=float)
     if q.shape != (5,):
         raise ValueError("q must contain shoulder_pan through wrist_roll")
     q0, q1, q2, q3, q4 = q
-    v4 = _rx_minus(q4, SITE_FROM_GRIPPER)
+    v4 = _rx_minus(q4, distal)
     theta = q1 + q2 + q3
     local = A_FROM_SHOULDER + _ry(q1, L1) + _ry(q1 + q2, L2)
     local = local + _ry(theta, L3) + _ry(theta, v4)
@@ -90,6 +94,35 @@ def forward_position(q: Iterable[float]) -> np.ndarray:
     c, s = math.cos(q0), math.sin(q0)
     x, y = local[0] * c + local[1] * s, -local[0] * s + local[1] * c
     return SHOULDER + np.asarray((x, y, local[2]))
+
+
+def forward_position(q: Iterable[float]) -> np.ndarray:
+    """Return the analytic world position of ``gripperframe`` for q0..q4."""
+
+    return _forward_with_distal(q, SITE_FROM_GRIPPER)
+
+
+def forward_pad_midpoint(q: Iterable[float], *, grip_q: float = 1.7) -> np.ndarray:
+    """Return the analytic pad midpoint at a fixed gripper opening.
+
+    The closed form uses the measured open-jaw calibration.  Other openings
+    remain available through the numeric cross-check because the moving-jaw
+    offset changes with its actuator angle.
+    """
+
+    if abs(float(grip_q) - 1.7) > 1e-12:
+        raise ValueError("forward_pad_midpoint is calibrated for grip_q=1.7")
+    q = np.asarray(tuple(q), dtype=float)
+    if q.shape != (5,):
+        raise ValueError("q must contain shoulder_pan through wrist_roll")
+    q0, q1, q2, q3, q4 = q
+    distal = _rx_minus(q4, PAD_FROM_GRIPPER_OPEN)
+    theta = q1 + q2 + q3
+    local = A_FROM_SHOULDER + _ry(q1, L1) + _ry(q1 + q2, L2) + _ry(theta, L3 + distal)
+    c, s = math.cos(q0), math.sin(q0)
+    return SHOULDER + np.asarray((local[0] * c + local[1] * s,
+                                  -local[0] * s + local[1] * c,
+                                  local[2]))
 
 
 def jaw_vector(q: Iterable[float]) -> np.ndarray:
@@ -121,10 +154,11 @@ def _jaw_yaw(q: np.ndarray) -> float:
 
 
 def _planar_solution(radial: float, z: float, approach_pitch: float,
-                     wrist_roll: float, elbow: int) -> tuple[float, float, float]:
+                     wrist_roll: float, elbow: int,
+                     distal_base: np.ndarray = SITE_FROM_GRIPPER) -> tuple[float, float, float]:
     """Solve q1, q2 and q3 after pan and wrist roll are separated out."""
 
-    v4 = _rx_minus(wrist_roll, SITE_FROM_GRIPPER)
+    v4 = _rx_minus(wrist_roll, distal_base)
     wrist = L3 + v4
     # The wrist-flex axis is the point obtained by backing off the target by
     # the calibrated wrist offset at the requested approach pitch.
@@ -157,6 +191,7 @@ def ik_pose(
     elbow: int | None = None,
     radial_sign: int | None = None,
     enforce_limits: bool = True,
+    distal_base: np.ndarray = SITE_FROM_GRIPPER,
 ) -> IKResult:
     """Solve a target point and planar approach pitch without iteration.
 
@@ -176,7 +211,7 @@ def ik_pose(
     elbows = (int(elbow),) if elbow in (-1, 1) else (1, -1)
     radials = (int(radial_sign),) if radial_sign in (-1, 1) else (1, -1)
     h = target[:2] - SHOULDER[:2]
-    v4 = _rx_minus(wrist_roll, SITE_FROM_GRIPPER)
+    v4 = _rx_minus(wrist_roll, distal_base)
     tangent = float(A_FROM_SHOULDER[1] + L3[1] + v4[1])
     radius_sq = float(np.dot(h, h))
     radial_sq = radius_sq - tangent * tangent
@@ -190,13 +225,14 @@ def ik_pose(
         for eb in elbows:
             try:
                 q1, q2, q3 = _planar_solution(float(radial), float(target[2]),
-                                               float(approach_pitch), float(wrist_roll), eb)
+                                               float(approach_pitch), float(wrist_roll), eb,
+                                               distal_base)
             except IKError:
                 continue
             q = np.asarray((q0, q1, q2, q3, wrist_roll), dtype=float)
             if enforce_limits and np.any((q < JOINT_LIMITS[:, 0] - 1e-8) | (q > JOINT_LIMITS[:, 1] + 1e-8)):
                 continue
-            position = forward_position(q)
+            position = _forward_with_distal(q, distal_base)
             candidates.append(IKResult(q=q, position=position,
                                        error=float(np.linalg.norm(position - target)),
                                        approach_pitch=float(approach_pitch),
@@ -204,6 +240,23 @@ def ik_pose(
     if not candidates:
         raise IKError("target has no closed-form solution within joint limits")
     return min(candidates, key=lambda x: float(np.linalg.norm(x.q)))
+
+
+def ik_pad_pose(
+    target: Iterable[float], *, approach_pitch: float = 0.0,
+    wrist_roll: float = 0.0, elbow: int | None = None,
+    radial_sign: int | None = None, enforce_limits: bool = True,
+) -> IKResult:
+    """Closed-form pose IK for the open-jaw pad midpoint.
+
+    This is the same solver as :func:`ik_pose`, with the distal calibration
+    measured at gripper actuator ``q=1.7``.  It is the target used by the
+    physical contact expert during approach and grasp.
+    """
+
+    return ik_pose(target, approach_pitch=approach_pitch, wrist_roll=wrist_roll,
+                   elbow=elbow, radial_sign=radial_sign,
+                   enforce_limits=enforce_limits, distal_base=PAD_FROM_GRIPPER_OPEN)
 
 
 def symmetry_period(size: str) -> float:
@@ -333,7 +386,7 @@ def solve_position(
 
 
 __all__ = [
-    "IKError", "IKResult", "JOINT_LIMITS", "forward_position", "jaw_vector",
-    "ik_pose", "ik_position", "solve_position", "symmetry_period",
+    "IKError", "IKResult", "JOINT_LIMITS", "forward_position", "forward_pad_midpoint", "jaw_vector",
+    "ik_pose", "ik_pad_pose", "ik_position", "solve_position", "symmetry_period",
     "nearest_symmetric_yaw",
 ]

@@ -13,8 +13,8 @@ def test_public_frames_become_30hz_writer_rows() -> None:
     ]
     rows = _telemetry_samples(capture, base_timestamp=100.0)
     assert rows == [
-        {"ts": 100.0, "qpos": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], "gripper": 6.0},
-        {"ts": 100.0 + 1.0 / 30.0, "qpos": [2.0, 3.0, 4.0, 5.0, 6.0, 7.0], "gripper": 7.0},
+        {"ts": 100.0, "qpos": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], "targets": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0], "gripper": 6.0, "gripper_effort": 0.0},
+        {"ts": 100.0 + 1.0 / 30.0, "qpos": [2.0, 3.0, 4.0, 5.0, 6.0, 7.0], "targets": [2.0, 3.0, 4.0, 5.0, 6.0, 7.0], "gripper": 7.0, "gripper_effort": 0.0},
     ]
 
 

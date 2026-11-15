@@ -121,6 +121,20 @@ def _read_snapshot_artifact() -> dict:
     except Exception:
         return {}
 
+def _safe_query_ms(value) -> dict:
+    """Keep persisted timing metadata out of the public feature surface."""
+    if not isinstance(value, Mapping):
+        return {}
+    safe = {}
+    for key, raw in value.items():
+        try:
+            number = float(raw)
+        except (TypeError, ValueError):
+            continue
+        if 0 <= number <= 300:
+            safe[str(key)] = round(number, 3)
+    return safe
+
 def _preview_key(diagnosis: Mapping) -> str:
     raw = f"{diagnosis.get('rollout_id', 'failure')}__{Path(str(diagnosis.get('frame', 'frame.png'))).name}"
     return re.sub(r"[^A-Za-z0-9_.-]", "_", raw)
@@ -169,8 +183,8 @@ def reach_payload() -> dict:
                 "threshold": payload.get("threshold"), "calibration": payload.get("calibration"),
                 "summary": summary, "cells": cells,
                 "stage_success": None, "message": "The artifact measures pick and 10 mm lift; stage-by-stage success is not recorded."}
-    except Exception as exc:
-        return {"status": "unavailable", "source": "none", "message": str(exc), "summary": {}, "cells": []}
+    except Exception:
+        return {"status": "unavailable", "source": "none", "message": "Reach-map artifact unavailable.", "summary": {}, "cells": []}
 
 def replay_provenance(payload: dict) -> str:
     """Classify replay evidence without treating placeholder commits as proof."""
@@ -214,7 +228,7 @@ def codex_payload() -> dict:
         "entries": entries,
         "entry_count": len(entries),
         "cast_available": CODEX_CAST.is_file(),
-        "cast_path": str(CODEX_CAST) if CODEX_CAST.is_file() else None,
+        "cast_path": CODEX_CAST.name if CODEX_CAST.is_file() else None,
         "message": "Codex log loaded." if entries else "No Codex log is connected.",
     }
 
@@ -225,8 +239,8 @@ def benchmark_tiers() -> dict:
         try:
             from dryrun.telemetry import tier_snapshot
             return tier_snapshot()
-        except Exception as exc:
-            fallback_error = str(exc)
+        except Exception:
+            fallback_error = True
         else:
             fallback_error = None
     else:
@@ -235,7 +249,7 @@ def benchmark_tiers() -> dict:
         payload = json.loads(BENCHMARK_TIERS.read_text())
         payload.setdefault("source", "artifact")
         if fallback_error:
-            payload["database_error"] = fallback_error
+            payload["database_error"] = "Tiger telemetry unavailable; showing the checked artifact."
         return payload
     except Exception:
         return {"status": "unavailable", "tiers": [], "message": "No tier benchmark artifact is connected."}
@@ -255,7 +269,7 @@ def prompt024_examples() -> dict:
                 "said": row.get("response", {}).get("diagnosis", row.get("response")),
                 "actual": row.get("ground_truth"),
             })
-        return {"status": "ok", "count": len(rows), "examples": examples, "source": str(path)}
+        return {"status": "ok", "count": len(rows), "examples": examples, "source": path.name}
     return {"status": "unavailable", "count": 0, "examples": [], "message": "Prompt 024 examples are not attached to this deployment."}
 
 def snapshot() -> dict:
@@ -263,12 +277,12 @@ def snapshot() -> dict:
         from dryrun.telemetry import dashboard_snapshot
         snap = dashboard_snapshot()
         snap["commit"] = commit(); return _merge_artifact_sections(snap)
-    except Exception as exc:
+    except Exception:
         if SNAPSHOT_ARTIFACT.exists():
             try:
-                snap=json.loads(SNAPSHOT_ARTIFACT.read_text()); snap["commit"]=commit(); snap["source"]="local snapshot"; return _merge_artifact_sections(snap)
+                snap=json.loads(SNAPSHOT_ARTIFACT.read_text()); snap["commit"]=commit(); snap["source"]="local snapshot"; snap["status"]="stale"; snap["query_ms"]=_safe_query_ms(snap.get("query_ms")); return _merge_artifact_sections(snap)
             except Exception: pass
-        return {"status":"unavailable","source":"none","reason":"No telemetry aggregate is connected yet.","error":str(exc),"commit":commit(),"checkpoints":[],"rollups":[],"diagnoses":[],"raw_rows":0,"result_rows":0,"query_ms":{}}
+        return {"status":"unavailable","source":"none","reason":"No telemetry aggregate is connected yet.","commit":commit(),"checkpoints":[],"rollups":[],"diagnoses":[],"raw_rows":0,"result_rows":0,"query_ms":{}}
 
 def replay_payload(seed: int) -> dict | None:
     candidates=[REPLAY_DIR/f"seed-{seed}"/"replay.json.gz", REPLAY_DIR/f"seed-{seed}c"/"replay.json.gz"]
@@ -369,7 +383,7 @@ def score_payload(snap):
         # Tier benchmarks are the public score source for this release. The
         # optional telemetry rollup may be absent on Fly; keep that honest
         # empty state from turning into a page-wide API error.
-        return {"status":"ok","message":"No telemetry checkpoint is connected; tier benchmark is shown above.","commit":snap.get("commit"),"checkpoints":[],"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at"),"snapshot_at":snap.get("snapshot_at"),"artifact_snapshot_at":snap.get("artifact_snapshot_at")}
+        return {"status":snap.get("status", "ok"),"message":"No telemetry checkpoint is connected; tier benchmark is shown above.","commit":snap.get("commit"),"checkpoints":[],"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":_safe_query_ms(snap.get("query_ms")),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at"),"snapshot_at":snap.get("snapshot_at"),"artifact_snapshot_at":snap.get("artifact_snapshot_at")}
     latest=dict(cps[-1])
     for key in ("bricks", "correct", "drops", "false_accepts", "false_rejects", "rollouts"):
         if latest.get(key) is not None:
@@ -381,7 +395,7 @@ def score_payload(snap):
     latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
     latest["benchmarkable"]=bool(latest.get("source_commit"))
     message = None if latest["benchmarkable"] else "Recorded result has no source commit; validation only, not a benchmark."
-    return {"status":"ok","checkpoint":latest,"commit":snap.get("commit"),"data_commit":latest.get("source_commit"),"message":message,"checkpoints":cps,"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at"),"snapshot_at":snap.get("snapshot_at"),"artifact_snapshot_at":snap.get("artifact_snapshot_at")}
+    return {"status":snap.get("status", "ok"),"checkpoint":latest,"commit":snap.get("commit"),"data_commit":latest.get("source_commit"),"message":message,"checkpoints":cps,"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":_safe_query_ms(snap.get("query_ms")),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at"),"snapshot_at":snap.get("snapshot_at"),"artifact_snapshot_at":snap.get("artifact_snapshot_at")}
 
 
 def inspector_payload() -> dict:
@@ -406,15 +420,15 @@ def inspector_payload() -> dict:
         if metrics is None:
             metrics = json.loads(path.read_text())
         metrics["status"] = "ok"
-        metrics["source"] = str(path)
+        metrics["source"] = path.name
         metrics.setdefault("schema", "dryrun.inspector.v1")
         if "score_histogram" not in metrics:
             metrics["score_histogram"] = metrics.get("score_histograms", {})
         return metrics
-    except Exception as exc:
+    except Exception:
         return {
             "schema": "dryrun.inspector.v1", "status": "unavailable",
-            "source": str(INSPECTOR_EVALUATION), "message": str(exc),
+            "source": INSPECTOR_EVALUATION.name, "message": "Inspector evaluation artifact unavailable.",
             "confusion": {}, "per_defect_recall": {}, "latency": {},
             "score_histograms": {"edges": [], "bins": [], "counts": [], "per_type": {}},
             "score_histogram": {"edges": [], "bins": [], "counts": [], "per_type": {}},
@@ -482,10 +496,14 @@ class Handler(BaseHTTPRequestHandler):
             if prompt.parent != (ROOT / "prompts").resolve() or not prompt.is_file():
                 return self.send_json({"status": "unavailable", "message": "Prompt text is not attached."}, 404)
             return self.send_bytes(prompt.read_bytes(), "text/plain; charset=utf-8")
-        if path=="/api/score": return self.send_json(score_payload(snapshot()))
+        if path=="/api/score":
+            payload = score_payload(snapshot())
+            return self.send_json(payload, 200 if payload.get("status") in {None, "ok"} else 503)
         if path=="/api/benchmark-tiers": return self.send_json(benchmark_tiers())
         if path=="/api/codex": return self.send_json(codex_payload())
-        if path=="/api/telemetry": return self.send_json(snapshot())
+        if path=="/api/telemetry":
+            payload = snapshot()
+            return self.send_json(payload, 200 if payload.get("status") == "ok" else 503)
         if path=="/api/failures": return self.send_json(snapshot().get("diagnoses", []))
         if path=="/api/prompt024": return self.send_json(prompt024_examples())
         if path=="/api/reach": return self.send_json(reach_payload())
@@ -568,7 +586,7 @@ class Handler(BaseHTTPRequestHandler):
             if candidate.is_file() and STATIC_DIR.resolve() in candidate.parents:
                 return self.send_bytes(candidate.read_bytes(), static_content_type(candidate))
             return self.send_json({"status": "unavailable", "message": "Static evidence is not attached."}, 404)
-        if path=="/favicon.svg": return self.send_bytes(b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12253d"/><path d="M8 22 16 7l8 15-8-4z" fill="#a7e34b"/></svg>',"image/svg+xml")
+        if path in ("/favicon.svg", "/favicon.ico"): return self.send_bytes(b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12253d"/><path d="M8 22 16 7l8 15-8-4z" fill="#a7e34b"/></svg>',"image/svg+xml")
         if path in ("/mujoco-station.glb", "/so101.glb"):
             for candidate in VIEWER_SCENE_CANDIDATES:
                 if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"model/gltf-binary")
@@ -589,8 +607,8 @@ class Handler(BaseHTTPRequestHandler):
                 from dryrun.telemetry import enqueue_station_request
                 request_id = enqueue_station_request(sentence)
                 return self.send_json({"ok": True, "request_id": request_id, "status": "pending", "worker": "station-worker"}, 202)
-            except Exception as exc:
-                return self.send_json({"error": f"invalid station request: {exc}"}, 400)
+            except Exception:
+                return self.send_json({"error": "invalid station request"}, 400)
         if self.path!="/api/defect": return self.send_json({"error":"not found"},404)
         try:
             body=json.loads(self.rfile.read(int(self.headers.get("Content-Length","0"))))
@@ -610,8 +628,8 @@ class Handler(BaseHTTPRequestHandler):
                     result.update(live)
                     result["message"] = "Live Modal inspector complete." + (" One-brick rollout recorded." if live.get("run_id") else " Set rollout=true to record a one-brick replay.")
                     return self.send_json(result, 201)
-                except Exception as exc:
-                    result["message"] = "Saved; live Modal worker unavailable: " + str(exc)
+                except Exception:
+                    result["message"] = "Saved; live Modal worker unavailable."
             # On the full local box, use the exact render-trained OpenVINO
             # inspector. Fly remains honest when its optional model is absent.
             drawing=body.get("drawing","")
@@ -631,10 +649,10 @@ class Handler(BaseHTTPRequestHandler):
                         from dryrun.live_defect import run_custom_defect
                         result.update(run_custom_defect(body))
                         result["message"] = "Live local inspector and one-brick MuJoCo rollout complete."
-                except Exception as exc:
-                    result["message"]="Saved; local inspector unavailable: "+str(exc)
+                except Exception:
+                    result["message"]="Saved; local inspector unavailable."
             return self.send_json(result,201)
-        except Exception as exc: return self.send_json({"error":f"invalid defect: {exc}"},400)
+        except Exception: return self.send_json({"error":"invalid defect"},400)
     def log_message(self,*args): pass
 
 if __name__=="__main__":

@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T03:14:56Z",
+  "updated_utc": "2026-11-15T03:16:21Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -565,5 +565,47 @@
       "yaw_p95_deg": 18.334729643785444
     },
     "method": "minAreaRect long axis plus size-aware brick symmetry"
+  },
+  "yaw_audit": {
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/yaw_audit_044.json",
+    "source_commit": "233cc77",
+    "matched": 883,
+    "raw_size_aware": {
+      "n": 883,
+      "median_deg": 0.18263751965842126,
+      "p95_deg": 7.956691676474663,
+      "mean_deg": 1.5927621892960986
+    },
+    "sign": {
+      "n": 883,
+      "median_deg": 20.72885949540709,
+      "p95_deg": 42.74906050452443,
+      "mean_deg": 21.40704344299019
+    },
+    "ninety_minus": {
+      "n": 883,
+      "median_deg": 26.478328157504514,
+      "p95_deg": 77.40201749116947,
+      "mean_deg": 29.530847729064988
+    },
+    "ninety_plus": {
+      "n": 883,
+      "median_deg": 0.2795375601621496,
+      "p95_deg": 89.96265440499076,
+      "mean_deg": 17.380545624570555
+    },
+    "by_size": {
+      "2x2": {
+        "n": 718,
+        "median_deg": 0.20695193177620733,
+        "p95_deg": 7.622501010975392
+      },
+      "2x4": {
+        "n": 165,
+        "median_deg": 0.09345836726445408,
+        "p95_deg": 14.821654971009146
+      }
+    },
+    "conclusion": "raw min-area-rectangle yaw is the correct transform; sign and 90-degree variants are rejected"
   }
 }

@@ -1,8 +1,8 @@
 {
   "schema": "dryrun.page.policy.v1",
-  "updated_utc": "2026-11-15T03:15:31Z",
+  "updated_utc": "2026-11-15T03:23:35Z",
   "commit": "bbf30f4",
-  "summary": "Cropped-top-view ACT training is running on 710 episodes (213,147 frames) at 224 px; at 70,000/100,000 steps it still reaches no physical stage; the 20-seed median closest approach is 29.936 mm (minimum 10.551 mm).",
+  "summary": "Cropped-top-view ACT training is running on 710 episodes (213,147 frames) at 224 px; at 80,000/100,000 steps it still reaches no physical stage; the 20-seed median closest approach is 48.962 mm after a 29.936 mm low at 70k.",
   "dataset": {
     "episodes": 767,
     "frames": 230263,
@@ -377,15 +377,15 @@
     {
       "name": "act-crop224-long-20261115-1",
       "image_size": 224,
-      "steps": 70000,
+      "steps": 80000,
       "planned_steps": 100000,
       "frames": 213147,
       "episodes": 710,
       "gpu": "A100",
-      "elapsed_seconds_at_last_checkpoint": 2929.882930537,
-      "epochs_at_last_checkpoint": 11,
+      "elapsed_seconds_at_last_checkpoint": 3370.769101576,
+      "epochs_at_last_checkpoint": 13,
       "initial_loss": null,
-      "loss_at_70000": 0.27127474546432495,
+      "loss_at_80000": 0.29735714197158813,
       "chunk_size": 60,
       "batch_size": 32,
       "data_workers": 4,
@@ -588,6 +588,31 @@
           "crop_top": true,
           "source_commit": "78a02fc89acfbcbf13898fb2b4dc9aeca1661a50",
           "manifest": "/bulk3/runs/dryrun/m4/modal-map/crop224-policy-stages/act-crop224-step70000-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-crop224-step80000-eval2600-20261115-1",
+          "checkpoint": "/runs/act-crop224-long-20261115-1/act-step-080000.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "successes": 0,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "closest_approach_mm": 48.962,
+          "min_closest_approach_mm": 26.136,
+          "max_closest_approach_mm": 70.021,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 320,
+          "crop_top": true,
+          "source_commit": "f4a1fc44ff148b734e65ea592c7266becfc6de0f",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/crop224-policy-stages/act-crop224-step80000-eval2600-20261115-1/manifest.json"
         }
       ],
       "status": "running",

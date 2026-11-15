@@ -48,6 +48,9 @@ def setup(url: str | None = None) -> None:
         conn.execute("DROP MATERIALIZED VIEW IF EXISTS rollout_1s CASCADE")
         conn.execute("DROP MATERIALIZED VIEW IF EXISTS benchmark_checkpoint CASCADE")
         conn.execute("DROP MATERIALIZED VIEW IF EXISTS benchmark_tier CASCADE")
+        conn.execute("DROP MATERIALIZED VIEW IF EXISTS benchmark_tier_stats CASCADE")
+        conn.execute("DROP MATERIALIZED VIEW IF EXISTS benchmark_failure_event CASCADE")
+        conn.execute("DROP MATERIALIZED VIEW IF EXISTS telemetry_totals CASCADE")
         result_cols = {r[0] for r in conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name='rollout_results'").fetchall()}
         for name, typ in (("tier", "TEXT NOT NULL DEFAULT 'unknown'"), ("expert_version", "TEXT NOT NULL DEFAULT 'unknown'"), ("pushes", "INTEGER NOT NULL DEFAULT 0")):
             if result_cols and name not in result_cols:
@@ -186,17 +189,30 @@ def refresh(url: str | None = None) -> None:
         # from a Fly machine, even though ordinary SELECTs resolve the views.
         for view in ("rollout_1s", "benchmark_checkpoint", "benchmark_tier"):
             conn.execute("CALL refresh_continuous_aggregate(%s, NULL, NULL)", (f"public.{view}",))
+        for view in ("benchmark_tier_stats", "benchmark_failure_event", "telemetry_totals"):
+            conn.execute(f"REFRESH MATERIALIZED VIEW public.{view}")
 
 def tier_snapshot(url: str | None = None) -> dict:
     """Return tier/version aggregates for the page from Tiger."""
     _require_db()
     with psycopg.connect(url or db_url()) as conn:
-        rows = conn.execute("""SELECT tier,expert_version,sum(bricks),sum(correct),sum(false_accepts),sum(false_rejects),sum(pushes),avg(cycle_time_s),sum(rollouts)
-                              FROM benchmark_tier GROUP BY tier,expert_version ORDER BY tier,expert_version""").fetchall()
+        rows = conn.execute("""SELECT t.tier,t.expert_version,t.bricks,t.correct,t.false_accepts,t.false_rejects,t.pushes,t.cycle_time_s,t.rollouts,
+                                     s.median_cycle_time_s,s.p90_cycle_time_s,s.pushes_per_rollout
+                              FROM benchmark_tier t
+                              LEFT JOIN benchmark_tier_stats s USING (tier,expert_version)
+                              ORDER BY t.tier,t.expert_version""").fetchall()
+        failures = conn.execute("SELECT tier,expert_version,event,failures FROM benchmark_failure_event ORDER BY tier,expert_version,event").fetchall()
+    failure_map = {}
+    for tier, version, event, count in failures:
+        failure_map.setdefault((tier, version), {})[event] = int(count)
     return {"status": "ok", "source": "timescale", "tiers": [
         {"tier": r[0], "expert_version": r[1], "bricks": int(r[2] or 0), "correct": int(r[3] or 0),
          "false_accepts": int(r[4] or 0), "false_rejects": int(r[5] or 0), "pushes": int(r[6] or 0),
          "cycle_time_s": float(r[7]) if r[7] is not None else None, "rollouts": int(r[8] or 0),
+         "median_cycle_time_s": float(r[9]) if r[9] is not None else None,
+         "p90_cycle_time_s": float(r[10]) if r[10] is not None else None,
+         "pushes_per_rollout": float(r[11]) if r[11] is not None else None,
+         "failures_by_event": failure_map.get((r[0], r[1]), {}),
          "score": (int(r[3] or 0) / int(r[2])) if r[2] else None} for r in rows]}
 
 def dashboard_snapshot(url: str | None = None) -> dict:

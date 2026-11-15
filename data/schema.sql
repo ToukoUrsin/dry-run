@@ -92,6 +92,28 @@ DO $$ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
+-- Small aggregate projections used by the Tiger tier API.  They are refreshed
+-- after the continuous aggregates and never scan the 30 Hz hypertable.
+CREATE MATERIALIZED VIEW IF NOT EXISTS benchmark_tier_stats AS
+SELECT tier, expert_version,
+       percentile_cont(0.5) WITHIN GROUP (ORDER BY cycle_time_s) AS median_cycle_time_s,
+       percentile_cont(0.9) WITHIN GROUP (ORDER BY cycle_time_s) AS p90_cycle_time_s,
+       avg(pushes::double precision) AS pushes_per_rollout,
+       count(*) AS rollouts
+FROM rollout_results
+GROUP BY tier, expert_version;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS benchmark_failure_event AS
+SELECT r.tier, r.expert_version, e.event, count(*) AS failures
+FROM rollout_events e
+JOIN rollout_results r USING (rollout_id)
+WHERE e.event IN ('miss', 'slip', 'unstable', 'ik_fail', 'push_abort')
+GROUP BY r.tier, r.expert_version, e.event;
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS telemetry_totals AS
+SELECT count(DISTINCT rollout_id) AS rollouts, COALESCE(sum(samples), 0) AS telemetry_rows
+FROM rollout_1s;
+
 -- Camera-only failure analyses are kept separately from rollout outcomes so
 -- the dashboard can show the exact frames, sentence and next-scene batch.
 CREATE TABLE IF NOT EXISTS failure_diagnoses (

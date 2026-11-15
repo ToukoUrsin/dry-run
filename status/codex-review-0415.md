@@ -141,7 +141,7 @@ High: telemetry.py:82-84 precheck is racy; schema.sql:61-77 only PK(finished_at,
 
 ## Prompt 052 decisions and handoff
 
-- Benchmark/seeds: agree with all four findings. `--max-steps` now reaches expert rollouts and is recorded; policy tier selection is explicit; duplicate and noncanonical partitions are rejected; legacy contact rows are deduplicated. Fixed in commit `2ccc9a6`.
+- Benchmark/seeds: agree with all four findings. `--max-steps` now reaches expert rollouts and is recorded; policy tier selection is explicit; duplicate and noncanonical partitions are rejected; legacy contact rows are deduplicated. Fixed in commits `2ccc9a6` and `31e2ce0`.
 - Tiger/web: agree with all listed findings. Same-rollout writes are serialized and protected by a unique rollout-id index; tier rows are reaggregated across daily buckets; `sync()` honors `DRYRUN_DB_URL`; aggregate policy failures no longer hide non-duplicate errors; stale/error responses are marked and surfaced without HTTP 200; local paths and exception text are removed from public payloads; persisted query timings are capped at 300 ms; 30 Hz rows carry a non-null status. Fixed in commit `2ccc9a6`.
 - Camera sorter: agree with the actionable findings and handed them to the camera session in `status/M2_REVIEW_HANDOFF_052.md`. No camera source was changed in this session because that session owns the sorter and its evaluation artifacts.
 - Learned policy: agree with the confirmed action/observation, chunk, resize, and active-brick findings and handed them to the policy session in `status/M4_REVIEW_HANDOFF_052.md`. No policy training-loop source was changed in this session because that session owns the policy experiments.

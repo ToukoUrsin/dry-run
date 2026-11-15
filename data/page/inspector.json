@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T02:07:56Z",
+  "updated_utc": "2026-11-15T02:14:21Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -198,31 +198,6 @@
   ],
   "modes": [
     {
-      "name": "ground_truth",
-      "source": "python -m dryrun.benchmark --seeds 40 --tier loose --workers 20 --without-inspector",
-      "commit": "64c4919",
-      "scenes": 40,
-      "bricks": 205,
-      "correct": 203,
-      "score": 0.9902,
-      "summary": "203 of 205 bricks correct (99.0%) across 40 loose scenes."
-    },
-    {
-      "name": "ground_truth_poses_plus_inspector",
-      "source": "/bulk3/runs/dryrun/m2_rebuild/inspector_e2e_loose80.json",
-      "commit": "1bcb197f04b7f8142d4c314199e4638695bf027f",
-      "tier": "loose",
-      "scenes": 80,
-      "bricks": 382,
-      "correct": 380,
-      "verdicts": 760,
-      "pushes": 0,
-      "false_accepts": 0,
-      "false_rejects": 0,
-      "score": 0.9947643979057592,
-      "summary": "380 of 382 loose bricks reached the right bowl (99.48%), with 760 present-frame inspector decisions and zero inspector errors."
-    },
-    {
       "name": "cameras_only",
       "source": "Modal camera-only stage sweep through public rollout API",
       "commit": "0cb10d1db3352bd1380ec8dbb51e204fbd33b8d1",
@@ -248,7 +223,50 @@
       "score_denominator": 97,
       "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20.json",
       "status": "complete with one explicit Modal timeout (seed 14; no stage counts invented)",
-      "summary": "2 of 97 completed loose bricks reached the right bowl; seed 14 timed out and is reported separately."
+      "summary": "2 of 97 completed loose bricks reached the right bowl; seed 14 timed out and is reported separately.",
+      "controller": "CameraExpert (camera-only; inspector verdicts at presentation)",
+      "seed_range": [
+        0,
+        19
+      ]
+    },
+    {
+      "name": "ground_truth",
+      "source": "python -m dryrun.benchmark --seeds 40 --tier loose --workers 20 --without-inspector",
+      "commit": "64c4919",
+      "scenes": 40,
+      "bricks": 205,
+      "correct": 203,
+      "score": 0.9902,
+      "summary": "203 of 205 bricks correct (99.0%) across 40 loose scenes.",
+      "controller": "MeasuredExpert with simulator poses; no inspector",
+      "seed_range": [
+        0,
+        39
+      ]
+    },
+    {
+      "name": "ground_truth_poses_plus_inspector",
+      "source": "/bulk3/runs/dryrun/m2_rebuild/inspector_e2e_loose80.json",
+      "commit": "1bcb197f04b7f8142d4c314199e4638695bf027f",
+      "tier": "loose",
+      "scenes": 80,
+      "bricks": 382,
+      "correct": 380,
+      "verdicts": 760,
+      "pushes": 0,
+      "false_accepts": 0,
+      "false_rejects": 0,
+      "score": 0.9947643979057592,
+      "summary": "380 of 382 loose bricks reached the right bowl (99.48%), with 760 present-frame inspector decisions and zero inspector errors.",
+      "controller": "Measured pushing expert through the public rollout API",
+      "inspector": "Real-frame PatchCore decides the bowl from two present frames per brick",
+      "seed_range": [
+        1000,
+        1079
+      ],
+      "inspector_decisions": 760,
+      "physical_misses": 2
     },
     {
       "name": "end_to_end_touching",
@@ -263,7 +281,15 @@
       "false_accepts": 0,
       "false_rejects": 0,
       "score": 0.9129554655870445,
-      "summary": "451 of 494 touching bricks reached the right bowl (91.30%), with 902 present-frame inspector decisions and zero inspector errors."
+      "summary": "451 of 494 touching bricks reached the right bowl (91.30%), with 902 present-frame inspector decisions and zero inspector errors.",
+      "controller": "Measured pushing expert through the public rollout API",
+      "inspector": "Real-frame PatchCore decides the bowl from two present frames per brick",
+      "seed_range": [
+        1000,
+        1069
+      ],
+      "inspector_decisions": 902,
+      "physical_misses": 43
     }
   ],
   "earlier": {

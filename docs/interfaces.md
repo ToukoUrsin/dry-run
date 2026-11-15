@@ -64,6 +64,33 @@ held-out types), `latency` keyed by OpenVINO thread count with `median_ms`,
 remains at `evaluation.json`; the page projection is emitted beside it and
 never invents a histogram when the detailed score rows are unavailable.
 
+## Camera-only expert (prompt 032)
+
+`dryrun.perception` is the camera boundary. `top_camera_calibration` reads the
+compiled `top_view` camera pose, axes and field of view; `detect_bricks` accepts
+only an RGB top-camera image plus calibration and returns a centre, yaw, size,
+colour and `ok`/`unclear` status. It uses a 960 px calibration (the live
+renderer must provide at least that resolution), corrects brick-top parallax,
+masks calibrated bowl discs, and can receive an arm mask projected from the
+six measured joints. The evaluator may join detections to `BrickSpec` for
+error measurement; `CameraExpert` never does.
+
+`dryrun.camera_expert.CameraExpert` subclasses `MeasuredExpert` but does not
+call its truth-reading constructor. Its controller input is `top`,
+`inspection`, and six joint readings. It keeps estimated detections, uses the
+measured arm kinematics and bowl calibration, and routes an absent inspector
+verdict to the defective bowl. Camera event brick ids are opaque pick tokens;
+the rollout wrapper may map them to a nearest true body for scoring logs only.
+The sorter itself does not read `data.xpos`, `data.xmat`, contacts, `env.specs`,
+or defect labels.
+
+The page-owned inspector artifact is `data/page/inspector.json`. It carries
+`updated_utc`, the measurement `commit`, a stranger-facing `summary`, model
+and training provenance, real present-frame confusion, held-out recall rows,
+`not_visible` accounting, CPU latency when measured, eight compressed examples,
+and the `modes` rows for ground-truth, ground-truth-pose plus inspector, and
+camera-only runs. The page must omit a section whose JSON file is absent.
+
 ## Replay export format
 
 `uv run python -m dryrun.replay_export --seed N --out DIR` writes a compressed `replay.json.gz` plus MuJoCo camera videos. The JSON contains `scene.bodies` (parent, primitive or mesh geoms, sizes, and RGBA), `scene.cameras`, `scene.meshes`, 30 Hz `frames`, `events`, and `outcome`. A frame pose is `[x, y, z, qw, qx, qy, qz]`; positions use `1e-4 m` quantisation and quaternion components use signed int16 scale (`32767`). The pose clock in `frame.t` is authoritative. Videos carry `fps=10`, `source_pose_hz=30`, and `frame_stride=3` because each camera frame is rendered from every third pose.

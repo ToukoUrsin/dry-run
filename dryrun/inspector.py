@@ -4,7 +4,10 @@ import json, os
 from pathlib import Path
 import cv2, numpy as np, openvino as ov
 
-DEFAULT_MODEL = Path("/bulk2/runs/dryrun/m2/model/openvino/weights/openvino/dryrun_inspector.xml")
+# The real-present-frame model is the benchmark and page default.  Keep this
+# on the /bulk3 volume because /bulk2 is a compatibility symlink and may be
+# full; Modal receives the same files at its mounted /runs path.
+DEFAULT_MODEL = Path("/bulk3/runs/dryrun/m2_rebuild/default_model/openvino/weights/openvino/dryrun_inspector.xml")
 
 class Inspector:
     """Load an OpenVINO inspector once and classify RGB frames."""

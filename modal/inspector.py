@@ -15,13 +15,17 @@ from typing import Any, Mapping
 
 import modal
 
+# Modal workers have no X11 display; MuJoCo's software renderer is required
+# before the defect renderer imports the simulator.
+os.environ.setdefault("MUJOCO_GL", "osmesa")
+
 
 app = modal.App("dryrun-inspector")
 volume = modal.Volume.from_name("dryrun-demos", create_if_missing=True)
 image = (
     modal.Image.debian_slim(python_version="3.12")
     .apt_install("libgl1-mesa-glx", "libegl1", "libgles2", "libosmesa6")
-    .pip_install("mujoco", "numpy", "opencv-python-headless", "openvino", "pillow")
+    .pip_install("mujoco", "numpy", "opencv-python-headless", "openvino", "pillow", "imageio", "imageio-ffmpeg")
     .add_local_dir("dryrun", remote_path="/root/repo/dryrun")
     .add_local_dir("assets", remote_path="/root/repo/assets")
 )
@@ -30,7 +34,7 @@ image = (
 @app.function(image=image, timeout=30, retries=1, cpu=2, volumes={"/runs": volume})
 def draw_inspector(
     payload: Mapping[str, Any],
-    model_path: str = "/runs/m2_rebuild/final_model/openvino/weights/openvino/dryrun_inspector_patchcore.xml",
+    model_path: str = "/runs/m2_rebuild/default_model/openvino/weights/openvino/dryrun_inspector.xml",
 ) -> dict[str, Any]:
     """Inspect a page drawing and return render, heat map and verdict.
 
@@ -41,6 +45,9 @@ def draw_inspector(
     """
     import sys
 
+    # The model may have been uploaded after this app object was first
+    # created; refresh the mounted volume before resolving the default path.
+    volume.reload()
     sys.path.insert(0, "/root/repo")
     from dryrun.live_defect import inspect_custom_defect, inspection_json
 
@@ -55,7 +62,7 @@ def draw_inspector(
 @app.local_entrypoint()
 def main(
     drawing: str,
-    model_path: str = "/runs/m2_rebuild/final_model/openvino/weights/openvino/dryrun_inspector_patchcore.xml",
+    model_path: str = "/runs/m2_rebuild/default_model/openvino/weights/openvino/dryrun_inspector.xml",
 ) -> None:
     response = draw_inspector.remote({"drawing": drawing}, model_path=model_path)
     print(json.dumps(response, indent=2))

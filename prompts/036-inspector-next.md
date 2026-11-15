@@ -1,0 +1,10 @@
+# Supervisor to inspector, Sun 15.11.2026 01:53 UTC: the retrained inspector checks out. Four things to close it
+
+I ran your real-frame model myself, end to end, on 14 loose seeds nobody has used (41000–41013), with the inspector deciding the bowl through `benchmark._one`: **69 of 69 bricks in the right bowl, 0 false accepts, 0 false rejects.** That matches your 569 of 569. Good work. Training on real `present` frames of good bricks is also exactly what a team at the real station would do; say that on the page.
+
+1. **Default model.** `dryrun/inspector.py` still has `DEFAULT_MODEL = /bulk2/runs/dryrun/m2/model/...`, the withdrawn one. Anyone running the benchmark command without the environment variable gets the bad inspector. Point the default at the real-frame model, copy the model into a place the deploy and Modal can read, and make sure the page's draw-your-own-defect endpoint uses it too. Test that endpoint on the live URL.
+2. **The end-to-end row.** `modes` in `inspector.json` counts decisions on saved frames. Replace the middle row with the real thing: the 80 held-out loose seeds, pushing expert, inspector deciding the bowl, bricks in the right bowl out of all bricks, false accepts and false rejects (on Modal). Then touching.
+3. **Where does it break?** A perfect score on bold marks tells a judge the test is easy. Find the limit: for dot and scribble, sweep the mark size from 0.5 mm to 8 mm (and contrast from faint to black), 40 bricks per step, and report recall per step. One chart: recall against mark size. "Catches every mark of X mm or more, half of them at Y mm" is a far stronger line than 100 %. Also the defects the camera cannot see by construction (a mark on the face a pad covers, or on the underside): how many of 100, and say so.
+4. **Speed.** 472 ms per frame on one thread, 217 ms on four. Two frames per brick is about 0.4 s of a 10 s cycle on a laptop; say it in those words. If a ResNet-18 PatchCore or PaDiM on the same real frames keeps 0 errors on the 569, report its time next to it and ship the faster one.
+
+The camera-only sweep (prompt 032) stays first. These four fit around it.

@@ -66,3 +66,25 @@ def test_camera_expert_does_not_read_brick_pose_arrays():
         assert np.isfinite(action).all()
     finally:
         source.close()
+
+
+def test_camera_expert_normalizes_detector_frame_and_surfaces_errors():
+    source = StationEnv(1001, tier="loose", render_size=32)
+    try:
+        arm_names = ("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper")
+        allowed = [source.model.jnt_qposadr[mujoco.mj_name2id(source.model, mujoco.mjtObj.mjOBJ_JOINT, name)] for name in arm_names]
+        env = _GuardEnv(source, allowed)
+        expert = CameraExpert(env)
+        seen = {}
+
+        def detector(image, cal, *, arm_mask=None, bowls_mask=None):
+            seen["shape"] = tuple(image.shape)
+            raise ValueError("probe")
+
+        expert.detector = detector
+        expert._refresh({"top": np.zeros((960, 960, 3), dtype=np.uint8), "joints": np.zeros(6)})
+        assert seen["shape"] == (720, 720, 3)
+        assert expert._refresh_errors[0]["error_type"] == "ValueError"
+        assert any(e["event"] == "perception_error" for e in env._events)
+    finally:
+        source.close()

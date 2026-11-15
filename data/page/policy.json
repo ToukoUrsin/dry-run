@@ -1,17 +1,292 @@
 {
   "schema": "dryrun.page.policy.v1",
-  "updated_utc": "2026-11-15T01:14:30Z",
-  "commit": "eba9d3e23213f991241d9c6bd0aa7cf5dedb6aaa",
-  "summary": "The first ACT run used 64-pixel images and reached no physical rollout stage on 20 held-out loose scenes at any of four checkpoints.",
+  "updated_utc": "2026-11-15T02:04:58Z",
+  "commit": "53cbe17",
+  "summary": "The 224-pixel ACT run trained for 21,588 steps on 767 episodes (230,263 frames) and reached no physical rollout stage on 400 held-out loose bricks; median closest approach was 56.38 mm.",
   "dataset": {
-    "episodes": 774,
-    "frames": 232653,
+    "episodes": 767,
+    "frames": 230263,
     "format": "LeRobot 0.7",
-    "image_size": 64,
+    "image_size": 224,
     "loads_in_lerobot": true,
-    "source": "/bulk3/runs/dryrun/m4/modal-map/demo-shards-v2/loose-200-da3b8ce-20261114-1/manifest.json"
+    "source": "/bulk3/runs/dryrun/m4/modal-map/hi224-shards/loose-200-hi224-c6d8196-20261115-1/manifest.json",
+    "mapped_bricks": 1003,
+    "successful_cycles": 771,
+    "missing_seed": 64
   },
   "runs": [
+    {
+      "name": "act-hi224-c6d8196-20261115-1",
+      "image_size": 224,
+      "steps": 21588,
+      "frames": 230263,
+      "gpu": "A100",
+      "minutes": 15.934,
+      "seconds": 956.0214687910001,
+      "epochs": 3,
+      "initial_loss": 0.9901653528213501,
+      "final_loss": 0.3285069167613983,
+      "chunk_size": 60,
+      "data_workers": 4,
+      "training_shards": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19
+      ],
+      "missing_training_seeds": [
+        64
+      ],
+      "dataset_manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-shards/loose-200-hi224-c6d8196-20261115-1/manifest.json",
+      "checkpoints": [
+        {
+          "name": "act-hi224-step2500-eval2600-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-step-002500.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 97.632,
+          "min_closest_approach_mm": 89.321,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "0cb10d1db3352bd1380ec8dbb51e204fbd33b8d1",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-policy-stages/act-hi224-step2500-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-hi224-step5000-eval2600-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-step-005000.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 110.225,
+          "min_closest_approach_mm": 101.828,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "ecb77e3cefe6816a0d4c2737bba824a40c9a983a",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-policy-stages/act-hi224-step5000-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-hi224-step7500-eval2600-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-step-007500.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 86.787,
+          "min_closest_approach_mm": 75.941,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "5a4ae849ee1963c109cab8e2f3148713f5d43779",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-policy-stages/act-hi224-step7500-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-hi224-step10000-eval2600-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-step-010000.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 87.733,
+          "min_closest_approach_mm": 76.769,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "9e4bc77d9bfb41d652e7746b45704774f1df44f0",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-policy-stages/act-hi224-step10000-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-hi224-step12500-eval2600-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-step-012500.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 60.616,
+          "min_closest_approach_mm": 47.842,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "e9c98dfa173add7f7708a2e0fb08ef6ce6926e02",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-policy-stages/act-hi224-step12500-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-hi224-step15000-eval2600-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-step-015000.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 85.031,
+          "min_closest_approach_mm": 71.688,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "40cc569649fc28be4d357759e736833c4497426c",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-policy-stages/act-hi224-step15000-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-hi224-step17500-eval2600-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-step-017500.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 83.616,
+          "min_closest_approach_mm": 69.782,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "40cc569649fc28be4d357759e736833c4497426c",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-policy-stages/act-hi224-step17500-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-hi224-step20000-eval2600-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-step-020000.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 64.243,
+          "min_closest_approach_mm": 55.12,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "40cc569649fc28be4d357759e736833c4497426c",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-policy-stages/act-hi224-step20000-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-hi224-final-eval2600-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-final.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 56.889,
+          "min_closest_approach_mm": 50.039,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "40cc569649fc28be4d357759e736833c4497426c",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-policy-stages/act-hi224-final-eval2600-20261115-1/manifest.json"
+        },
+        {
+          "name": "act-hi224-final-eval2600-seeds80-20261115-1",
+          "checkpoint": "/runs/act-hi224-c6d8196-20261115-1/act-final.pt",
+          "seeds": 80,
+          "bricks": 400,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0,
+          "closest_approach_mm": 56.38,
+          "min_closest_approach_mm": 48.179,
+          "max_steps": 2600,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "render_size": 224,
+          "source_commit": "4b6d235b87001200f76da5b0d970004f556488bc",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/hi224-final80/act-hi224-final-eval2600-seeds80-20261115-1/manifest.json"
+        }
+      ]
+    },
     {
       "name": "act-shards-three-v2-20261115-1",
       "image_size": 64,
@@ -89,10 +364,39 @@
           },
           "successes": 0
         }
-      ]
+      ],
+      "status": "baseline_64px_before",
+      "source_commit": "a74e011",
+      "evaluation_contract": {
+        "max_steps": 600,
+        "open_loop_ticks": 0,
+        "max_delta": 0.06,
+        "render_size": 64
+      }
     }
   ],
   "openvino": {
+    "checkpoint": "/bulk3/runs/dryrun/m4/hi224-policy-final/act-final.pt",
+    "image_size": 224,
+    "chunk_size": 60,
+    "version": "2026.4.1-22982-e213a147257-releases/2026/4",
+    "threads": {
+      "1": {
+        "iterations": 20,
+        "median_ms": 114.88093750085682,
+        "p95_ms": 137.3182891868055
+      },
+      "4": {
+        "iterations": 20,
+        "median_ms": 91.52196149807423,
+        "p95_ms": 120.32036279561
+      }
+    },
+    "onnx": "/bulk3/runs/dryrun/m4/hi224-policy-final/openvino/policy.onnx",
+    "xml": "/bulk3/runs/dryrun/m4/hi224-policy-final/openvino/policy.xml",
+    "commit": "3835c39"
+  },
+  "previous_openvino_64px": {
     "checkpoint": "/bulk3/runs/dryrun/m4/policy-fallback-20261115-1/act-final.pt",
     "image_size": 64,
     "chunk_size": 60,

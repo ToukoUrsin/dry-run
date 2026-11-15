@@ -1,5 +1,5 @@
 {
-  "updated_utc": "2026-11-15T01:59:00Z",
+  "updated_utc": "2026-11-15T02:17:00Z",
   "commit": "b9d897c",
   "summary": "The pushing expert measures 99.48% on loose (380/382), 91.30% on touching (451/494), and 67.10% on pile (259/386); touching and pile use physical pushes.",
   "versions": [
@@ -227,6 +227,34 @@
       "bricks": 3,
       "pushes": 0,
       "commit": "40bef5f"
+    },
+    {
+      "id": "touching-1001",
+      "tier": "messy",
+      "seed": 1001,
+      "score": 0.8889,
+      "bricks": 9,
+      "pushes": 2,
+      "expert_version": "b9d897c",
+      "commit": "0cb10d1",
+      "artifact_dir": "/bulk3/runs/dryrun/m1/replay-touching-seed1001-b9d897c",
+      "replay": "replay.json.gz",
+      "top_video": "top-view.mp4",
+      "inspection_video": "inspection-camera.mp4"
+    },
+    {
+      "id": "pile-1045",
+      "tier": "pile",
+      "seed": 1045,
+      "score": 0.8889,
+      "bricks": 9,
+      "pushes": 4,
+      "expert_version": "b9d897c",
+      "commit": "40cc569",
+      "artifact_dir": "/bulk3/runs/dryrun/m1/replay-pile-seed1045-b9d897c",
+      "replay": "replay.json.gz",
+      "top_video": "top-view.mp4",
+      "inspection_video": "inspection-camera.mp4"
     }
   ]
 }

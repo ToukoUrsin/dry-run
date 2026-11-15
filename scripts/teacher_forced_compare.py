@@ -15,9 +15,16 @@ def decode(cell):
     return np.asarray(Image.open(io.BytesIO(cell["bytes"].as_py())).convert("RGB"), dtype=np.uint8)
 
 
-def policy_action(policy, obs, verdict):
-    top = torch.from_numpy(np.asarray(obs["top"]).transpose(2, 0, 1)).float()[None] / 255.0
-    inspection = torch.from_numpy(np.asarray(obs["inspection"]).transpose(2, 0, 1)).float()[None] / 255.0
+def policy_action(policy, obs, verdict, demo_jpeg=False):
+    top_frame = np.asarray(obs["top"], dtype=np.uint8)
+    inspection_frame = np.asarray(obs["inspection"], dtype=np.uint8)
+    if demo_jpeg:
+        def jpeg78(frame):
+            buf = io.BytesIO(); Image.fromarray(frame).save(buf, format="JPEG", quality=78, optimize=True)
+            return np.asarray(Image.open(io.BytesIO(buf.getvalue())).convert("RGB"), dtype=np.uint8)
+        top_frame, inspection_frame = jpeg78(top_frame), jpeg78(inspection_frame)
+    top = torch.from_numpy(top_frame.transpose(2, 0, 1).copy()).float()[None] / 255.0
+    inspection = torch.from_numpy(inspection_frame.transpose(2, 0, 1).copy()).float()[None] / 255.0
     state = torch.from_numpy(np.asarray(obs["joints"], dtype=np.float32))[None]
     v = torch.tensor([[float(verdict)]], dtype=torch.float32)
     with torch.no_grad():
@@ -52,7 +59,7 @@ def main():
         # exact recorded target, without calling a network or a policy.
         env.expert_action()
         before = env.observe()
-        pa_live = policy_action(policy, before, 0)
+        pa_live = policy_action(policy, before, 0, demo_jpeg=True)
         rec_obs = {"top": top[i], "inspection": inspection[i], "joints": states[i]}
         pa_rec = policy_action(policy, rec_obs, verdicts[i])
         live_policy.append(pa_live); recorded_policy.append(pa_rec)

@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T03:43:54Z",
-  "commit": "dd0c191",
+  "updated_utc": "2026-11-15T03:58:57Z",
+  "commit": "e2134e7",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -12,10 +12,10 @@
     "total": 34.1,
     "basis": "tmux session lifetimes at the update timestamp; this is elapsed goal-mode session time, not claimed human labor."
   },
-  "commits_total": 298,
+  "commits_total": 308,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 11720,
+  "lines_of_code": 12004,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
   "supervisor_prompts": 33,
   "subagents_spawned": null,
@@ -29,7 +29,7 @@
       "fast_mode": true,
       "hours": 7.78,
       "hours_basis": "tmux session dryrun created 2026-11-14T18:00:08Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 151,
+      "commit_count": 157,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "5a6047d",
@@ -182,7 +182,13 @@
         "c1cf139",
         "29c8104",
         "acf4ddb",
-        "c1fe899"
+        "c1fe899",
+        "83b2edd",
+        "e9a5a6b",
+        "3313a60",
+        "03aaaf9",
+        "f908b91",
+        "825999c"
       ],
       "biggest_result": "Integrated the measured reference recipe, then moved the page evidence to seeded multi-brick scenes after the one-brick loose tier was withdrawn.",
       "worst_miss": "The first expert was slow/broken and the fixed-scene loose tier was withdrawn as rigged before the measured recipe replaced it.",
@@ -318,7 +324,7 @@
       "fast_mode": true,
       "hours": 6.37,
       "hours_basis": "tmux session dr-policy created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 37,
+      "commit_count": 40,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "8bf81de",
@@ -357,7 +363,10 @@
         "edabbbb",
         "09de632",
         "5c42603",
-        "d6ff121"
+        "d6ff121",
+        "926e2b2",
+        "42caf19",
+        "e2134e7"
       ],
       "biggest_result": "Produced a real LeRobot dataset and recorded ACT checkpoints with per-stage held-out evaluation and CPU/OpenVINO timing.",
       "worst_miss": "The first 64-pixel, 201-step run reached no physical rollout stage on any checkpoint; it is retained as a failed run, not a success.",
@@ -376,7 +385,7 @@
       "fast_mode": true,
       "hours": 6.37,
       "hours_basis": "tmux session dr-analyst created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 31,
+      "commit_count": 32,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "d48b31d",
@@ -409,7 +418,8 @@
         "965b186",
         "5fb1477",
         "d7e8eea",
-        "68183b7"
+        "68183b7",
+        "36ceeaa"
       ],
       "biggest_result": "Built the strict 448×448 four-field runner and kept a live 300-failure run, while the station gallery retained 32 accepted layouts and four rejection reasons.",
       "worst_miss": "The earlier 32 px Nemotron score was not visual evidence and is explicitly withdrawn from benchmark use.",
@@ -548,7 +558,7 @@
       "commit": "7f84b77"
     }
   ],
-  "prompts_count": 46,
+  "prompts_count": 47,
   "prompts_note": "The supervisor total is 33 at Prompt 035; the filesystem currently contains 41 prompt files, including the later prompts added during the night.",
   "prompts": [
     {
@@ -826,19 +836,25 @@
       "file": "prompts/046-policy-two-valid-answers.md",
       "title": "more steps will not fix it Test the",
       "to": "policy"
+    },
+    {
+      "t": "2026-11-15T03:51:00Z",
+      "file": "prompts/047-last-page-round.md",
+      "title": "last round Live edc5eef is good Six fixes",
+      "to": "page"
     }
   ],
   "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T03:43:54Z",
+    "end_utc": "2026-11-15T03:58:57Z",
     "sessions": [
       {
         "name": "main",
         "model": "gpt-6-astra",
         "effort": "ultra",
         "owns": "simulator, expert, benchmark, replay",
-        "commit_count": 151,
+        "commit_count": 157,
         "commits": [
           "5a6047d",
           "efb74fd",
@@ -990,7 +1006,13 @@
           "c1cf139",
           "29c8104",
           "acf4ddb",
-          "c1fe899"
+          "c1fe899",
+          "83b2edd",
+          "e9a5a6b",
+          "3313a60",
+          "03aaaf9",
+          "f908b91",
+          "825999c"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1094,7 +1116,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "demos, ACT, policy evaluation",
-        "commit_count": 37,
+        "commit_count": 40,
         "commits": [
           "8bf81de",
           "63291ad",
@@ -1132,7 +1154,10 @@
           "edabbbb",
           "09de632",
           "5c42603",
-          "d6ff121"
+          "d6ff121",
+          "926e2b2",
+          "42caf19",
+          "e2134e7"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1141,7 +1166,7 @@
         "model": "gpt-6.1-sol plus Nemotron",
         "effort": "ultra",
         "owns": "Nemotron, stations, evidence docs",
-        "commit_count": 31,
+        "commit_count": 32,
         "commits": [
           "d48b31d",
           "4f37d18",
@@ -1173,7 +1198,8 @@
           "965b186",
           "5fb1477",
           "d7e8eea",
-          "68183b7"
+          "68183b7",
+          "36ceeaa"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       }
@@ -2966,6 +2992,66 @@
         "sha": "dd0c191",
         "subject": "publish inspector score histograms",
         "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T03:43:57Z",
+        "sha": "83b2edd",
+        "subject": "refresh Codex night snapshot",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T03:44:35Z",
+        "sha": "36ceeaa",
+        "subject": "sync judge docs with 03:43 snapshot",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T03:44:58Z",
+        "sha": "e9a5a6b",
+        "subject": "point live inspector endpoint at bulk3 model",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T03:47:46Z",
+        "sha": "926e2b2",
+        "subject": "support fixed-count policy evaluation",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T03:51:27Z",
+        "sha": "3313a60",
+        "subject": "hide slow Tiger timings from public metrics",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T03:53:35Z",
+        "sha": "03aaaf9",
+        "subject": "publish full-rate Tiger held-out telemetry",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T03:56:02Z",
+        "sha": "f908b91",
+        "subject": "record deployed full-rate Tiger proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T03:56:21Z",
+        "sha": "42caf19",
+        "subject": "add fixed-answer one-brick dataset tooling",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T03:57:35Z",
+        "sha": "825999c",
+        "subject": "add Tiger tier cycle and failure aggregates",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T03:58:39Z",
+        "sha": "e2134e7",
+        "subject": "add Modal action MAE evaluation",
+        "session": "policy"
       }
     ],
     "prompts": [
@@ -3244,6 +3330,12 @@
         "file": "prompts/046-policy-two-valid-answers.md",
         "title": "more steps will not fix it Test the",
         "to": "policy"
+      },
+      {
+        "t": "2026-11-15T03:51:00Z",
+        "file": "prompts/047-last-page-round.md",
+        "title": "last round Live edc5eef is good Six fixes",
+        "to": "page"
       }
     ],
     "rejections": [
@@ -3330,11 +3422,11 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 298,
-      "prompts": 46,
+      "commits": 308,
+      "prompts": 47,
       "sessions": 5,
-      "lines_of_code": 11720,
-      "hours": 9.73
+      "lines_of_code": 12004,
+      "hours": 9.98
     },
     "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other. Counts are derived at every refresh.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",

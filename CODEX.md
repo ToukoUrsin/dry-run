@@ -298,3 +298,5 @@ capture and screenshot paths remain in `status/M6.md`.
 - The camera-only sorter places 4/100 diagnostic bricks in the right bowl.
 - The balanced four-stage Nemotron test is withdrawn: 63 of 84 sheets were rendered too small to judge; no balanced accuracy is reported.
 - No real-arm run has been performed.
+
+2026-11-15 05:43 UTC — Goal continuation used parallel Codex audit agents, Modal `.map` fan-out for the canonical expert/policy partition, DAgger checkpoint scoring, and a Modal OpenVINO rollout evaluator. Session `01a1db85-87b9-7760-b934-03b82b6ce199`. The resulting rows and honest remaining Nemotron scene-batch gap are recorded in `status/M4.md`.

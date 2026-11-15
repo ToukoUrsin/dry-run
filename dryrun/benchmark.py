@@ -1,7 +1,7 @@
 """Held-out benchmark over the shared seeded rollout API."""
 from __future__ import annotations
 import argparse, gzip, json, math, os, subprocess, time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -230,7 +230,8 @@ def run(seeds=None, workdir=Path("/bulk3/runs/dryrun/benchmark"), inspector=None
     groups = {tier: seeds[:TIER_COUNTS[tier]]} if tier else ({"loose": seeds[:80], "messy": seeds[80:150], "pile": seeds[150:200]} if len(seeds) == 200 else {"loose": seeds})
     jobs = [(seed, name) for name, values in groups.items() for seed in values]
     if workers > 1 and inspector is None and len(jobs) > 1:
-        with ThreadPoolExecutor(max_workers=int(workers)) as pool:
+        executor = ProcessPoolExecutor if os.environ.get("DRYRUN_TELEMETRY_PROCESSES") == "1" else ThreadPoolExecutor
+        with executor(max_workers=int(workers)) as pool:
             futures = [pool.submit(_one, seed, name, workdir, None, export_replays, controller)
                        for seed, name in jobs]
             rows = [future.result() for future in futures]

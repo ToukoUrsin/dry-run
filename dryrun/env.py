@@ -7,7 +7,7 @@ import numpy as np
 import mujoco
 from .grasp_test import ARM_NAMES, ids, qadr
 from .closed_form_ik import IKError, ik_pad_pose
-from .defects import render_inspection_frame
+from .defects import INSPECTION_PRESENT_POSE, render_inspection_frame
 from .expert import MeasuredExpert
 from .mjcf_station import ROOT, layout_bricks, station_xml
 
@@ -40,6 +40,7 @@ class StationEnv:
         self._last_obs: dict[str, Any] | None = None
         self._ticks = 0; self._done = False; self._events: list[dict[str, Any]] = []; self._cycle_times: dict[str, float] = {}; self._substeps = 0.0; self._last_action = np.zeros(6, np.float32); self._active = None
         self._physical_events: set[tuple[str, int, str]] = set(); self._active_z_prev: float | None = None
+        self._brick_z_prev: dict[int, float] = {}; self._inspection_focus: int | None = None
         self._force_inspection = False
         self._max_ticks = (120 + 330 * len(self.brick_ids)) * (1 if self.tier == "loose" else 2)
         self.reset()
@@ -52,6 +53,8 @@ class StationEnv:
         mujoco.mj_resetData(self.model, self.data); mujoco.mj_forward(self.model, self.data)
         self._ticks = 0; self._done = False; self._events.clear(); self._cycle_times.clear(); self._substeps = 0.0; self._active = None
         self._physical_events.clear(); self._active_z_prev = None
+        self._brick_z_prev = {int(body): float(self.data.xpos[body, 2]) for body in self.brick_ids}
+        self._inspection_focus = None
         self._last_action = np.asarray([self.data.qpos[a] for a in self._qa] + [self.data.qpos[self._grip]], np.float32)
         self._planner = MeasuredExpert(self)
         self._last_obs = None
@@ -76,7 +79,8 @@ class StationEnv:
         elif self._last_obs is None or self._ticks % 30 == 0 or self._force_inspection:
             self.renderer.update_scene(self.data, "top_view")
             top = self.renderer.render().copy().astype(np.uint8)
-            inspection = render_inspection_frame(self.model, self.data, self._inspection_renderer, focus_body=self._active)
+            focus = self._active if self._active is not None else self._inspection_focus
+            inspection = render_inspection_frame(self.model, self.data, self._inspection_renderer, focus_body=focus)
             self._last_obs = {"top": top, "inspection": inspection.astype(np.uint8, copy=False)}
             self._force_inspection = False
         return {"top": self._last_obs["top"], "inspection": self._last_obs["inspection"], "joints": joints}
@@ -93,35 +97,67 @@ class StationEnv:
         self._substeps += (1.0 / 30.0) / float(self.model.opt.timestep); n = max(1, int(round(self._substeps))); self._substeps -= n
         for _ in range(n): mujoco.mj_step(self.model, self.data)
         self._ticks += 1
-        if self._active is not None:
-            pads = {mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, n) for n in ("fixed_grip_pad", "moving_grip_pad")}
-            pad_force: dict[int, float] = {int(g): 0.0 for g in pads}
-            for i in range(self.data.ncon):
-                c = self.data.contact[i]
-                pad = c.geom1 if c.geom1 in pads else (c.geom2 if c.geom2 in pads else -1)
-                if pad < 0:
-                    continue
-                other = c.geom2 if pad == c.geom1 else c.geom1
-                # A grasp is a two-pad load on the active brick.  Contacts
-                # with the table, jaw links, bowls, or another brick do not
-                # satisfy the recipe's 0.2 N per-pad acceptance.
-                if int(self.model.geom_bodyid[other]) != int(self._active):
-                    continue
-                force = np.zeros(6, dtype=np.float64)
-                mujoco.mj_contactForce(self.model, self.data, i, force)
-                pad_force[int(pad)] += abs(float(force[0]))
-            grasp_key = ("grasp", int(self._active), "")
-            if all(value >= 0.2 for value in pad_force.values()) and grasp_key not in self._physical_events:
-                self._physical_events.add(grasp_key); self._event("grasp", self._active)
-            p = self.data.xpos[self._active]
+        pads = {mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, n) for n in ("fixed_grip_pad", "moving_grip_pad")}
+        pad_forces: dict[int, dict[int, float]] = {}
+        brick_set = {int(body) for body in self.brick_ids}
+        for i in range(self.data.ncon):
+            c = self.data.contact[i]
+            pad = c.geom1 if c.geom1 in pads else (c.geom2 if c.geom2 in pads else -1)
+            if pad < 0:
+                continue
+            other = c.geom2 if pad == c.geom1 else c.geom1
+            body = int(self.model.geom_bodyid[other])
+            if body not in brick_set:
+                continue
+            force = np.zeros(6, dtype=np.float64)
+            mujoco.mj_contactForce(self.model, self.data, i, force)
+            pad_forces.setdefault(body, {}).setdefault(int(pad), 0.0)
+            pad_forces[body][int(pad)] += abs(float(force[0]))
+
+        # These events are derived from MuJoCo contacts and poses, so learned
+        # controllers get the same physical stage accounting as the expert.
+        # The controller may still attach an opaque token to its own event;
+        # this stream uses the simulator body id only for internal scoring.
+        grasped = set()
+        for body, forces in pad_forces.items():
+            grasp_key = ("grasp", body, "")
+            if len(pads) == 2 and all(forces.get(pad, 0.0) >= 0.2 for pad in pads):
+                grasped.add(body)
+                if grasp_key not in self._physical_events:
+                    self._physical_events.add(grasp_key); self._event("grasp", body)
+                self._inspection_focus = body
+
+        good_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "good_bowl")
+        bad_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "defective_bowl")
+        bowl_xy = [self.data.xpos[idx, :2] for idx in (good_id, bad_id) if idx >= 0]
+        for body in brick_set:
+            p = self.data.xpos[body]
             z = float(p[2])
-            if self._active_z_prev is not None and self._active_z_prev <= .04 < z:
-                lift_key = ("lift", int(self._active), "")
+            prev_z = self._brick_z_prev.get(body, z)
+            if ("grasp", body, "") in self._physical_events and prev_z <= .04 < z:
+                lift_key = ("lift", body, "")
                 if lift_key not in self._physical_events:
-                    self._physical_events.add(lift_key); self._event("lift", self._active)
-            self._active_z_prev = z
-            if not np.all(np.isfinite(p)) or float(p[2]) < -0.01 or float(np.linalg.norm(p[:2])) > 1.0:
-                self._event("unstable", self._active); self._done = True
+                    self._physical_events.add(lift_key); self._event("lift", body)
+            self._brick_z_prev[body] = z
+            grasp_key = ("grasp", body, "")
+            if grasp_key in self._physical_events:
+                present_key = ("present", body, "")
+                if float(np.linalg.norm(p - INSPECTION_PRESENT_POSE)) <= .05:
+                    self._inspection_focus = body
+                    if present_key not in self._physical_events and not any(
+                        row.get("event") == "present" and int(row.get("brick", -1)) == body
+                        for row in self._events
+                    ):
+                        self._physical_events.add(present_key); self._event("present", body); self._force_inspection = True
+                if not pad_forces.get(body) and any(float(np.linalg.norm(p[:2] - xy)) < .11 and z < .10 for xy in bowl_xy):
+                    drop_key = ("drop", body, "")
+                    if drop_key not in self._physical_events and not any(
+                        row.get("event") == "drop" and int(row.get("brick", -1)) == body
+                        for row in self._events
+                    ):
+                        self._physical_events.add(drop_key); self._event("drop", body)
+            if not np.all(np.isfinite(p)) or z < -0.01 or float(np.linalg.norm(p[:2])) > 1.0:
+                self._event("unstable", body); self._done = True
         if not np.all(np.isfinite(self.data.qpos)) or not np.all(np.isfinite(self.data.qvel)) or float(np.max(np.abs(self.data.qvel))) > 50:
             self._event("unstable", self._active); self._done = True
         if self._ticks >= self._max_ticks: self._done = True

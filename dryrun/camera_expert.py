@@ -218,12 +218,22 @@ class CameraExpert(MeasuredExpert):
 
     @staticmethod
     def _target_key(det: BrickDetection) -> tuple[Any, ...]:
-        # Five-millimetre bins absorb frame-to-frame segmentation jitter while
-        # keeping separate loose bricks distinct.
+        # Retain the measured geometry so failed-target quarantine can absorb
+        # the larger residual jitter seen in the unreachable-row frames.
         return (
             str(det.colour),
-            int(round(float(det.centre_m[0]) / .005)),
-            int(round(float(det.centre_m[1]) / .005)),
+            round(float(det.centre_m[0]), 4),
+            round(float(det.centre_m[1]), 4),
+        )
+
+    def _failed_target(self, det: BrickDetection) -> bool:
+        """Return whether a detection lies in a quarantined failed region."""
+        colour = str(det.colour)
+        x, y = float(det.centre_m[0]), float(det.centre_m[1])
+        return any(
+            colour == failed_colour
+            and math.hypot(x - failed_x, y - failed_y) <= .030
+            for failed_colour, failed_x, failed_y in self._failed_tokens.values()
         )
 
     def _plan_cycle(self, det: BrickDetection):
@@ -314,9 +324,9 @@ class CameraExpert(MeasuredExpert):
                 self._look_misses = 0
                 ordered = sorted(found, key=lambda d: d.centre_m[0] ** 2 + d.centre_m[1] ** 2)
                 for det in ordered:
-                    key = self._target_key(det)
-                    if key in self._failed_tokens.values():
+                    if self._failed_target(det):
                         continue
+                    key = self._target_key(det)
                     self._token += 1
                     token = self._token
                     self._detections.append(det)

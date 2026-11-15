@@ -180,8 +180,13 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
         n = rng.randint(6, 10)
     else:
         n = rng.randint(3, 7)
-    if n < 1 or n > 10 or (count is None and n < 3):
-        raise ValueError("seeded scenes contain 3 to 10 bricks; explicit fixtures may request one")
+    # The public scene contract allows 3--12 bricks.  Tier defaults stay
+    # within their measured distributions (loose 3--7, messy 5--9, pile
+    # 6--10), while explicit callers such as curriculum and station tests may
+    # exercise the upper bound.  Keep the one-brick calibration fixture
+    # available only when an explicit count asks for it.
+    if n < 1 or n > 12 or (count is None and n < 3):
+        raise ValueError("seeded scenes contain 3 to 12 bricks; explicit fixtures may request one")
     if opts["layout"] == "messy":
         return _layout_messy(seed, n, rng)
     if opts["layout"] == "pile":
@@ -199,6 +204,31 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
                              "tested_yaws_rad": (0.0, math.pi / 2.0, math.pi)})
     # The measured bowls are outside the brick envelope; good is -y.
     bowls = ((-.0093, -.2657), (-.0093, .2657))
+
+    if count is not None and n > 10:
+        # The measured loose recipe deliberately tops out at seven bricks.
+        # Keep the public 3--12 scene contract useful for curriculum and
+        # stress fixtures by making an explicit overload from the same seeded
+        # polar reach envelope.  These dense fixtures use 2x2s and a relaxed
+        # 50 mm centre gate; they are not promoted to the loose benchmark.
+        dense: list[BrickSpec] = []
+        for index in range(n):
+            for _ in range(20000):
+                radius = rng.uniform(.12, .24)
+                azimuth = rng.uniform(-.85, .85)
+                x = pan_x + radius * math.cos(azimuth)
+                y = radius * math.sin(azimuth)
+                if any(math.hypot(x - bx, y - by) < .095 for bx, by in bowls):
+                    continue
+                if any(math.hypot(x - old.x, y - old.y) < .050 for old in dense):
+                    continue
+                defect, color = _scene_labels(seed, index, rng)
+                dense.append(BrickSpec(index, "2x2", round(x, 4), round(y, 4),
+                                       defect, color, round(rng.uniform(-math.pi, math.pi), 6)))
+                break
+            else:
+                raise ValueError(f"could not place explicit {n}-brick scene in seed {seed}")
+        return dense
 
     def add_row(row: dict, index: int, size: str, used: set[tuple[float, float]], rects: list[tuple[float, float, float, float]], placed: list[BrickSpec]) -> bool:
         x, y = round(float(row["x"]), 4), round(float(row["y"]), 4)

@@ -40,7 +40,8 @@ def test_loose_seed_controls_a_real_multi_brick_scene():
 def test_every_tier_is_seeded_and_multi_brick():
     for tier, sentence in TIERS.items():
         scenes = [layout_bricks(seed, sentence) for seed in range(8)]
-        assert all(3 <= len(scene) <= 8 for scene in scenes)
+        bounds = {"loose": (3, 7), "messy": (5, 9), "pile": (6, 10)}[tier]
+        assert all(bounds[0] <= len(scene) <= bounds[1] for scene in scenes)
         assert len({tuple((b.size, round(b.x, 4), round(b.y, 4), round(b.yaw, 6)) for b in scene)
                     for scene in scenes}) >= 6, tier
 

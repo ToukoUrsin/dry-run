@@ -16,7 +16,7 @@ import mujoco
 ARM = ("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll")
 TCP_LOCAL = np.array([0.0225, 0.0, -0.086])   # centre of a 32 mm brick that touches the fixed pad, gripper frame
 PAN_X = 0.0388                                # world x of the shoulder pan axis
-Q_OPEN, Q_CLOSE = 1.0, 0.5                    # gripper targets; contact happens near 0.60
+Q_OPEN, Q_CLOSE = 1.0, 0.2                    # gripper targets; a 32 mm brick stops the jaw near 0.60, the torque limit sets the force
 GRASP_DZ = 0.0034                             # TCP above the brick centre at the grasp (0.013 on the table)
 MID_DZ, HOVER_DZ, LIFT1_DZ, LIFT2_DZ = 0.022, 0.042, 0.027, 0.057
 APPROACH_OFF = 0.0045                         # start this far towards the fixed pad; closing pushes the brick home
@@ -28,7 +28,10 @@ PRESENT_A = np.array([0.5527, -1.2042, 0.8575, 1.0175, -2.3])
 PRESENT_B = np.array([0.7468, -1.5394, 1.1230, 1.0625, 0.9507])
 DROP_OFFSETS = ((0.03, 0.03), (-0.03, -0.03), (0.03, -0.03), (-0.03, 0.03), (0.0, 0.0))
 DROP_Z = 0.115
-MAX_TRIES = 2
+MAX_TRIES = 3
+MAX_STIRS = 12                                # pushes through a blocked cluster per episode
+STIR_Z = 0.016                                # TCP height of the closed gripper while it pushes
+MAX_JAW_WIDTH = 0.040                         # widest thing the open jaw takes
 MIN_PAD_FORCE = 0.2
 HZ = 30
 
@@ -133,6 +136,15 @@ class MeasuredExpert:
                     mujoco.mj_contactForce(self.m, self.d, i, f6); out[j] += abs(float(f6[0]))
         return out
 
+    def _hand_force(self):
+        """Total normal force between the hand (gripper and jaw bodies) and any brick."""
+        hand = {int(self.m.geom_bodyid[g]) for g in self.pads}; bricks = set(self.bricks); f6 = np.zeros(6); total = 0.0
+        for i in range(self.d.ncon):
+            c = self.d.contact[i]; b1, b2 = int(self.m.geom_bodyid[c.geom1]), int(self.m.geom_bodyid[c.geom2])
+            if (b1 in hand and b2 in bricks) or (b2 in hand and b1 in bricks):
+                mujoco.mj_contactForce(self.m, self.d, i, f6); total += abs(float(f6[0]))
+        return total
+
     def _half(self, b):
         g = next(i for i in range(self.m.ngeom) if self.m.geom_bodyid[i] == b and self.m.geom_type[i] == mujoco.mjtGeom.mjGEOM_BOX)
         return self.m.geom_size[g][:2].copy()
@@ -150,26 +162,84 @@ class MeasuredExpert:
                         for w in np.linspace(-FOOT_HALF_W, FOOT_HALF_W, 5)])
         for o in self.bricks:
             if o == b or self.d.xpos[o][2] < -0.01 or self._in_bowl(o): continue
-            R = self.d.xmat[o].reshape(3, 3); hs = self._half(o) + 0.003
-            loc = (pts - self.d.xpos[o][:2]) @ R[:2, :2]
-            if np.any((np.abs(loc[:, 0]) < hs[0]) & (np.abs(loc[:, 1]) < hs[1])): return False
+            R = self.d.xmat[o].reshape(3, 3)
+            if abs(R[2, 2]) > 0.95:
+                hs = self._half(o) + 0.003; loc = (pts - self.d.xpos[o][:2]) @ R[:2, :2]
+                if np.any((np.abs(loc[:, 0]) < hs[0]) & (np.abs(loc[:, 1]) < hs[1])): return False
+            elif np.any(np.linalg.norm(pts - self.d.xpos[o][:2], axis=1) < float(np.linalg.norm(self._half3(o)[:2])) + 0.003): return False
         return not any(np.any(np.linalg.norm(pts - xy, axis=1) < BOWL_KEEPOUT) for xy in self._bowl_xy().values())
 
+    def _half3(self, b):
+        g = next(i for i in range(self.m.ngeom) if self.m.geom_bodyid[i] == b and self.m.geom_type[i] == mujoco.mjtGeom.mjGEOM_BOX)
+        return self.m.geom_size[g].copy()
+
     def _plan(self, b):
-        """(centre, shifted target, jaw, q_grasp, q_hover, q_lift) or None."""
-        R = self.d.xmat[b].reshape(3, 3); c0 = self.d.xpos[b].copy(); hs = self._half(b)
-        if abs(R[2, 2]) < 0.95 or c0[2] > 0.05: return None          # not lying flat
-        axes = [R[:, 1], -R[:, 1]] + ([R[:, 0], -R[:, 0]] if abs(hs[0] - hs[1]) < 1e-4 else [])
-        for jaw in axes:
+        """(centre, shifted target, jaw, z_grasp, q_grasp, q_hover, q_lift) or None. Works for a brick resting on any face."""
+        R = self.d.xmat[b].reshape(3, 3); c0 = self.d.xpos[b].copy(); h = self._half3(b)
+        up = int(np.argmax(np.abs(R[2, :])))
+        if abs(R[2, up]) < 0.95 or c0[2] - h[up] > 0.035: return None          # tilted, or lying high on other bricks
+        cands = []
+        for i in range(3):
+            if i == up: continue
+            width = 2 * h[i] + (0.0032 if i == 2 else 0.0)                      # studs add to the height axis
+            if width > MAX_JAW_WIDTH: continue
+            for sgn in (1.0, -1.0): cands.append((sgn * R[:, i], width))
+        for jaw, width in cands:
             jaw = np.array([jaw[0], jaw[1], 0.0]); jaw /= np.linalg.norm(jaw)
             if not self._clear(b, c0, jaw): continue
-            c = c0.copy(); c[:2] -= APPROACH_OFF * jaw[:2]; zg = c0[2] + GRASP_DZ
+            # the TCP is the centre of a 32 mm object on the fixed pad; a narrower one sits closer to the fixed pad
+            c = c0.copy(); c[:2] -= (APPROACH_OFF + (0.016 - width / 2)) * jaw[:2]; zg = c0[2] + GRASP_DZ
             sols = []; q0 = None
             for dz in (0.0, HOVER_DZ, LIFT2_DZ):
                 s = self._ik((c[0], c[1], zg + dz), jaw=jaw, q0=q0)
                 if not self._ok(s): break
                 sols.append(s[0]); q0 = s[0]
             if len(sols) == 3: return c0, c, jaw, zg, sols[0], sols[1], sols[2]
+        return None
+
+    def _gap(self, p, skip=None):
+        """Distance from table point ``p`` to the nearest brick outline (bricks in bowls do not count)."""
+        best = 1.0
+        for o in self.bricks:
+            if o == skip or self._in_bowl(o) or self.d.xpos[o][2] < -0.01: continue
+            R = self.d.xmat[o].reshape(3, 3); c = self.d.xpos[o][:2]
+            if abs(R[2, 2]) > 0.95:
+                loc = np.abs((p - c) @ R[:2, :2]) - self._half(o)
+                dist = float(np.linalg.norm(np.maximum(loc, 0.0)))
+            else:
+                dist = max(0.0, float(np.linalg.norm(p - c)) - float(np.linalg.norm(self._half3(o)[:2])))
+            best = min(best, dist)
+        return best
+
+    def _stir_plan(self, todo, n):
+        """A straight push with the closed gripper against a blocked brick, to break a cluster or a pile apart.
+        Pushes that end near the middle of the reach zone are tried first, so bricks are not shoved out of reach."""
+        d = self.d
+        order = todo[n % len(todo):] + todo[:n % len(todo)]
+        for b in order:
+            tgt = d.xpos[b][:2].copy(); cands = []
+            for ang in np.arange(0.0, 2 * math.pi, math.pi / 6) + 0.37 * n:
+                u = np.array([math.cos(ang), math.sin(ang)])
+                for L in (0.05, 0.065, 0.08):
+                    a, e = tgt - L * u, tgt + 0.045 * u
+                    ra, re = math.hypot(a[0] - PAN_X, a[1]), math.hypot(e[0] - PAN_X, e[1])
+                    if not (0.09 < ra < 0.272 and 0.11 < re < 0.235): continue
+                    if abs(math.atan2(e[1], e[0] - PAN_X)) > 1.0: continue
+                    if self._gap(a) < 0.032: continue                                   # room for the closed gripper to come down
+                    if any(np.linalg.norm(q - xy) < BOWL_KEEPOUT + 0.02 for q in (a, e) for xy in self._bowl_xy().values()): continue
+                    rhat = (tgt - np.array([PAN_X, 0.0])); rhat = rhat / max(np.linalg.norm(rhat), 1e-6)
+                    out = max(0.0, float(u @ rhat))                                     # outward pushes shove bricks out of reach: last choice
+                    cands.append((round(out, 1) + abs(re - 0.17), a, e)); break
+            for _, a, e in sorted(cands, key=lambda c: c[0])[:4]:
+                qs = []; q0 = None
+                for f in np.linspace(0.0, 1.0, 5):
+                    p = a + f * (e - a); s = self._ik((p[0], p[1], STIR_Z), q0=q0)
+                    if not (s[1] < 1.5e-3 and s[2] < 3.0): break
+                    qs.append(s[0]); q0 = s[0]
+                if len(qs) < 5: continue
+                for z, pitch in ((0.075, 0.0), (0.060, 0.0), (0.075, 0.4), (0.075, 0.7)):   # far starts need a lower or tilted approach
+                    top = self._ik((a[0], a[1], z), pitch=pitch, q0=qs[0])
+                    if top[1] < 2e-3: return b, top[0], qs
         return None
 
     def _label(self, b, since):
@@ -200,7 +270,7 @@ class MeasuredExpert:
         for k, xy in self._bowl_xy().items():
             sols = [self._ik((xy[0] + dx, xy[1] + dy, DROP_Z), pitch=0.6) for dx, dy in DROP_OFFSETS]
             drops[k] = [s[0] for s in sols if s[1] < 2e-3]
-        n_drop = {"good": 0, "defective": 0}; tries = {}
+        n_drop = {"good": 0, "defective": 0}; tries = {}; stirs = 0
         yield from self._move(qN, Q_OPEN, 1.0, "neutral")
         while True:
             todo = [b for b in self.bricks if not self._in_bowl(b) and d.xpos[b][2] > -0.01 and tries.get(b, 0) < MAX_TRIES]
@@ -210,16 +280,40 @@ class MeasuredExpert:
                 plan = self._plan(b)
                 if plan: break
             if plan is None:
-                for b in todo: self._emit("ik_fail", b, reason="no_clear_grasp")
-                break
+                stir = self._stir_plan(todo, stirs) if todo and stirs < MAX_STIRS else None
+                if stir is None:
+                    for b in todo: self._emit("ik_fail", b, reason="no_clear_grasp")
+                    break
+                stirs += 1; pushed, q_top, qs = stir
+                self._emit("push", pushed, reason="blocked")
+                yield from self._move(q_top, 0.0, 1.0, "push_reach")
+                hit = False
+                for act in self._move(qs[0], 0.0, 0.7, "push_reach"):
+                    yield act
+                    if self._hand_force() > 1.0: hit = True; break          # came down on a brick: back off, never squash it
+                if hit:
+                    yield from self._move(q_top, 0.0, 0.5, "push_abort")
+                else:
+                    for q in qs[1:]: yield from self._move(q, 0.0, 0.3, "push")
+                yield from self._move(qN, Q_OPEN, 1.0, "neutral"); yield from self._hold(0.3)
+                continue
             c0, c, jaw, zg, qg, qh, ql = plan
             tries[b] = tries.get(b, 0) + 1; t0 = float(d.time)
             self.current = SimpleNamespace(body=b, name=mujoco.mj_id2name(self.m, mujoco.mjtObj.mjOBJ_BODY, b), defect=self.defect.get(b, "none"))
             self._emit("reach", b)
             yield from self._move(qh, Q_OPEN, 1.0, "hover"); yield from self._hold(0.15)
             qm = self._ik((c[0], c[1], zg + MID_DZ), jaw=jaw, q0=self._cmd[:5])[0]
-            yield from self._move(qm, Q_OPEN, 0.35, "down")
-            yield from self._move(qg, Q_OPEN, 0.35, "down"); yield from self._hold(0.2, "touch")
+            hit = False
+            for q in (qm, qg):
+                for act in self._move(q, Q_OPEN, 0.35, "down"):
+                    yield act
+                    if self._hand_force() > 3.0: hit = True; break            # landed on a brick: stop, never squash it
+                if hit: break
+            if hit:
+                self._emit("miss", b, reason="blocked_descent")
+                yield from self._move(qh, Q_OPEN, 0.6, "retreat"); yield from self._move(qN, Q_OPEN, 1.0, "neutral")
+                self.current = None; continue
+            yield from self._hold(0.2, "touch")
             yield from self._move(qg, Q_CLOSE, 0.6, "close"); yield from self._hold(0.3)
             forces = self._pad_forces(b)
             if min(forces) < MIN_PAD_FORCE:
@@ -243,12 +337,13 @@ class MeasuredExpert:
                 tries[b] = MAX_TRIES; self.current = None; continue
             qd = drops[label][n_drop[label] % len(drops[label])]; n_drop[label] += 1
             yield from self._move(qd, Q_CLOSE, 1.2, "drop"); yield from self._hold(0.2)
-            yield from self._move(qd, Q_OPEN, 0.4, "release"); yield from self._hold(0.5)
+            self._cmd[5] = float(d.qpos[self.gq])        # start the release from where the jaw is, so the grip force fades before the pad moves
+            yield from self._move(qd, Q_OPEN, 0.5, "release"); yield from self._hold(0.4)
             self._emit("drop", b, bowl=label)
             yield from self._move(qN, Q_OPEN, 1.0, "neutral"); self.current = None
         self.phase = "done"; self.current = None
 
 
-# Public name retained for the StationEnv contract.
+# Public names retained for the StationEnv contract.
 Expert = MeasuredExpert
 __all__ = ["MeasuredExpert", "Expert"]

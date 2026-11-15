@@ -15,17 +15,18 @@ class ACTExport(torch.nn.Module):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument("--checkpoint", type=Path, default=ROOT / "act-final.pt"); ap.add_argument("--out", type=Path, default=ROOT / "openvino"); ap.add_argument("--iterations", type=int, default=20); a = ap.parse_args(); a.out.mkdir(parents=True, exist_ok=True)
-    policy = load_policy(a.checkpoint); wrapper = ACTExport(policy).eval(); top = torch.zeros(1, 3, 64, 64); inspection = torch.zeros_like(top); state = torch.zeros(1, 7)
+    policy = load_policy(a.checkpoint); wrapper = ACTExport(policy).eval(); image_size = int(policy.config.input_features["observation.images.top"].shape[-1]); top = torch.zeros(1, 3, image_size, image_size); inspection = torch.zeros_like(top); state = torch.zeros(1, 7)
     onnx = a.out / "policy.onnx"; torch.onnx.export(wrapper, (top, inspection, state), onnx, input_names=["top", "inspection", "state"], output_names=["action"], opset_version=17)
     core = ov.Core(); xml = a.out / "policy.xml"; ov_model = ov.convert_model(str(onnx)); ov.save_model(ov_model, str(xml)); timings = {}
-    inputs = {"top": np.zeros((1,3,64,64), np.float32), "inspection": np.zeros((1,3,64,64), np.float32), "state": np.zeros((1,7), np.float32)}
+    inputs = {"top": np.zeros((1,3,image_size,image_size), np.float32), "inspection": np.zeros((1,3,image_size,image_size), np.float32), "state": np.zeros((1,7), np.float32)}
     for threads in (1, 4):
         compiled = core.compile_model(str(xml), "CPU", {"INFERENCE_NUM_THREADS": threads, "PERFORMANCE_HINT": "LATENCY"}); req = compiled.create_infer_request();
         for _ in range(3): req.infer(inputs)
-        start = time.perf_counter()
-        for _ in range(a.iterations): req.infer(inputs)
-        timings[str(threads)] = {"iterations": a.iterations, "latency_ms": (time.perf_counter() - start) * 1000 / a.iterations}
-    result = {"checkpoint": str(a.checkpoint), "onnx": str(onnx), "openvino": str(xml), "device": "CPU", "threads": timings, "commit": os.popen("git rev-parse HEAD").read().strip()}
+        samples = []
+        for _ in range(a.iterations):
+            start = time.perf_counter(); req.infer(inputs); samples.append((time.perf_counter() - start) * 1000)
+        timings[str(threads)] = {"iterations": a.iterations, "median_ms": float(np.percentile(samples, 50)), "p95_ms": float(np.percentile(samples, 95))}
+    result = {"format": "dryrun-act-openvino-v1", "checkpoint": str(a.checkpoint), "onnx": str(onnx), "openvino": str(xml), "device": "CPU", "image_size": image_size, "chunk_size": int(policy.config.chunk_size), "threads": timings, "openvino_version": ov.__version__, "commit": os.popen("git rev-parse HEAD").read().strip()}
     (a.out / "timing.json").write_text(json.dumps(result, indent=2)); print(json.dumps(result, indent=2))
 
 

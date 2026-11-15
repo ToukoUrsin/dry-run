@@ -106,17 +106,43 @@ volume; only compact scene/result rows belong in the database. The current
 deployment keeps honest recorded/offline states when a live worker or remote
 database is absent.
 
+## Prompt 024 high-resolution failure analyst
+
+`dryrun.nemotron_real` sends one 896x896 sheet containing four 448px rollout
+panels (`before_grasp`, `end_closing`, `presentation`, `end_cycle`) per failed
+brick. The request contains only the sheet and requires exactly
+`failure_stage`, `visible_support`, `scene_change`, and `evidence_panel`; the
+simulator event label is joined only after the response. The allowed stage set
+is `no_clear_grasp`, `missed_grasp`, `slipped`, `wrong_verdict`,
+`dropped_outside_bowl`, `pushed_out_of_reach`, and `other`.
+
+`dryrun.nemotron_prompt024_run` retains each request, raw response, retry, and
+terminal row under `/bulk3/runs/dryrun/`. After a run,
+`dryrun.nemotron_prompt024_score` ID-aligns the 300 event-derived labels and
+writes `predictions.jsonl`, denominator-300 stage accuracy, per-stage counts,
+tier breakdown, and a confusion table with an explicit `unresolved` column.
+The withdrawn 32px and 64px analyst artifacts are never used by this contract.
+
 ## Rollout API (main, published 2026-11-14)
 
 `dryrun.env.StationEnv(seed, tier=None)` is the public MuJoCo environment. `reset()` returns an observation. `step(action)` accepts six finite joint position targets in the order shoulder pan, shoulder lift, elbow flex, wrist flex, wrist roll, gripper, advances the 2 ms simulator at the public 30 Hz boundary, and returns `(observation, reward, done, info)`. `observe()` returns exactly `{"top": uint8[H,W,3], "inspection": uint8[H,W,3], "joints": float32[6]}`. `expert_action()` may read simulator truth and returns one six-target action. `result()` returns good-bowl, wrong-bowl, dropped brick ids and cycle times.
 
-`dryrun.rollout.run(seed, controller, inspector=None, record=None, tier=None)` uses this same `StationEnv.step` path for expert and learned controllers. `controller` can be `"expert"`, a callable taking the observation, or an object with `act(observation)`. `inspector(image)` is called at inspection presentation events. `record(frame)` receives every step with timestamp, observation, action and recent events. The event rows use the names `reach`, `grasp`, `lift`, `present`, `verdict`, `drop`, `miss`, `slip`, `ik_fail`, and `unstable`, with brick id and simulator time when applicable.
+`dryrun.rollout.run(seed, controller, inspector=None, record=None, tier=None)` uses this same `StationEnv.step` path for expert and learned controllers. `controller` can be `"expert"`, a callable taking the observation, or an object with `act(observation)`. `inspector(image)` is called at inspection presentation events. `record(frame)` receives every step with timestamp, observation, action and recent events. The event rows use the names `reach`, `grasp`, `lift`, `present`, `verdict`, `drop`, `push`, `miss`, `slip`, `ik_fail`, and `unstable`, with brick id and simulator time when applicable.
 
 ## Telemetry boundary
 
 The benchmark and replay exporter call `dryrun.telemetry.record_rollout(samples, events, outcome, seed=seed, checkpoint="expert")`. Samples are 30 Hz rows with `ts`, six joint values and `gripper`; events and the final outcome are written with the same rollout ID. The writer targets the local `DRYRUN_DB_URL` container during runs.
 
 `uv run python -m dryrun.telemetry sync` copies completed local rollout IDs to the Tiger Cloud URL held in `DRYRUN_TIGER_DB_URL`. It skips IDs already present, so repeating it is safe. `remote-stats` reads Tiger's hypertable catalog, compression stats, aggregate counts, and query time. The dashboard reads `rollout_1s` and `benchmark_checkpoint`, and displays the raw row count, compression ratio, aggregate query time, and last rollout timestamp as database health metadata.
+
+Benchmark telemetry writes each episode in one transaction to Tiger. Raw sample
+rows carry `rollout_id`, `seed`, `tier`, `checkpoint`, `expert_version`, `ts`,
+`q0..q5`, `target0..target5`, `gripper`, and `gripper_effort`; event rows
+(`reach`, `grasp`, `lift`, `present`, `verdict`, `drop`, `push`, `miss`, `slip`,
+`ik_fail`, `unstable`) live in `rollout_events`. `rollout_results` carries the
+episode's `bricks`, `correct`, `false_accepts`, `false_rejects`, `pushes`, and
+`cycle_time_s`. The tier API reports aggregate rows by `tier` and
+`expert_version`, with `source: "timescale"` when Tiger is answering.
 
 ## Page session request from Soren review
 
@@ -125,9 +151,21 @@ Main provides `benchmark.py --export-replays DIR` rows for every held-out seed a
 
 `data/policy_scores.jsonl` contains one row per `(controller, checkpoint,
 tier, seed)` with `controller`, `checkpoint`, `seed`, `tier`, `bricks`,
-`correct`, `score`, `events`, and `commit`. The page uses these rows for
-checkpoint curves and scene cards. Featured replay binaries stay under
-`/bulk2/runs/dryrun/<run>/` and are keyed by the same seed/checkpoint pair.
+`correct`, `score`, `events`, `stages`, `closest_approach_mm`, `commit`,
+`image_size`, `open_loop_ticks`, and `max_delta`. The page's policy-score API
+returns `{schema: "dryrun.policy-scores.v1", rows, checkpoints}`; each
+`checkpoints` entry groups rows by controller/checkpoint and exposes
+`reached`, `grasped`, `lifted`, `presented`, `dropped`, `right_bowl`, and the
+median `closest_approach_mm`. The page uses these rows for checkpoint curves
+and scene cards. Featured replay binaries stay under
+`/bulk3/runs/dryrun/<run>/` and are keyed by the same seed/checkpoint pair.
+
+The real policy dataset records both cameras at `image_size=224` (the full
+top view, with no crop), six joint values, the inspector verdict, and a
+60-tick ACT action chunk. The bounded fallback controller consumes the first
+30 actions open-loop, replans at the 30 Hz camera refresh, and clamps each
+joint target to `max_delta=0.06` radians per tick; the earlier 64 px/201-step
+run remains a labelled before result.
 
 Analyst scene batches are JSONL objects of the form
 `{"seed": 123, "tier": "messy", "sentence": "...", "source": "nemotron"}`.
@@ -145,7 +183,7 @@ Loose is not valid when a benchmark edits an XML position or repeats one brick. 
 
 ## Measured loose expert recipe (prompt 019)
 
-`dryrun.expert.MeasuredExpert` is the single reference expert used through `StationEnv.step`. Its TCP is `(0.0225, 0, -0.086)` in the gripper body; fixed cycle targets use the measured neutral, presentation, and bowl-drop poses. Events are physical `grasp`, `lift`, `present`, `drop`, `miss`, `slip`, `ik_fail`, and `unstable` rows with brick and simulator time.
+`dryrun.expert.MeasuredExpert` is the single reference expert used through `StationEnv.step`. Its TCP is `(0.0225, 0, -0.086)` in the gripper body; fixed cycle targets use the measured neutral, presentation, and bowl-drop poses. Events are physical `grasp`, `lift`, `present`, `drop`, `push`, `miss`, `slip`, `ik_fail`, and `unstable` rows with brick and simulator time. A `push` is a recovery action that separates a blocked cluster, not a failed rollout.
 
 Loose scenes are 3–7 seeded bricks in radius `0.12–0.24 m`, azimuth `±0.85 rad` about `(0.0388, 0)`, with 78 mm/95 mm centre spacing and side bowls at `(-0.0093, ±0.2657)`. The expert only queues bricks with a clear geometry-and-IK grasp plan. The exact pad and contact values are in the vendored SO-101 XML and `status/M1.md`.
 

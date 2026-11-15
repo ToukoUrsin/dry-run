@@ -67,6 +67,35 @@ def _stage_counts(events: list[dict]) -> dict[str, int]:
     return {stage: len(values) for stage, values in ids.items()}
 
 
+class _ApproachRecorder:
+    """Measure the gripper TCP's nearest seeded brick distance from public frames."""
+
+    def __init__(self, seed: int, tier: str):
+        import numpy as np
+        from dryrun.closed_form_ik import forward_position
+        from dryrun.mjcf_station import layout_bricks
+        from dryrun.env import TIERS
+
+        self._forward = forward_position
+        self._centers = np.asarray(
+            [[float(s.x), float(s.y), float(getattr(s, "z", 0.019))] for s in layout_bricks(int(seed), TIERS[tier])],
+            dtype=np.float32,
+        )
+        self.minimum_m = float("inf")
+
+    def record(self, payload: dict):
+        observation = payload.get("observation")
+        if not observation or self._centers.size == 0:
+            return
+        import numpy as np
+
+        joints = np.asarray(observation.get("joints", []), dtype=np.float32)
+        if joints.size < 5:
+            return
+        tcp = np.asarray(self._forward(joints[:5]), dtype=np.float32)
+        self.minimum_m = min(self.minimum_m, float(np.linalg.norm(self._centers - tcp[None, :], axis=1).min()))
+
+
 @app.function(image=image, timeout=1800, cpu=4, retries=2, volumes={"/runs": volume})
 def evaluate_seed(
     seed: int,
@@ -78,6 +107,7 @@ def evaluate_seed(
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
     open_loop_ticks: int = 0,
     max_delta: float = 0.06,
+    render_size: int = 64,
 ):
     sys.path.insert(0, "/root/repo")
     os.environ.setdefault("MUJOCO_GL", "osmesa")
@@ -95,7 +125,8 @@ def evaluate_seed(
         max_delta=float(max_delta),
     )
     inspector = Inspector(inspector_model, threads=1)
-    result = run(int(seed), controller, inspector=inspector, tier=tier, max_steps=int(max_steps))
+    approach = _ApproachRecorder(int(seed), str(tier))
+    result = run(int(seed), controller, inspector=inspector, record=approach, tier=tier, max_steps=int(max_steps), render_size=int(render_size))
     stages = _stage_counts(result.get("events", []))
     row = {
         "format": "dryrun-policy-eval-row-v1",
@@ -108,6 +139,7 @@ def evaluate_seed(
         "max_steps": int(max_steps),
         "open_loop_ticks": int(open_loop_ticks),
         "max_delta": float(max_delta),
+        "render_size": int(render_size),
         "bricks": int(result.get("bricks", 0)),
         "successes": int(result.get("successes", 0)),
         "score": float(result.get("score", 0.0)),
@@ -115,6 +147,7 @@ def evaluate_seed(
             **stages,
             "right_bowl": int(result.get("successes", 0)),
         },
+        "closest_approach_mm": None if approach.minimum_m == float("inf") else round(1000.0 * approach.minimum_m, 3),
     }
     store_key = f"{run_id}/{tier}/{int(seed):04d}"
     # Concurrent Volume commits are lossy fan-in. The checkpoint still comes
@@ -145,6 +178,7 @@ def main(
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
     open_loop_ticks: int = 0,
     max_delta: float = 0.06,
+    render_size: int = 64,
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -162,6 +196,7 @@ def main(
                 "inspector_model": inspector_model,
                 "open_loop_ticks": int(open_loop_ticks),
                 "max_delta": float(max_delta),
+                "render_size": int(render_size),
             },
         )
     )
@@ -177,6 +212,7 @@ def main(
         "max_steps": int(max_steps),
         "open_loop_ticks": int(open_loop_ticks),
         "max_delta": float(max_delta),
+        "render_size": int(render_size),
         "dict_name": "dryrun-policy-rows",
         "dict_key_prefix": dict_key_prefix,
         "rows": rows,

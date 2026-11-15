@@ -208,8 +208,16 @@ class CameraExpert(MeasuredExpert):
             return []
 
     def _label(self, token: int) -> str:
-        verdicts = [str(e.get("verdict", "")).lower() for e in getattr(self.env, "_events", [])
+        events = list(getattr(self.env, "_events", []))
+        verdicts = [str(e.get("verdict", "")).lower() for e in events
                     if e.get("event") == "verdict" and e.get("brick") == token]
+        # The rollout inspector attaches its verdict to the physical body id,
+        # while the camera controller uses an opaque token.  If the ids differ,
+        # consume the most recent present-frame verdict instead of silently
+        # routing every brick to the defective bowl.
+        if not verdicts:
+            verdicts = [str(e.get("verdict", "")).lower() for e in reversed(events)
+                        if e.get("event") == "verdict"][:1]
         if any(v in {"defective", "bad", "-1"} for v in verdicts):
             return "defective"
         if any(v in {"good", "+1", "1"} for v in verdicts):

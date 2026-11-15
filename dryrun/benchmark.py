@@ -30,7 +30,12 @@ class _ReplayCapture:
     include_inspection = False
     thumbnail_only = True
 
-    def __init__(self) -> None:
+    def __init__(self, *, full_rate: bool = False) -> None:
+        # Replay exports stay compact, but Tiger's benchmark contract is the
+        # actual 30 Hz joint trace.  The old capture silently kept one frame
+        # every 30 ticks for every controller, which made the cloud contain
+        # roughly 49 rows per rollout instead of the full episode.
+        self.full_rate = bool(full_rate)
         self.frames: list[dict[str, Any]] = []
         self.events: list[dict[str, Any]] = []
         self.thumbnail = None
@@ -48,7 +53,7 @@ class _ReplayCapture:
         # Keep a 30 Hz-equivalent sparse trace while retaining the first
         # pixel frame as the thumbnail.  Expert captures arrive already
         # sparse and carry no ``step`` field, so they are all retained.
-        if "step" in row:
+        if "step" in row and not self.full_rate:
             self._policy_observations += 1
             if self._policy_observations > 1 and self._policy_observations % 30:
                 return
@@ -166,7 +171,7 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
     # withdrawn fixed-position loose fixture.
     del workdir
     telemetry_enabled = _telemetry_configured()
-    capture = _ReplayCapture() if export_dir is not None or telemetry_enabled else None
+    capture = _ReplayCapture(full_rate=telemetry_enabled) if export_dir is not None or telemetry_enabled else None
     # The no-inspector held-out run uses a compact 2 px camera to avoid
     # spending most of the wall time in EGL while physics remains unchanged.
     # Inspector rollouts must retain the measured >=256 px presentation crop.

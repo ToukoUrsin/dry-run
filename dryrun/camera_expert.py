@@ -229,8 +229,19 @@ class CameraExpert(MeasuredExpert):
         yield from self._move(qg, Q_OPEN, .7, "down")
         yield from self._hold(.2, "touch")
         yield from self._move(qg, Q_CLOSE, .6, "close")
-        yield from self._hold(.3)
+        # The station refreshes observations on a 30-tick boundary.  Closing
+        # (18 ticks) plus the old 0.3 s hold (9 ticks) read the jaw before that
+        # boundary, so a stale open value could be reported as a grip miss.
+        # Hold for 12 ticks: close + hold is now exactly one fresh boundary.
+        yield from self._hold(.4, "grip_check")
         joints = np.asarray(self._latest_obs.get("joints", [0] * 6)).reshape(-1)
+        self._emit(
+            "grip_check",
+            brick=token,
+            gripper=float(joints[5]) if len(joints) >= 6 else None,
+            joint_count=int(len(joints)),
+            close_hold_ticks=30,
+        )
         if len(joints) >= 6 and float(joints[5]) > .88:
             self._emit("miss", brick=token, reason="camera_gripper_reading", gripper=float(joints[5]))
             return

@@ -28,7 +28,10 @@ image = (
 )
 
 
-@app.function(image=image, timeout=1800, cpu=4, volumes={"/runs": volume})
+# A large map can contain hundreds of successful brick episodes.  LeRobot's
+# per-episode image-stat pass is intentionally serialized by this single
+# writer, so the merge needs more than the 30-minute rollout-worker limit.
+@app.function(image=image, timeout=7200, cpu=4, volumes={"/runs": volume})
 def merge(
     run_id: str,
     seeds: list[int],

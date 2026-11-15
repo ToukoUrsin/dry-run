@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.policy.v1",
-  "updated_utc": "2026-11-15T04:37:00Z",
+  "updated_utc": "2026-11-15T04:40:00Z",
   "commit": "8f84ac4",
   "summary": "Cropped-top-view ACT training is running on 710 episodes (213,147 frames) at 224 px; at 90,000/100,000 steps it still reaches no physical stage; the 20-seed median closest approach is 29.026 mm (minimum 17.445 mm).",
   "dataset": {
@@ -746,6 +746,19 @@
         "reached": "20/20",
         "artifact": "/bulk3/runs/dryrun/m4/modal-map/onebrick-overfit/eval/onebrick-overfit-policy-jpeg-prefix37-20261115-1/manifest.json"
       }
+    },
+    "six_hundred_training": {
+      "status": "running on Modal GPU",
+      "dataset": "/runs/onebrick-fixed-600-dataset-20261115-1",
+      "episodes": 600,
+      "frames": 180600,
+      "slow_run_output": "/runs/onebrick-fixed-600-act-20261115-1",
+      "fast_run_output": "/runs/onebrick-fixed-600-act-fast-20261115-1",
+      "commands": [
+        "modal run modal/train_policy.py --dataset /runs/onebrick-fixed-600-dataset-20261115-1 --out-dir /runs/onebrick-fixed-600-act-20261115-1 --epochs 3 --batch-size 64",
+        "modal run modal/train_policy.py --dataset /runs/onebrick-fixed-600-dataset-20261115-1 --out-dir /runs/onebrick-fixed-600-act-fast-20261115-1 --epochs 1 --batch-size 128"
+      ],
+      "merge_manifest": "/bulk3/runs/dryrun/m4/modal-map/onebrick-fixed-600/onebrick-fixed-600-20261115-1/manifest.json"
     }
   },
   "modal_billing": {

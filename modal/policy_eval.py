@@ -96,6 +96,20 @@ class _ApproachRecorder:
         self.minimum_m = min(self.minimum_m, float(np.linalg.norm(self._centers - tcp[None, :], axis=1).min()))
 
 
+class _ExpertPrefix:
+    """Run the measured expert for the recorder's pre-reach prefix."""
+
+    def __init__(self, policy, ticks: int):
+        self.policy = policy
+        self.remaining = max(0, int(ticks))
+
+    def __call__(self, env, obs):
+        if self.remaining:
+            self.remaining -= 1
+            return env.expert_action()
+        return self.policy.act(obs)
+
+
 @app.function(image=image, timeout=1800, cpu=4, retries=2, volumes={"/runs": volume})
 def evaluate_seed(
     seed: int,
@@ -110,6 +124,7 @@ def evaluate_seed(
     max_delta: float = 0.06,
     render_size: int = 64,
     crop_top: bool = False,
+    prefix_expert_ticks: int = 0,
 ):
     sys.path.insert(0, "/root/repo")
     os.environ.setdefault("MUJOCO_GL", "osmesa")
@@ -120,13 +135,14 @@ def evaluate_seed(
     from dryrun.rollout import run
     from dryrun.inspector import Inspector
 
-    controller = ACTController(
+    policy_controller = ACTController(
         checkpoint,
         device="cuda" if torch.cuda.is_available() else "cpu",
         open_loop_ticks=int(open_loop_ticks),
         max_delta=float(max_delta),
         crop_top=bool(crop_top),
     )
+    controller = _ExpertPrefix(policy_controller, int(prefix_expert_ticks)) if int(prefix_expert_ticks) > 0 else policy_controller
     inspector = Inspector(inspector_model, threads=1)
     approach = _ApproachRecorder(int(seed), str(tier))
     result = run(int(seed), controller, count=None if count is None else int(count), inspector=inspector, record=approach, tier=tier, max_steps=int(max_steps), render_size=int(render_size))
@@ -145,6 +161,7 @@ def evaluate_seed(
         "max_delta": float(max_delta),
         "render_size": int(render_size),
         "crop_top": bool(crop_top),
+        "prefix_expert_ticks": int(prefix_expert_ticks),
         "bricks": int(result.get("bricks", 0)),
         "successes": int(result.get("successes", 0)),
         "score": float(result.get("score", 0.0)),
@@ -186,6 +203,7 @@ def main(
     max_delta: float = 0.06,
     render_size: int = 64,
     crop_top: bool = False,
+    prefix_expert_ticks: int = 0,
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -206,6 +224,7 @@ def main(
                 "max_delta": float(max_delta),
                 "render_size": int(render_size),
                 "crop_top": bool(crop_top),
+                "prefix_expert_ticks": int(prefix_expert_ticks),
             },
         )
     )
@@ -224,6 +243,7 @@ def main(
         "max_delta": float(max_delta),
         "render_size": int(render_size),
         "crop_top": bool(crop_top),
+        "prefix_expert_ticks": int(prefix_expert_ticks),
         "dict_name": "dryrun-policy-rows",
         "dict_key_prefix": dict_key_prefix,
         "rows": rows,

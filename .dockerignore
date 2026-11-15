@@ -5,3 +5,5 @@ bulk2
 runs
 __pycache__
 *.pyc
+
+datasets

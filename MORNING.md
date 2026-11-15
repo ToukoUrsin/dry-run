@@ -28,3 +28,19 @@ per photo, including photos in a new output directory.
    inspector outputs with the run record.
 
 Dry Run makes no real-arm performance claim until these checks have been run.
+
+## Cold-open match cut
+
+Use `/bulk3/runs/opens/final/dryrun/open.mp4` for the first 10 s of the film's cold open, then cut to the phone shot for its final 2 s. End the open on the arm and one lime brick alone on black, framed like `/bulk3/runs/opens/final/dryrun/last.jpg`.
+
+**Shooting note**
+1. Camera: phone on the table, lens about 30 cm above the table top and about 1.25 m from the arm's base, turned
+   about 37 degrees from a pure side view toward the gripper end, 2x lens (50 mm equivalent), tilted about 8 degrees
+   down. In the frame: the base a quarter in from the left, the brick low and just right of centre, as in `last.jpg`.
+2. Object: upper arm straight up, forearm level, fixed jaw pointing forward, moving jaw open straight up. One brick
+   on the table 30 cm in front of the centre of the base and 4 cm to the far side. If the arm cannot hold that pose,
+   keep the camera spot and the brick: the cut still lands on the brick.
+3. What moves first: nothing in the open's last half second, so hold the phone shot still for half a second, then the
+   first move is the real one (the arm, or the hand with the marked box).
+
+If Touko dislikes the sound, mute `open.mp4` while keeping its type; `open_clean.mp4` has no type and no audio.

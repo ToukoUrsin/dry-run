@@ -79,7 +79,10 @@ class StationEnv:
         elif self._last_obs is None or self._ticks % 30 == 0 or self._force_inspection:
             self.renderer.update_scene(self.data, "top_view")
             top = self.renderer.render().copy().astype(np.uint8)
-            focus = self._active if self._active is not None else self._inspection_focus
+            # Camera-only rollouts have no simulator body focus.  Keep the
+            # inspection view at its fixed measured presentation point; the
+            # measured expert still supplies _active explicitly.
+            focus = self._active
             inspection = render_inspection_frame(self.model, self.data, self._inspection_renderer, focus_body=focus)
             self._last_obs = {"top": top, "inspection": inspection.astype(np.uint8, copy=False)}
             self._force_inspection = False
@@ -97,6 +100,7 @@ class StationEnv:
         self._substeps += (1.0 / 30.0) / float(self.model.opt.timestep); n = max(1, int(round(self._substeps))); self._substeps -= n
         for _ in range(n): mujoco.mj_step(self.model, self.data)
         self._ticks += 1
+        grasped: set[int] = set()
         pads = {mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_GEOM, n) for n in ("fixed_grip_pad", "moving_grip_pad")}
         pad_forces: dict[int, dict[int, float]] = {}
         brick_set = {int(body) for body in self.brick_ids}

@@ -1,29 +1,141 @@
 {
-  "updated_utc": "2026-11-15T02:15:00Z",
-  "commit": "3852872",
-  "summary": "Tiger Cloud contains 357 rollout outcomes, 17,439 raw telemetry rows, and 16,334 aggregate rows; the old 200-episode load is complete and the v2 pile load is still running.",
+  "updated_utc": "2026-11-15T03:52:21.438528Z",
+  "commit": "3313a607f338",
+  "summary": "Tiger Cloud contains 401 rollout outcomes and 580704 measured 30 Hz joint rows from both held-out sorters; compression is 2.176x.",
   "stats": {
-    "telemetry_rows": 17439,
-    "rollouts": 357,
-    "aggregate_rows": 16334,
+    "telemetry_rows": 580704,
+    "rollouts": 401,
+    "aggregate_rows": 19729,
     "checkpoint_rows": 3,
     "diagnosis_rows": 0,
     "compression_enabled": true,
-    "uncompressed_bytes": 270336,
-    "compressed_bytes": 122880,
-    "compression_ratio": 2.2,
-    "query_ms": {
-      "catalog": 1107.06,
-      "tier_snapshot": 661.258
+    "uncompressed_bytes": 303104,
+    "compressed_bytes": 139264,
+    "compression_ratio": 2.176,
+    "held_out_rollouts": 400,
+    "extra_smoke_rollouts": 1,
+    "raw_row_contract": "one row per 30 Hz physics tick; six joints, six targets, gripper effort",
+    "batch_method": "PostgreSQL COPY per completed episode",
+    "event_counts": {
+      "expert-v1-64c4919": {
+        "drop": 633,
+        "event": 400,
+        "grasp": 634,
+        "ik_fail": 612,
+        "lift": 634,
+        "miss": 3,
+        "present": 1268,
+        "reach": 639,
+        "unstable": 3
+      },
+      "expert-v2-b9d897c": {
+        "drop": 1092,
+        "event": 400,
+        "grasp": 1092,
+        "ik_fail": 169,
+        "lift": 1092,
+        "miss": 11,
+        "present": 2186,
+        "push": 357,
+        "reach": 1104,
+        "unstable": 1
+      }
     },
+    "tiers": [
+      {
+        "tier": "loose",
+        "expert_version": "64c4919",
+        "bricks": 382,
+        "correct": 382,
+        "false_accepts": 0,
+        "false_rejects": 0,
+        "pushes": 0,
+        "cycle_time_s": 10.046410714287182,
+        "rollouts": 80,
+        "score": 1.0
+      },
+      {
+        "tier": "loose",
+        "expert_version": "b9d897c",
+        "bricks": 382,
+        "correct": 380,
+        "false_accepts": 0,
+        "false_rejects": 0,
+        "pushes": 0,
+        "cycle_time_s": 10.009625000001458,
+        "rollouts": 80,
+        "score": 0.9947643979057592
+      },
+      {
+        "tier": "messy",
+        "expert_version": "64c4919",
+        "bricks": 494,
+        "correct": 217,
+        "false_accepts": 0,
+        "false_rejects": 0,
+        "pushes": 0,
+        "cycle_time_s": 4.861493310658436,
+        "rollouts": 70,
+        "score": 0.4392712550607287
+      },
+      {
+        "tier": "messy",
+        "expert_version": "b9d897c",
+        "bricks": 494,
+        "correct": 451,
+        "false_accepts": 0,
+        "false_rejects": 0,
+        "pushes": 149,
+        "cycle_time_s": 10.532095238095632,
+        "rollouts": 70,
+        "score": 0.9129554655870445
+      },
+      {
+        "tier": "pile",
+        "expert_version": "64c4919",
+        "bricks": 386,
+        "correct": 31,
+        "false_accepts": 1,
+        "false_rejects": 0,
+        "pushes": 0,
+        "cycle_time_s": 1.1167056349206022,
+        "rollouts": 50,
+        "score": 0.08031088082901554
+      },
+      {
+        "tier": "pile",
+        "expert_version": "b9d897c",
+        "bricks": 386,
+        "correct": 259,
+        "false_accepts": 1,
+        "false_rejects": 0,
+        "pushes": 208,
+        "cycle_time_s": 9.439898396825093,
+        "rollouts": 50,
+        "score": 0.6709844559585493
+      },
+      {
+        "tier": "unknown",
+        "expert_version": "unknown",
+        "bricks": 8,
+        "correct": 0,
+        "false_accepts": 0,
+        "false_rejects": 0,
+        "pushes": 0,
+        "cycle_time_s": 19.536,
+        "rollouts": 1,
+        "score": 0.0
+      }
+    ],
     "source": "timescale",
-    "source_command": "hsec exec --only DRYRUN_TIGER_DB_URL -- bash -c 'DRYRUN_DB_URL=... python -m dryrun.telemetry remote-stats'",
+    "source_command": "hsec exec DRYRUN_TIGER_DB_URL python -m dryrun.telemetry remote-stats",
     "live_env": "DRYRUN_TIGER_DB_URL"
   },
   "live": {
     "read_from": "Tiger Cloud",
     "api_source": "timescale",
-    "refresh_command": "python -m dryrun.telemetry remote-stats",
-    "last_snapshot": "2026-11-15T02:15:00Z"
+    "refresh_command": "python -m dryrun.telemetry refresh",
+    "last_snapshot": "2026-11-15T03:52:21.438528Z",
+    "slow_timings": "not published; measured catalog calls exceeded the 300 ms feature gate"
   }
 }

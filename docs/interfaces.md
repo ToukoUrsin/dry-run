@@ -176,7 +176,7 @@ the exact XML is sent through `dryrun.rollout.run`; its retained summary is
 
 The benchmark and replay exporter call `dryrun.telemetry.record_rollout(samples, events, outcome, seed=seed, checkpoint="expert")`. Samples are 30 Hz rows with `ts`, six joint values and `gripper`; events and the final outcome are written with the same rollout ID. The writer targets the local `DRYRUN_DB_URL` container during runs.
 
-`uv run python -m dryrun.telemetry sync` copies completed local rollout IDs to the Tiger Cloud URL held in `DRYRUN_TIGER_DB_URL`. It skips IDs already present, so repeating it is safe. `remote-stats` reads Tiger's hypertable catalog, compression stats, aggregate counts, and query time. The dashboard reads `rollout_1s` and `benchmark_checkpoint`, and displays the raw row count, compression ratio, aggregate query time, and last rollout timestamp as database health metadata.
+`uv run python -m dryrun.telemetry sync` copies completed local rollout IDs to the Tiger Cloud URL held in `DRYRUN_TIGER_DB_URL`. It skips IDs already present, so repeating it is safe. `remote-stats` reads Tiger's hypertable catalog, compression stats, and aggregate counts. The dashboard reads `rollout_1s` and `benchmark_checkpoint`; it publishes raw row count, compression ratio, and last rollout timestamp, and only exposes an aggregate query timing when it is at most 300 ms.
 
 Benchmark telemetry writes each episode in one transaction to Tiger. Raw sample
 rows carry `rollout_id`, `seed`, `tier`, `checkpoint`, `expert_version`, `ts`,
@@ -186,6 +186,9 @@ rows carry `rollout_id`, `seed`, `tier`, `checkpoint`, `expert_version`, `ts`,
 episode's `bricks`, `correct`, `false_accepts`, `false_rejects`, `pushes`, and
 `cycle_time_s`. The tier API reports aggregate rows by `tier` and
 `expert_version`, with `source: "timescale"` when Tiger is answering.
+The full-rate held-out loader uses PostgreSQL `COPY` once per episode; its
+telemetry-only mode skips camera rasterization while preserving MuJoCo's 30 Hz
+physics and joint/action samples.
 
 ## Page session request from Soren review
 

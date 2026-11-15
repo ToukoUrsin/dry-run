@@ -5,17 +5,16 @@ brick-sorting station. It is a place to test perception, control, failure
 analysis and telemetry before a real arm moves. The simulator is the product
 being demonstrated; it does not make a claim about a physical arm.
 
-The status files are the source of truth for results. A statement belongs in
-the submission only when its status file has an exact command and output that
-can be rerun. Open milestones are deliberately called open.
+The status files and `data/page/*.json` are the source of truth for results. A
+statement belongs in the submission only when its status file has an exact
+command and output that can be rerun. Open milestones are deliberately called
+open.
 
-The public deployment was checked directly on 2026-11-15 at 02:45 UTC. It was
-healthy at commit `bbf30f4`; Tiger-backed `/api/score` reported the current
-`expert-v2-b9d897c` checkpoint at 1090/1262 bricks (`0.8637083994`), and the
-tier endpoint exposed both the supervisor reference rows and the newer pushing
-expert rows. These are simulator results. The learned-policy gate remains open:
-the current ACT maps reach no physical stage, and the Nemotron curriculum
-comparison is expert tuning evidence rather than a learned-policy result.
+The live page is https://dryrun-junction-2026.fly.dev/. Its station, failure,
+inspector, analyst, and Codex views are simulator evidence, and the learned
+policy gate remains open because the current ACT maps reach no physical stage.
+The Nemotron curriculum comparison is measured-expert tuning evidence rather
+than a learned-policy result.
 
 ## What is in the repository
 
@@ -51,16 +50,17 @@ diagnostic or benchmark evidence.
 ## Reproduce the checks
 
 Run these from the repository. Keep new videos, checkpoints and other large
-outputs under `/bulk2/runs/dryrun/` as required by `AGENTS.md`; historical
-proofs may reference the archived `/bulk3/runs/dryrun/` paths.
+outputs under `/bulk3/runs/dryrun/`; historical proofs may reference archived
+paths. The live page is https://dryrun-junction-2026.fly.dev/.
 
 ```bash
 uv run python -c 'import mujoco; print(mujoco.__version__)'
 uv run python -m dryrun.mjcf_station check assets/station.xml
 uv run python -m dryrun.mjcf_station batch --seeds 32
-MUJOCO_GL=egl uv run python -m dryrun.render --seed 7 --out /bulk2/runs/dryrun/m1/seed7.mp4
-# The withdrawn loose benchmark is intentionally not a current score source;
-# use the recorded seeded multi-brick runs in status/M1.md and status/M5.md.
+MUJOCO_GL=egl uv run python -m dryrun.render --seed 7 --out /bulk3/runs/dryrun/m1/seed7.mp4
+MUJOCO_GL=egl PYTHONPATH=. .venv/bin/python -m dryrun.benchmark --seeds 50 \
+  --tier pile --workers 4 --without-inspector \
+  --output /bulk3/runs/dryrun/benchmark/readme-pile50.json
 ```
 
 For the Nemotron run, use the secret without printing it:
@@ -74,9 +74,10 @@ The completed 448 px diagnostic score and its confusion table are in
 measured curriculum comparison and 36-sentence station rollout are proven in
 `status/M5.md`.
 
-The local page uses `DRYRUN_DB_URL` and port `8898`. The public deployment is
-`https://dryrun-junction-2026.fly.dev/`; it must show an explicit empty or
-snapshot state when a live database result is unavailable.
+The local page uses `DRYRUN_DB_URL` and port `8898`. The command output and
+the linked status files are the source of benchmark numbers; the page must
+show an explicit empty or snapshot state when a live database result is
+unavailable.
 
 ## Milestone evidence
 

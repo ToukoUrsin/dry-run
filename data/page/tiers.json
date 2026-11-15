@@ -1,5 +1,5 @@
 {
-  "updated_utc": "2026-11-15T01:44:00Z",
+  "updated_utc": "2026-11-15T01:50:00Z",
   "commit": "b9d897c",
   "summary": "The pushing expert measures 99.48% on loose (380/382) and 91.30% on touching (451/494); pile is omitted until its held-out run completes.",
   "versions": [
@@ -107,7 +107,7 @@
         },
         "false_accepts": 0,
         "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/v2-messy-20261115.json",
+        "source_artifact": "/bulk3/runs/dryrun/benchmark/v2-messy-tiger-20261115.json",
         "p90_cycle_seconds_per_brick": 12.125,
         "event_counts": {
           "drop": 451,

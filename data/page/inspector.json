@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T02:14:21Z",
+  "updated_utc": "2026-11-15T03:14:56Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -298,14 +298,17 @@
   },
   "perception": {
     "artifact": "/bulk3/runs/dryrun/m2_rebuild/perception_eval_200.json",
+    "source_commit": "233cc77",
     "scenes": 200,
-    "detection_rate": 0.7985238095238095,
-    "position_median_mm": 1.747629554441229,
-    "position_p95_mm": 14.157035239587996,
-    "yaw_median_deg": 35.265133371413455,
-    "yaw_p95_deg": 88.1553551565232,
+    "detection_rate": 0.8803333333333333,
+    "position_median_mm": 1.7840598737613496,
+    "position_p95_mm": 14.7236430757265,
+    "yaw_median_deg": 0.19205818815678288,
+    "yaw_p95_deg": 18.334729643785444,
+    "target_yaw_median_deg": 4.0,
     "target_position_p95_mm": 4.0,
-    "status": "open: current colour segmentation misses touching/occluded blobs"
+    "yaw_method": "Minimum-area rectangle long axis on the segmented mask, reflected from image y-down into world yaw; 2x2 evaluated modulo pi/2 and 2x4 modulo pi.",
+    "status": "yaw target met; touching-brick detection remains the separate second-stage limitation"
   },
   "mark_sweep": {
     "artifact": "/bulk3/runs/dryrun/m2_rebuild/mark_sweep_real.json",
@@ -549,5 +552,18 @@
     "two_frames_per_brick_ms_at_4_threads": 433.87,
     "cycle_context": "At four threads, two present frames per brick take about 0.4 s on a laptop, roughly 4% of a 10 s cycle; one thread is about 0.94 s for the pair.",
     "faster_candidate": "No faster ResNet-18 PatchCore or PaDiM candidate was eligible: available probes were synthetic/eval-v2 and did not retain zero errors on the 569-brick real set."
+  },
+  "yaw_fix": {
+    "commit": "233cc77",
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/perception_eval_200.json",
+    "before": {
+      "yaw_median_deg": 35.26513337151346,
+      "yaw_p95_deg": 88.1553551565232
+    },
+    "after": {
+      "yaw_median_deg": 0.19205818815678288,
+      "yaw_p95_deg": 18.334729643785444
+    },
+    "method": "minAreaRect long axis plus size-aware brick symmetry"
   }
 }

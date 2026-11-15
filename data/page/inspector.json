@@ -1087,7 +1087,104 @@
       12,
       17
     ],
-    "review_caveat": "The stale-grip and grasp-height Modal attempts were invalidated by the rollout NameError before the main-owned env repair; no scores from those failed attempts are reported."
+    "review_caveat": "The stale-grip and grasp-height Modal attempts were invalidated by the rollout NameError before the main-owned env repair; no scores from those failed attempts are reported.",
+    "review_final_event_counts": {
+      "grip_check": {
+        "total": 17,
+        "rows": [
+          {
+            "seed": 0,
+            "count": 1
+          },
+          {
+            "seed": 2,
+            "count": 1
+          },
+          {
+            "seed": 3,
+            "count": 2
+          },
+          {
+            "seed": 4,
+            "count": 1
+          },
+          {
+            "seed": 5,
+            "count": 1
+          },
+          {
+            "seed": 6,
+            "count": 3
+          },
+          {
+            "seed": 7,
+            "count": 2
+          },
+          {
+            "seed": 8,
+            "count": 1
+          },
+          {
+            "seed": 10,
+            "count": 1
+          },
+          {
+            "seed": 11,
+            "count": 2
+          },
+          {
+            "seed": 12,
+            "count": 1
+          },
+          {
+            "seed": 18,
+            "count": 1
+          }
+        ]
+      },
+      "miss": {
+        "total": 6,
+        "rows": [
+          {
+            "seed": 5,
+            "count": 1
+          },
+          {
+            "seed": 6,
+            "count": 3
+          },
+          {
+            "seed": 11,
+            "count": 1
+          },
+          {
+            "seed": 12,
+            "count": 1
+          }
+        ]
+      },
+      "ik_fail": {
+        "total": 3,
+        "rows": [
+          {
+            "seed": 6,
+            "count": 1
+          },
+          {
+            "seed": 9,
+            "count": 1
+          },
+          {
+            "seed": 14,
+            "count": 1
+          }
+        ]
+      },
+      "perception_error": {
+        "total": 0,
+        "rows": []
+      }
+    }
   },
   "yaw_provenance": {
     "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_sweep_yaw_provenance.json",

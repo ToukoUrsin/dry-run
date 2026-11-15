@@ -12,3 +12,10 @@ one and the brick acquired lateral velocity; by 49.634 s it was moving at
 the bowl area. This is an honest pile failure from release contact dynamics,
 not a successful drop. The benchmark's `picked_by_contact` field now counts
 unique brick ids from physical `grasp` events (with a legacy flag fallback).
+
+2026-11-15 Prompt 027 pushing-expert held-out loose rerun at `b9d897c`: 80 seeds,
+382 bricks, 380 correct (99.48%), zero pushes, zero slips, and one unstable
+release. Both lost bricks are seed 1079 (7 bricks, 5 correct); the trace has
+an `unstable` event for brick body 14 at 49.600 s after release. The result is
+above the 99% gate, so the pushing expert remains the loose controller. This is
+the known roughly 1-in-900 release-fling case, not a hidden success.

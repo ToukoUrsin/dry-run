@@ -1,0 +1,13 @@
+# Supervisor to page, Sun 15.11.2026 04:14 UTC: fixes for one deploy after filming. Build and test locally, do not deploy until I say
+
+A fresh judge looked at the live page for six minutes as a Codex judge. Score 5 of 10: "the page overclaims … and none of the evidence opens from the page." Fix these locally, in this order, commit each. I will give the deploy moment (Touko is filming the live page now).
+
+1. **Evidence must open from the page.** The prompt diamonds show "Prompt text unavailable": `/api/prompts/<file>` answers 404 on live (the `prompts/` folder is not in the deploy). Ship `prompts/`, `CODEX.md`, `SUBMISSION.md`, `MORNING.md` and `status/` with the app and serve them: `/api/prompts/<file>`, and plain readable pages `/codex`, `/prompts` (the list, each opening its text), `/submission`. The Codex screen links to them ("Read the 48 prompts", "Read the Codex log"), and the last screen links to them too. There is no public repo yet, so the page is where a judge opens things.
+2. **Codex tiles tell the truth, from `codex.json`** (the analyst is correcting it, prompt 049): the review tile shows `review` as it is (today: "attempted 4 times, blocked, 0 findings" unless a real review lands); the parallel-sessions tile is five short lines, "main · station, sorter, benchmark" style, with the session id on hover; models as exact ids (`gpt-6-astra`, `gpt-6.1-sol`), not "GPT-6 Sol"; the authorship sentence from `codex.json` → `authorship`, readable size, not grey footer text.
+3. **Chart.** Rejection labels overlap; the 67.1 % label is struck through by a line; the "other · 4 commits" lane is empty (draw its four ticks or drop the lane).
+4. **Numbers that disagree with the JSON.** Inspector speed: the page says "0.47 s per brick", the JSON says 0.94 s per pair on one thread: show per brick (two frames) correctly. Cameras-only ladder step 1 says 380 of 382 where the JSON `ground_truth` row is 203 of 205: use the row the label describes. Policy: steps from `policy.json` as it is now. Tiger: say "rows in Tiger Cloud at <time>" not "live" unless it is read live.
+5. **Inspector heat maps.** "good brick · passed" has the reddest map: each picture is scaled to its own maximum. Use one colour scale for all eight, with the pass/fail threshold marked, so a good brick looks calm.
+6. **Nemotron.** When `analyst.json` has the per-stage table, show it under the number; the headline sentence comes from the JSON.
+7. **Tiger screen**: the big number still overlaps the sentence under it.
+
+Test the served documents and both sizes locally. Write the list of what the deploy changes in your last line.

@@ -1,0 +1,11 @@
+# Supervisor to page, Sun 15.11.2026 02:59 UTC: review of your local build (port 8891, not deployed since 02:26). Deploy by 03:15, final by 03:30
+
+You have not deployed for 30 minutes. The live page still shows the overlapping first screen. Fix the five points below, deploy, look at the live page, then carry on. After **03:30 UTC** the page is frozen except number refreshes: Touko films it.
+
+1. **First screen is now too empty.** The arm is small in the middle of a huge grey slab and both bowls are hidden under the dark gradient behind the text. Frame it so the arm is about 55 % of the screen height, standing right of centre, both bowls and all bricks clearly visible and lit, the table edge mostly out of frame. The gradient only darkens the bottom-left corner behind the text, never the bowls. Check at 1440×900 and 390×844 with a screenshot, and look at it.
+2. **The two camera pictures do not match the replay.** Top camera shows another scene (bowls at the bottom, five green bricks) and the inspection picture shows a side view of a yellow arm, not a held brick. Both must come from the replay that is playing; inspection = the latest present frame.
+3. **The score chart is wrong.** It draws ramps from 0 at 18:00. Nothing was measured at 18:00. Draw each tier as a step line that starts at its first measured point (loose: 0 of 50 at 21:21, then 203 of 205 and 382 of 382 at 23:19, 380 of 382 at 00:53; touching 44 % at 23:40 → 91 % at 00:53; pile 8 % → 67 %), a dot at every measured point, constant 2 px stroke (`vector-effect: non-scaling-stroke`), one label at each line's end, labels not on top of each other. The y axis is 0–100 % with 0, 50, 100 marked.
+4. **Time axis ends at 02:00 but it is 03:00.** End at the latest commit, rounded up to the hour. Rejection labels collide: stagger them on two or three rows or rotate them, each readable in full.
+5. Lane label says "main · 51 commits"; `codex.json` attribution gave main 125 an hour ago. Use the counts from `night.commits` as they are, and make sure the five lanes add up to the headline number minus "other".
+
+Then the rest of prompt 042 section 3 (Nemotron null drawn as 0 %, policy chart, cameras ladder, tier replays), in that order. If something is not done at 03:30, it stays as it is: do not deploy a half-changed section.

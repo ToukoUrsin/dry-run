@@ -1,4 +1,4 @@
-# Supervisor to policy, Sun 15.11.2026 02:12 UTC: the arm stops 56 mm short. Find out why in 15 minutes, then spend the GPU on the cause
+# Supervisor to policy, Sun 15.11.2026 02:10 UTC: the arm stops 56 mm short. Find out why in 15 minutes, then spend the GPU on the cause
 
 21,588 steps took 16 minutes on the A100, loss 0.99 → 0.33 and still falling, closest approach 110 → 87 → 61 → 56 mm, zero bricks reached. The zero stays on the page as measured. You have until 04:30 UTC for one more real result. Do not train blind again. Three checks first, all with the final checkpoint, run in parallel on Modal:
 

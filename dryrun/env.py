@@ -118,7 +118,15 @@ class StationEnv:
         # controllers get the same physical stage accounting as the expert.
         # The controller may still attach an opaque token to its own event;
         # this stream uses the simulator body id only for internal scoring.
-        grasped = set()
+        tcp_site = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, "gripperframe")
+        tcp = self.data.site_xpos[tcp_site] if tcp_site >= 0 else None
+        if tcp is not None:
+            for body in brick_set:
+                if float(np.linalg.norm(self.data.xpos[body] - tcp)) <= .06:
+                    reach_key = ("reach", body, "")
+                    if reach_key not in self._physical_events:
+                        self._physical_events.add(reach_key); self._event("reach", body)
+
         for body, forces in pad_forces.items():
             grasp_key = ("grasp", body, "")
             if len(pads) == 2 and all(forces.get(pad, 0.0) >= 0.2 for pad in pads):

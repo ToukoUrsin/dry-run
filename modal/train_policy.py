@@ -29,8 +29,9 @@ def train(
     from lerobot.policies.act import ACTConfig, ACTPolicy
     from lerobot.configs.types import PolicyFeature, FeatureType
     features = {"observation.images.top": PolicyFeature(FeatureType.VISUAL, (3,64,64)), "observation.images.inspection": PolicyFeature(FeatureType.VISUAL, (3,64,64)), "observation.state": PolicyFeature(FeatureType.STATE, (7,))}
-    cfg = ACTConfig(input_features=features, output_features={"action": PolicyFeature(FeatureType.ACTION,(6,))}, chunk_size=4, n_action_steps=1, use_vae=False, pretrained_backbone_weights=None, dim_model=64, n_heads=4, n_encoder_layers=1, n_decoder_layers=1, dim_feedforward=128, n_vae_encoder_layers=1, optimizer_lr=2e-4, push_to_hub=False)
-    ds = LeRobotDataset("dryrun-so101", root=dataset, download_videos=False)
+    chunk_size = 30
+    cfg = ACTConfig(input_features=features, output_features={"action": PolicyFeature(FeatureType.ACTION,(6,))}, chunk_size=chunk_size, n_action_steps=1, use_vae=False, pretrained_backbone_weights=None, dim_model=64, n_heads=4, n_encoder_layers=1, n_decoder_layers=1, dim_feedforward=128, n_vae_encoder_layers=1, optimizer_lr=2e-4, push_to_hub=False)
+    ds = LeRobotDataset("dryrun-so101", root=dataset, download_videos=False, delta_timestamps={"action": [(i + 1) / 30.0 for i in range(chunk_size)]})
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     policy = ACTPolicy(cfg).to(device); opt = torch.optim.AdamW(policy.parameters(), lr=cfg.optimizer_lr)
     output = Path(out_dir); output.mkdir(parents=True, exist_ok=True)
@@ -40,13 +41,13 @@ def train(
         for epoch in range(epochs):
             for i in range(0, len(ds), int(batch_size)):
                 rows = [ds[j] for j in range(i, min(i+int(batch_size), len(ds)))]
-                top = torch.stack([r["observation.images.top"] for r in rows]).float().to(device); inspection = torch.stack([r["observation.images.inspection"] for r in rows]).float().to(device); state = torch.cat([torch.stack([r["observation.state"] for r in rows]).float(), torch.stack([r["inspection.verdict"] for r in rows]).float().reshape(len(rows),1)],1).to(device); action = torch.stack([r["action"] for r in rows]).float()[:,None,:].repeat(1,4,1).to(device); batch={"observation.images.top":top,"observation.images.inspection":inspection,"observation.state":state,"action":action,"action_is_pad":torch.zeros(len(rows),4,dtype=torch.bool,device=device)}
+                top = torch.stack([r["observation.images.top"] for r in rows]).float().to(device); inspection = torch.stack([r["observation.images.inspection"] for r in rows]).float().to(device); state = torch.cat([torch.stack([r["observation.state"] for r in rows]).float(), torch.stack([r["inspection.verdict"] for r in rows]).float().reshape(len(rows),1)],1).to(device); action = torch.stack([r["action"] for r in rows]).float().to(device); action_is_pad = torch.stack([r["action_is_pad"] for r in rows]).bool().to(device); batch={"observation.images.top":top,"observation.images.inspection":inspection,"observation.state":state,"action":action,"action_is_pad":action_is_pad}
                 loss, info = policy(batch); opt.zero_grad(); loss.backward(); opt.step(); step += 1; row={"step":step,"epoch":epoch+1,"loss":float(loss),"l1_loss":float(info["l1_loss"]),"seconds":time.time()-started}; log.write(json.dumps(row)+"\n"); log.flush()
                 if step % checkpoint_every == 0:
-                    torch.save({"state_dict":policy.state_dict(),"step":step,"architecture":"LeRobot ACT"}, output / f"act-step-{step:06d}.pt")
+                    torch.save({"state_dict":policy.state_dict(),"step":step,"architecture":"LeRobot ACT","chunk_size":chunk_size,"image_size":64}, output / f"act-step-{step:06d}.pt")
     final = output / "act-final.pt"
-    torch.save({"state_dict":policy.state_dict(),"step":step,"architecture":"LeRobot ACT"}, final)
-    summary = {"dataset": dataset, "output": str(output), "steps": step, "checkpoint": str(final), "log": str(log_path), "gpu": "cuda" if device.type == "cuda" else "cpu", "seconds": time.time()-started}
+    torch.save({"state_dict":policy.state_dict(),"step":step,"architecture":"LeRobot ACT","chunk_size":chunk_size,"image_size":64}, final)
+    summary = {"dataset": dataset, "output": str(output), "steps": step, "checkpoint": str(final), "log": str(log_path), "gpu": "cuda" if device.type == "cuda" else "cpu", "chunk_size":chunk_size, "image_size":64, "seconds": time.time()-started}
     (output / "training.json").write_text(json.dumps(summary, indent=2) + "\n")
     volume.commit(); return summary
 

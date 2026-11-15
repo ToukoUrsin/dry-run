@@ -52,13 +52,19 @@ def train_shards(
         root = Path(f"/shards/{index:02d}") / run_id / dataset_name
         if not (root / "_COMPLETE.json").exists():
             continue
-        datasets.append(LeRobotDataset("dryrun-so101", root=root, download_videos=False))
+        datasets.append(
+            LeRobotDataset(
+                "dryrun-so101", root=root, download_videos=False,
+                delta_timestamps={"action": [(i + 1) / 30.0 for i in range(30)]},
+            )
+        )
         roots.append(str(root))
     if not datasets:
         raise FileNotFoundError(f"no completed datasets for run {run_id}: {shard_indices}")
     dataset = ConcatDataset(datasets)
 
-    cfg = act_config(chunk_size=60, image_size=int(image_size))
+    chunk_size = 30
+    cfg = act_config(chunk_size=chunk_size, image_size=int(image_size))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.set_num_threads(4)
     policy = __import__("lerobot.policies.act", fromlist=["ACTPolicy"]).ACTPolicy(cfg).to(device)
@@ -79,13 +85,14 @@ def train_shards(
         inspection = rows["observation.images.inspection"].float()
         state = rows["observation.state"].float()
         verdict = rows["inspection.verdict"].float().reshape(top.shape[0], 1)
-        action = rows["action"].float()[:, None, :].repeat(1, cfg.chunk_size, 1)
+        action = rows["action"].float()
+        action_is_pad = rows["action_is_pad"].bool()
         return {
             "observation.images.top": top.to(device, non_blocking=True),
             "observation.images.inspection": inspection.to(device, non_blocking=True),
             "observation.state": torch.cat([state, verdict], dim=1).to(device, non_blocking=True),
             "action": action.to(device, non_blocking=True),
-            "action_is_pad": torch.zeros(top.shape[0], cfg.chunk_size, dtype=torch.bool, device=device),
+            "action_is_pad": action_is_pad.to(device, non_blocking=True),
         }
 
     worker_count = max(0, int(data_workers))
@@ -98,6 +105,8 @@ def train_shards(
     }
     if worker_count > 0:
         loader_kwargs.update({"persistent_workers": True, "prefetch_factor": 2})
+    # Future action windows are episode-local and start at the next tick after
+    # the stored post-step observation; LeRobot supplies padding at boundaries.
     loader = DataLoader(dataset, **loader_kwargs)
     rows_log = []
     with log_path.open("w") as log:

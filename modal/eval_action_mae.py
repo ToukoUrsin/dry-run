@@ -17,9 +17,15 @@ def evaluate(dataset: str, checkpoint: str, batch_size: int = 64):
     import numpy as np, torch
     from lerobot.datasets.lerobot_dataset import LeRobotDataset
     from dryrun.train_policy import load_policy
-    ds = LeRobotDataset("dryrun-so101", root=dataset, download_videos=False)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     policy = load_policy(checkpoint, device=str(device))
+    chunk_size = int(policy.config.chunk_size)
+    # Match training/evaluation: the stored observation is post-step, so its
+    # target begins at the next tick and remains inside the same episode.
+    ds = LeRobotDataset(
+        "dryrun-so101", root=dataset, download_videos=False,
+        delta_timestamps={"action": [(i + 1) / 30.0 for i in range(chunk_size)]},
+    )
     total = np.zeros(6, dtype=np.float64); n = 0
     with torch.no_grad():
         for start in range(0, len(ds), int(batch_size)):
@@ -31,8 +37,10 @@ def evaluate(dataset: str, checkpoint: str, batch_size: int = 64):
             batch = {"observation.images.top": top, "observation.images.inspection": inspection,
                      "observation.state": torch.cat([state, verdict], 1)}
             pred = policy.select_action(batch).detach().cpu().numpy()
-            target = np.stack([r["action"].numpy() for r in rows])
-            total += np.abs(pred - target).sum(axis=0); n += len(rows)
+            target = np.stack([r["action"][0].numpy() for r in rows])
+            valid = np.asarray([not bool(r["action_is_pad"][0]) for r in rows])
+            if np.any(valid):
+                total += np.abs(pred[valid] - target[valid]).sum(axis=0); n += int(valid.sum())
     return {"dataset": dataset, "checkpoint": checkpoint, "frames": int(n),
             "mae_per_joint": (total / n).tolist(), "mae_all_joints": float(total.sum() / (n * 6)),
             "device": str(device)}

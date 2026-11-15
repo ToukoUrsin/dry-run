@@ -271,16 +271,36 @@ def sync(source_url: str | None = None, target_url: str | None = None) -> dict:
     copied = 0
     with psycopg.connect(source_url) as source, psycopg.connect(target_url) as target:
         ids = {r[0] for r in target.execute("SELECT DISTINCT rollout_id FROM rollout_results").fetchall()}
-        results = source.execute("SELECT finished_at,rollout_id,seed,checkpoint,bricks,correct,drops,false_accepts,false_rejects,cycle_time_s,failure_reason,outcome FROM rollout_results ORDER BY finished_at").fetchall()
+        results = source.execute("""SELECT finished_at,rollout_id,seed,checkpoint,tier,expert_version,
+                                         bricks,correct,drops,false_accepts,false_rejects,pushes,
+                                         cycle_time_s,failure_reason,outcome
+                                  FROM rollout_results ORDER BY finished_at""").fetchall()
         for result in results:
             rid = result[1]
             if rid in ids: continue
-            rows = source.execute("SELECT ts,rollout_id,seed,checkpoint,q0,q1,q2,q3,q4,q5,gripper,event,event_data,outcome FROM rollout_telemetry WHERE rollout_id=%s ORDER BY ts", (rid,)).fetchall()
-            rows = [tuple(list(row[:12]) + [Jsonb(row[12]) if row[12] is not None else None, Jsonb(row[13]) if row[13] is not None else None]) for row in rows]
+            rows = source.execute("""SELECT ts,rollout_id,seed,checkpoint,tier,expert_version,
+                                          q0,q1,q2,q3,q4,q5,gripper,target0,target1,target2,
+                                          target3,target4,target5,gripper_effort,event,event_data,outcome
+                                   FROM rollout_telemetry WHERE rollout_id=%s ORDER BY ts""", (rid,)).fetchall()
+            rows = [tuple(list(row[:21]) + [Jsonb(row[21]) if row[21] is not None else None,
+                                             Jsonb(row[22]) if row[22] is not None else None]) for row in rows]
+            events = source.execute("""SELECT ts,rollout_id,seed,tier,expert_version,event,event_data
+                                      FROM rollout_events WHERE rollout_id=%s ORDER BY ts""", (rid,)).fetchall()
             with target.cursor() as cur:
-                cur.executemany("""INSERT INTO rollout_telemetry (ts,rollout_id,seed,checkpoint,q0,q1,q2,q3,q4,q5,gripper,event,event_data,outcome) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", rows)
-                result = tuple(list(result[:-1]) + [Jsonb(result[-1])])
-                cur.execute("""INSERT INTO rollout_results (finished_at,rollout_id,seed,checkpoint,bricks,correct,drops,false_accepts,false_rejects,cycle_time_s,failure_reason,outcome) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING""", result)
+                cur.executemany("""INSERT INTO rollout_telemetry
+                    (ts,rollout_id,seed,checkpoint,tier,expert_version,q0,q1,q2,q3,q4,q5,
+                     gripper,target0,target1,target2,target3,target4,target5,gripper_effort,
+                     event,event_data,outcome)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", rows)
+                cur.executemany("""INSERT INTO rollout_events
+                    (ts,rollout_id,seed,tier,expert_version,event,event_data)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)""", [(tuple(list(row[:6]) + [Jsonb(row[6]) if row[6] is not None else None])) for row in events])
+                result_values = tuple(list(result[:-1]) + [Jsonb(result[-1])])
+                cur.execute("""INSERT INTO rollout_results
+                    (finished_at,rollout_id,seed,checkpoint,tier,expert_version,bricks,correct,
+                     drops,false_accepts,false_rejects,pushes,cycle_time_s,failure_reason,outcome)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    ON CONFLICT DO NOTHING""", result_values)
             copied += 1; ids.add(rid)
         target.commit()
     refresh(target_url)

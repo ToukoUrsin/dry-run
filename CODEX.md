@@ -115,3 +115,8 @@ because Blender MCP requested approval while this session's policy is
 top, and inspection videos plus 12 linked 256 px presentation crops. The
 clean seed-1000 replay sorts 6/6 with 12 verdict events; evidence is under
 `/bulk3/runs/dryrun/m1/reference-replay-seed1000-bcee980/`.
+
+2026-11-15 00:45 UTC — Main session added the explicit 3--12 scene-count
+contract at `0d0b556` and recorded it in `0339c52`. Seeded 12-brick fixtures
+load as MuJoCo stations under `/bulk3/runs/dryrun/m1/explicit12-station.xml`;
+the full suite passed 21 tests.

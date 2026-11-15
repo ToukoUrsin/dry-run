@@ -1,11 +1,11 @@
 {
-  "updated_utc": "2026-11-15T01:50:00Z",
+  "updated_utc": "2026-11-15T02:15:00Z",
   "commit": "3852872",
-  "summary": "Tiger Cloud currently contains 182 rollout outcomes, 11,798 raw telemetry rows, and 10,702 aggregate rows; the old-expert and pile loads are still arriving.",
+  "summary": "Tiger Cloud contains 357 rollout outcomes, 17,439 raw telemetry rows, and 16,334 aggregate rows; the old 200-episode load is complete and the v2 pile load is still running.",
   "stats": {
-    "telemetry_rows": 11798,
-    "rollouts": 182,
-    "aggregate_rows": 10702,
+    "telemetry_rows": 17439,
+    "rollouts": 357,
+    "aggregate_rows": 16334,
     "checkpoint_rows": 3,
     "diagnosis_rows": 0,
     "compression_enabled": true,
@@ -13,8 +13,8 @@
     "compressed_bytes": 122880,
     "compression_ratio": 2.2,
     "query_ms": {
-      "catalog": 1102.203,
-      "tier_snapshot": 698.825
+      "catalog": 1107.06,
+      "tier_snapshot": 661.258
     },
     "source": "timescale",
     "source_command": "hsec exec --only DRYRUN_TIGER_DB_URL -- bash -c 'DRYRUN_DB_URL=... python -m dryrun.telemetry remote-stats'",
@@ -24,6 +24,6 @@
     "read_from": "Tiger Cloud",
     "api_source": "timescale",
     "refresh_command": "python -m dryrun.telemetry remote-stats",
-    "last_snapshot": "2026-11-15T01:50:00Z"
+    "last_snapshot": "2026-11-15T02:15:00Z"
   }
 }

@@ -109,3 +109,9 @@ integrated by Codex, not an independently invented grasp score.
 Prompt 022 main changes. The review worker could not inspect the repository
 because Blender MCP requested approval while this session's policy is
 `approval=never`; no review findings were returned.
+
+2026-11-15 00:16 UTC — The featured replay exporter was completed at
+`bcee980`: it stops when the reference expert enters `done` and writes free,
+top, and inspection videos plus 12 linked 256 px presentation crops. The
+clean seed-1000 replay sorts 6/6 with 12 verdict events; evidence is under
+`/bulk3/runs/dryrun/m1/reference-replay-seed1000-bcee980/`.

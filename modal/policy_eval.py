@@ -100,6 +100,7 @@ class _ApproachRecorder:
 def evaluate_seed(
     seed: int,
     tier: str = "loose",
+    count: int | None = None,
     checkpoint: str = "/runs/act-final-modal.pt",
     max_steps: int = 3600,
     run_id: str = "latest",
@@ -128,7 +129,7 @@ def evaluate_seed(
     )
     inspector = Inspector(inspector_model, threads=1)
     approach = _ApproachRecorder(int(seed), str(tier))
-    result = run(int(seed), controller, inspector=inspector, record=approach, tier=tier, max_steps=int(max_steps), render_size=int(render_size))
+    result = run(int(seed), controller, count=None if count is None else int(count), inspector=inspector, record=approach, tier=tier, max_steps=int(max_steps), render_size=int(render_size))
     stages = _stage_counts(result.get("events", []))
     row = {
         "format": "dryrun-policy-eval-row-v1",
@@ -137,6 +138,7 @@ def evaluate_seed(
         "source_commit": str(source_commit),
         "seed": int(seed),
         "tier": str(tier),
+        "count": None if count is None else int(count),
         "checkpoint": checkpoint,
         "max_steps": int(max_steps),
         "open_loop_ticks": int(open_loop_ticks),
@@ -173,6 +175,7 @@ def _commit() -> str:
 def main(
     seeds: str = "0,1,2",
     tier: str = "loose",
+    count: int | None = None,
     checkpoint: str = "/runs/act-final-modal.pt",
     max_steps: int = 3600,
     run_id: str = "",
@@ -193,6 +196,7 @@ def main(
             values,
             kwargs={
                 "tier": tier,
+                "count": None if count is None else int(count),
                 "checkpoint": checkpoint,
                 "max_steps": int(max_steps),
                 "run_id": run_id,
@@ -213,6 +217,7 @@ def main(
         "source_commit": source_commit,
         "run_id": run_id,
         "tier": tier,
+        "count": None if count is None else int(count),
         "checkpoint": checkpoint,
         "max_steps": int(max_steps),
         "open_loop_ticks": int(open_loop_ticks),

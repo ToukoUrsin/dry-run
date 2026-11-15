@@ -1,12 +1,12 @@
 {
-  "updated_utc": "2026-11-15T03:58:08.806710Z",
-  "commit": "825999c5343f",
-  "summary": "Tiger Cloud contains 401 rollout outcomes and 580704 measured 30 Hz joint rows from both held-out sorters; compression is 2.176x.",
+  "updated_utc": "2026-11-15T06:33:15.614077Z",
+  "commit": "68956fd",
+  "summary": "Tiger Cloud contains 626 rollout outcomes and 1001648 measured 30 Hz joint rows from the held-out sorters plus measured full-rate closeout batches; compression is 2.176x.",
   "stats": {
-    "telemetry_rows": 580704,
-    "rollouts": 401,
-    "aggregate_rows": 19729,
-    "checkpoint_rows": 3,
+    "telemetry_rows": 1001648,
+    "rollouts": 626,
+    "aggregate_rows": 33986,
+    "checkpoint_rows": 7,
     "diagnosis_rows": 0,
     "compression_enabled": true,
     "uncompressed_bytes": 303104,
@@ -50,7 +50,7 @@
         "false_accepts": 0,
         "false_rejects": 0,
         "pushes": 0,
-        "cycle_time_s": 10.04641071428718,
+        "cycle_time_s": 10.046410714287179,
         "rollouts": 80,
         "median_cycle_time_s": 10.040000000003078,
         "p90_cycle_time_s": 10.066666666664714,
@@ -75,6 +75,42 @@
           "unstable": 1
         },
         "score": 0.9947643979057592
+      },
+      {
+        "tier": "loose",
+        "expert_version": "extra-adb90ed",
+        "bricks": 400,
+        "correct": 399,
+        "false_accepts": 0,
+        "false_rejects": 0,
+        "pushes": 0,
+        "cycle_time_s": 10.045666666668446,
+        "rollouts": 80,
+        "median_cycle_time_s": 10.040000000003078,
+        "p90_cycle_time_s": 10.066666666664714,
+        "pushes_per_rollout": 0.0,
+        "failures_by_event": {
+          "ik_fail": 1
+        },
+        "score": 0.9975
+      },
+      {
+        "tier": "loose",
+        "expert_version": "extra-second-adb90ed",
+        "bricks": 123,
+        "correct": 122,
+        "false_accepts": 0,
+        "false_rejects": 0,
+        "pushes": 0,
+        "cycle_time_s": 10.049352380954236,
+        "rollouts": 25,
+        "median_cycle_time_s": 10.050000000000791,
+        "p90_cycle_time_s": 10.066666666664714,
+        "pushes_per_rollout": 0.0,
+        "failures_by_event": {
+          "ik_fail": 1
+        },
+        "score": 0.991869918699187
       },
       {
         "tier": "messy",
@@ -116,6 +152,25 @@
         "score": 0.9129554655870445
       },
       {
+        "tier": "messy",
+        "expert_version": "extra-adb90ed",
+        "bricks": 515,
+        "correct": 451,
+        "false_accepts": 0,
+        "false_rejects": 0,
+        "pushes": 118,
+        "cycle_time_s": 10.121971995465383,
+        "rollouts": 70,
+        "median_cycle_time_s": 10.040000000003078,
+        "p90_cycle_time_s": 10.906285714289403,
+        "pushes_per_rollout": 1.6857142857142857,
+        "failures_by_event": {
+          "ik_fail": 27,
+          "miss": 5
+        },
+        "score": 0.8757281553398059
+      },
+      {
         "tier": "pile",
         "expert_version": "64c4919",
         "bricks": 386,
@@ -155,6 +210,26 @@
         "score": 0.6709844559585493
       },
       {
+        "tier": "pile",
+        "expert_version": "extra-adb90ed",
+        "bricks": 394,
+        "correct": 242,
+        "false_accepts": 0,
+        "false_rejects": 1,
+        "pushes": 214,
+        "cycle_time_s": 8.91262055555622,
+        "rollouts": 50,
+        "median_cycle_time_s": 9.04444444444352,
+        "p90_cycle_time_s": 11.834285714284048,
+        "pushes_per_rollout": 4.28,
+        "failures_by_event": {
+          "ik_fail": 126,
+          "miss": 5,
+          "unstable": 1
+        },
+        "score": 0.6142131979695431
+      },
+      {
         "tier": "unknown",
         "expert_version": "unknown",
         "bricks": 8,
@@ -180,14 +255,17 @@
       "telemetry_totals"
     ],
     "source": "timescale",
-    "source_command": "hsec exec DRYRUN_TIGER_DB_URL python -m dryrun.telemetry remote-stats",
-    "live_env": "DRYRUN_TIGER_DB_URL"
+    "source_command": "hsec exec --only DRYRUN_TIGER_DB_URL -- bash -lc 'DRYRUN_DB_URL=\"$DRYRUN_TIGER_DB_URL\" .venv/bin/python -m dryrun.telemetry remote-stats'",
+    "live_env": "DRYRUN_TIGER_DB_URL",
+    "additional_fullrate_rollouts": 225
   },
   "live": {
     "read_from": "Tiger Cloud",
     "api_source": "timescale",
     "refresh_command": "python -m dryrun.telemetry refresh",
-    "last_snapshot": "2026-11-15T03:58:08.806710Z",
-    "slow_timings": "not published; measured catalog calls exceeded the 300 ms feature gate"
+    "last_snapshot": "2026-11-15T06:33:15.614077Z",
+    "slow_timings": "not published; measured catalog calls exceeded the 300 ms feature gate",
+    "source_commit": "68956fd",
+    "last_batch": "/bulk3/runs/dryrun/m3-more/m3-more-batch.jsonl"
   }
 }

@@ -21,9 +21,10 @@ per photo, including photos in a new output directory.
    brick before relying on a verdict about a hidden face.
 4. Capture both station cameras and run one teleoperated demonstration. Record
    the real cycle time beside the simulator replay.
-5. If a Tiger Cloud URL has been supplied, set `DRYRUN_DB_URL`, run the
-   telemetry setup/sync command from `status/M3.md`, then rerun the benchmark
-   command shown there and save its commit.
+5. If a Tiger Cloud URL has been supplied, set `DRYRUN_DB_URL` and run the
+   telemetry setup/sync command from `status/M3.md`. Record the resulting
+   `/api/score` and `/api/benchmark-tiers` payloads with their source commit;
+   keep those simulator measurements separate from the real-arm check.
 6. Photograph the real arm sorting a held-out pile. Keep the photos and the
    inspector outputs with the run record.
 

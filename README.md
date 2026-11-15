@@ -9,6 +9,14 @@ The status files are the source of truth for results. A statement belongs in
 the submission only when its status file has an exact command and output that
 can be rerun. Open milestones are deliberately called open.
 
+The public deployment was checked directly on 2026-11-15 at 02:45 UTC. It was
+healthy at commit `bbf30f4`; Tiger-backed `/api/score` reported the current
+`expert-v2-b9d897c` checkpoint at 1090/1262 bricks (`0.8637083994`), and the
+tier endpoint exposed both the supervisor reference rows and the newer pushing
+expert rows. These are simulator results. The learned-policy gate remains open:
+the current ACT maps reach no physical stage, and the Nemotron curriculum
+comparison is expert tuning evidence rather than a learned-policy result.
+
 ## What is in the repository
 
 - `assets/SO101/` contains the official SO-101 model, meshes and licence.
@@ -17,7 +25,10 @@ can be rerun. Open milestones are deliberately called open.
 - `dryrun/render.py` and `dryrun/benchmark.py` run the MuJoCo expert and
   record physical events and scores.
 - `dryrun/inspector*.py` and `dryrun/defects.py` contain the good-only
-  inspection experiment and its held-out evaluation.
+  inspection experiments and held-out evaluations. The shipped PatchCore is
+  adapted from real good present frames; the synthetic-render-only model was
+  rejected on real crops, so the exact Anomalib synthetic-training gate remains
+  open (see `status/M2.md`).
 - `dryrun/telemetry.py`, `data/schema.sql` and `web/` provide the telemetry
   writer and dashboard.
 - `dryrun/nemotron*.py`, `dryrun/curriculum*.py`, `dryrun/stations*.py` and
@@ -31,24 +42,23 @@ as failure evidence and are not benchmark or training results. Current page
 evidence uses seeded multi-brick scenes; the measured touching and pile rows
 are recorded in `data/page/codex.json` and `status/M5.md`.
 
-The grasp recipe and cycle timings were measured and prototyped by the
-supervising agent outside Codex, then handed over in
-`prompts/019-grasp-recipe-measured.md` and `prompts/021-reference/`. Codex
-integrated the recipe into the station, rollout API, scoring and replay paths;
-the station and analyst artifacts document which runs are diagnostic or
-benchmark evidence.
+The measured grasp recipe and cycle timings were supplied as prompt artifacts
+in `prompts/019-grasp-recipe-measured.md` and `prompts/021-reference/`.
+Codex ported and integrated that recipe into the station, rollout API, scoring
+and replay paths; the station and analyst artifacts document which runs are
+diagnostic or benchmark evidence.
 
 ## Reproduce the checks
 
-Run these from the repository. Keep videos, checkpoints and other large
-outputs under `/bulk3/runs/dryrun/`; the repository keeps source and small
-text records.
+Run these from the repository. Keep new videos, checkpoints and other large
+outputs under `/bulk2/runs/dryrun/` as required by `AGENTS.md`; historical
+proofs may reference the archived `/bulk3/runs/dryrun/` paths.
 
 ```bash
 uv run python -c 'import mujoco; print(mujoco.__version__)'
 uv run python -m dryrun.mjcf_station check assets/station.xml
 uv run python -m dryrun.mjcf_station batch --seeds 32
-MUJOCO_GL=egl uv run python -m dryrun.render --seed 7 --out /bulk3/runs/dryrun/m1/seed7.mp4
+MUJOCO_GL=egl uv run python -m dryrun.render --seed 7 --out /bulk2/runs/dryrun/m1/seed7.mp4
 # The withdrawn loose benchmark is intentionally not a current score source;
 # use the recorded seeded multi-brick runs in status/M1.md and status/M5.md.
 ```

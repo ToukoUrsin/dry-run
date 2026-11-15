@@ -9,7 +9,7 @@ The first pass used parallel Codex sessions, but its status claims were rejected
 
 2026-11-14 18:47 UTC — Astra grasp review (`prompts/004-review-of-seed7.md`): inspected real SO-101 jaw frames and measured pad contact. The wrapper now disables gripper mesh collisions, uses only fixed/moving thin high-friction box pads (`condim=4`, friction 1.8), raises gripper actuator force to ±12, and the station uses elliptic contacts (`impratio=10`, `noslip_iterations=3`). `dryrun/grasp_test.py` runs one 2x2 Duplo on an empty table over ten position/yaw trials, logs pad-only contact force, and re-solves the measured brick pose after approach and again before closing; IK solves restore qpos so planning does not teleport the physics state. Proof run: `MUJOCO_GL=egl uv run python -m dryrun.grasp_test --out /bulk2/runs/dryrun/m1/grasp_retry2.jsonl --xml /bulk2/runs/dryrun/m1/grasp_retry2.xml` -> 8/10 lifts, 6/10 both-pad contact, peak pad normal forces up to 56.5 N. This remains open; the two hard positions still lose contact. A temporary larger-pad variant was measured and rejected: 0/10 lifts, 5/10 both-pad contact.
 | 2026-11-14 | Seed-7 grasp review | gpt-6-astra + gpt-6.1-sol | Added elliptic contacts, noslip iterations, high-friction condim-4 jaw pads, pad-midpoint IK, contact-force logging, and closed-loop jaw stopping. Varied calibration is 8/10 lifted; M1 stays open. |
-| 2026-11-14 | Fly deployment | gpt-6.1-sol (root) | Deployed the static dashboard as `dryrun-junction-2026`; public smoke test returned HTML at https://dryrun-junction-2026.fly.dev/. Public score is honestly unavailable until a remote Timescale URL is supplied. |
+| 2026-11-14 | Fly deployment (historical) | gpt-6.1-sol (root) | Deployed the first static dashboard as `dryrun-junction-2026`; its initial smoke test returned HTML at https://dryrun-junction-2026.fly.dev/. The score was unavailable then because no remote Timescale URL was supplied; the later Tiger-backed deployment is audited below. |
 
 | 2026-11-14 | Inspector M2 | gpt-6.1-astra + gpt-6.1-sol | Replaced the 580-image overlay harness with seeded MuJoCo inspection renders, good-only Anomalib training, PaDiM/PatchCore/EfficientAD comparison, OpenVINO CPU timing, held-out defect evaluation and the `Inspector`/photo interfaces. The built-in image-generation tool was unavailable in this session, so the sticker art and table surface are deterministic seeded raster assets generated locally and recorded under the M2 run. |
 | 2026-11-14 | M2 review gate | codex review (gpt-6.1-sol) | Ran `codex review --uncommitted` before the M2 status commit. The review worker could not start because its Chrome MCP requested approval while this session's policy is `approval=never`; no review findings were returned. Local compile, Inspector, photo CLI and benchmark smoke checks passed. |
@@ -51,7 +51,7 @@ final review because it sees all shared paths.
 | Browser and public smoke checks | `/root/page`, gpt-6.1-sol | `scripts/smoke_public.py`; page captures and console/error output are under `/bulk3/runs/dryrun/page-shots/`. |
 | Image generation | `/root/inspector`, gpt-6.1-sol | The image-generation tool was unavailable; deterministic seeded raster assets were used and recorded in `status/M2.md`. |
 | AGENTS rules and skills | `/root` and the named streams | `AGENTS.md`; `status/M5.md` records the hsec, telemetry and review boundaries used. |
-| Codex review | `/root`, gpt-6.1-sol | `/bulk3/runs/dryrun/codex-review-goal012-final.log`; the reviewed diff had no actionable findings, while sandbox/MCP inspection was unavailable. |
+| Codex review | `/root`, gpt-6.1-sol | `/bulk3/runs/dryrun/codex-review-goal012-final.log`; no findings were returned because sandbox/MCP inspection was unavailable, so this is not a green review. |
 
 2026-11-14 20:00 UTC — Main rollout API and tier benchmark (`gpt-6-astra`, ultra): published `dryrun.env.StationEnv` and `dryrun.rollout.run` with camera/state-only observations, exact 30 Hz substep accumulation, six-target actions, recorder cycle markers, inspector hook and the shared event vocabulary. Added fixed 80/70/50 loose/messy/pile benchmark partitioning and page replay/thumbnail contract in `docs/interfaces.md`. Smoke proof: `MUJOCO_GL=egl uv run python - <<'PY' ... StationEnv.reset/step ... PY` returned uint8 top/inspection frames and float32[6] joints. The loose benchmark number was withheld: the seeded multi-brick generator and closed-form reach gate were still being replaced, so no score from that run is evidence.
 
@@ -65,7 +65,7 @@ failed on a sandbox mount before repository commands ran. It also logged that
 Chrome DevTools required approval while the project approval policy was `never`.
 No review findings were produced; this is not a clean review result.
 
-## Page rounds and current proof (2026-11-14)
+## Historical page rounds and proof (2026-11-14; superseded)
 
 The page rounds are preserved under `/bulk3/runs/dryrun/page-shots/`; each round
 has laptop and phone captures. The changes recorded here are the ones that are
@@ -81,7 +81,7 @@ actually present in the source and were followed by browser checks:
 | 7 | Kept Station as the first workspace view and reran the public gate at both judge sizes. | `page-shots/round-7/` |
 | 8 | Replaced the long report navigation with a persistent workspace sidebar, separate failure/defect/station/Codex routes, responsive mobile tabs, a tighter first viewport, and a level Z-up viewer. | `/bulk3/runs/dryrun/page-shots/d083bf9-public-final/` |
 
-Current deployment proof uses commit `d083bf9` and the clean-worktree smoke run:
+The initial deployment proof used commit `d083bf9` and the clean-worktree smoke run:
 
 ```text
 uv run --project /home/ubuntu/junction/dryrun --no-sync \
@@ -92,16 +92,15 @@ uv run --project /home/ubuntu/junction/dryrun --no-sync \
    scroll_width=390, errors=[]
 ```
 
-The page and telemetry are live, and the data-dependent states remain explicit:
-the current page has 304 camera-only Nemotron diagnosis rows (all version
-`v4-both-chain-fewshot`) and four retained station requests with an online
-worker heartbeat. The recipe-compatible gallery retains 32/36 static checks
-with four rest-intersection rejections, and the post-reference station audit
-ran all 36 accepted sentences through `dryrun.rollout.run` for 105/108 bricks.
-No held-out loose-tier score is claimed. The withdrawn fixed-scene loose run is
+At that historical snapshot the page and telemetry were live, with 304
+camera-only Nemotron diagnosis rows (all version `v4-both-chain-fewshot`) and
+the station gallery evidence described below. The fixed-scene loose run was
 never used as a benchmark or training result.
 
-The page is prepared for the measured expert replacement in `prompts/019-grasp-recipe-measured.md` and `prompts/020-present-pose-and-what-changes.md`. The old failed replay remains labelled as an earlier recorded trace; it is not used as a benchmark or training result. Fresh replays must replace it after main's expert commit lands.
+The measured recipe from `prompts/019-grasp-recipe-measured.md` and
+`prompts/020-present-pose-and-what-changes.md` was subsequently ported by Codex
+and integrated. The current page uses the seed-1001 replay; the old failed
+replay remains historical evidence only.
 
 2026-11-14 22:34 UTC — Nemotron v4 completion (`/root/analyst_impl`): the 300-row camera-only diagnostic set reached 300 valid responses after retry-5; ID-aligned stage/cause/combined accuracy is 0.090000/0.000000/0.045000. This is diagnostic evidence from the withdrawn loose-tier failures, never a benchmark or training score. Proof: `/bulk3/runs/dryrun/nemotron_accuracy_v4/score.json`, source `8b3d3a4`.
 2026-11-14 23:04 UTC — Recipe-compatible station gallery (`/root/analyst_impl`): 36 distinct sentence requests were checked; 32 passed and four rest-intersection rejections were retained. The expert rerun was pending at this checkpoint and was completed in the later post-reference audit recorded below. Proof: `/bulk3/runs/dryrun/stations36-reference-check/summary.json`.
@@ -148,3 +147,37 @@ current repository history. It records every prompt file, commit attribution,
 session ledger and benchmark-safe touching/pile score series; fixed-scene loose
 scores are omitted. Proof command: `PYTHONPATH=. .venv/bin/python
 scripts/night_data.py`.
+
+## Current public deployment audit — 2026-11-15 02:45 UTC
+
+Direct requests to the live deployment returned the following values. The
+endpoint payloads and status files are the source for these numbers; this log
+does not turn them into a physical-arm claim.
+
+```text
+curl -fsSL https://dryrun-junction-2026.fly.dev/api/health
+-> {"status":"ok","commit":"bbf30f4","replay_count":1}
+
+curl -fsSL https://dryrun-junction-2026.fly.dev/api/score
+-> checkpoint=expert-v2-b9d897c, source_commit=b9d897c,
+   correct=1090, bricks=1262, rollouts=200, accuracy=0.8637083994,
+   false_accepts=1, false_rejects=0, cycle_time_s=10.0500579325
+
+curl -fsSL https://dryrun-junction-2026.fly.dev/api/benchmark-tiers
+-> source=timescale; 64c4919 loose=382/382, b9d897c loose=380/382;
+   64c4919 messy=217/494, b9d897c messy=451/494;
+   64c4919 pile=31/386, b9d897c pile=259/386
+
+curl -fsSL https://dryrun-junction-2026.fly.dev/api/telemetry
+-> source=timescale, raw_rows=20,723, result_rows=401,
+   diagnoses returned=100, compression_enabled=true, compression_ratio=2.2
+
+curl -fsSL https://dryrun-junction-2026.fly.dev/api/page/policy
+-> commit=bbf30f4, crop224 ACT at 30,000/100,000 steps,
+   0/100 physical stages at the 10k, 20k and 30k maps; status=running
+```
+
+The public score is a Tiger-backed simulator checkpoint. The current ACT run
+has no physical-stage success, so no learned-policy benchmark or
+Nemotron-versus-random policy comparison is claimed. The current browser smoke
+capture and screenshot paths remain in `status/M6.md`.

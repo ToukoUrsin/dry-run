@@ -133,6 +133,9 @@ def train_shards(
                         },
                         output / f"act-step-{step:06d}.pt",
                     )
+                    # Publish each checkpoint so a separate policy-eval map
+                    # can score it while the long run is still training.
+                    train_volume.commit()
                 if elapsed >= next_checkpoint:
                     next_checkpoint += float(checkpoint_minutes) * 60.0
     final = output / "act-final.pt"

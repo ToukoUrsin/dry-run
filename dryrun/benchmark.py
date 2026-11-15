@@ -6,7 +6,6 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 import imageio.v2 as imageio
-from .inspector import Inspector
 from .rollout import run as rollout_run
 from .env import TIERS
 from .mjcf_station import layout_bricks
@@ -324,6 +323,7 @@ def main():
         x = evaluate(a.checkpoint, a.seeds, a.workers, "policy", max_steps=a.max_steps, export_replays=a.export_replays, tier=a.tier)
         x.update({"benchmark": "mujoco-physics-v3", "controller": "policy", "command": "uv run python -m dryrun.benchmark --controller policy --checkpoint PATH --seeds 200", "max_steps": a.max_steps, "tier": a.tier})
     else:
+        from .inspector import Inspector
         inspector = None if a.without_inspector else Inspector()
         if a.tier:
             start = TIER_OFFSETS[a.tier]

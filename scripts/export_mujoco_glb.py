@@ -126,6 +126,19 @@ def align4(data: bytearray) -> None:
         data.append(0)
 
 
+def vertex_normals(vertices: np.ndarray, faces: np.ndarray) -> np.ndarray:
+    """Compute smooth visual normals for the exported, simplified mesh."""
+    normals = np.zeros_like(vertices, dtype=np.float32)
+    if len(faces):
+        a, b, c = vertices[faces[:, 0]], vertices[faces[:, 1]], vertices[faces[:, 2]]
+        cross = np.cross(b - a, c - a).astype(np.float32)
+        np.add.at(normals, faces[:, 0], cross)
+        np.add.at(normals, faces[:, 1], cross)
+        np.add.at(normals, faces[:, 2], cross)
+    length = np.linalg.norm(normals, axis=1, keepdims=True)
+    return normals / np.maximum(length, 1e-8)
+
+
 def export(model: mujoco.MjModel, out: Path) -> None:
     binary = bytearray(); views = []; accessors = []; materials = []; material_index = {}
     meshes = []; nodes = []
@@ -155,6 +168,11 @@ def export(model: mujoco.MjModel, out: Path) -> None:
             start = int(model.body_geomadr[bid]); end = start + int(model.body_geomnum[bid])
             for gid in range(start, end):
                 geom_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, gid) or f"geom_{gid}"
+                # Keep the work surface in view, but omit the station's rear
+                # collision/visual wall so the camera can frame the robot and
+                # both bowls tightly.
+                if geom_name in {"table_edge", "back_wall"}:
+                    continue
                 key = (int(model.geom_type[gid]), int(model.geom_dataid[gid]), tuple(np.round(model.geom_pos[gid], 7)), tuple(np.round(model.geom_quat[gid], 7)))
                 if key in seen: continue
                 seen.add(key)
@@ -162,10 +180,12 @@ def export(model: mujoco.MjModel, out: Path) -> None:
                 if len(verts) == 0: continue
                 verts, faces = simplify_mesh(verts, faces)
                 verts = np.asarray([quat_rotate(model.geom_quat[gid], v) + model.geom_pos[gid] for v in verts], dtype=np.float32)
-                pos_acc = accessor(verts, 5126, "VEC3", 34962); idx_acc = accessor(faces.reshape(-1), 5125, "SCALAR", 34963)
+                pos_acc = accessor(verts, 5126, "VEC3", 34962)
+                norm_acc = accessor(vertex_normals(verts, faces), 5126, "VEC3", 34962)
+                idx_acc = accessor(faces.reshape(-1), 5125, "SCALAR", 34963)
                 mat_id = int(model.geom_matid[gid]); rgba = model.mat_rgba[mat_id] if mat_id >= 0 else np.array([.6,.6,.6,1])
                 mat_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_MATERIAL, mat_id) if mat_id >= 0 else geom_name
-                primitives.append({"attributes": {"POSITION": pos_acc}, "indices": idx_acc, "material": material(rgba, mat_name or geom_name), "mode": 4})
+                primitives.append({"attributes": {"POSITION": pos_acc, "NORMAL": norm_acc}, "indices": idx_acc, "material": material(rgba, mat_name or geom_name), "mode": 4})
         mesh_idx = None
         if primitives:
             mesh_idx = len(meshes); meshes.append({"name": body_name + "_geometry", "primitives": primitives})

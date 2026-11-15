@@ -1,7 +1,7 @@
 {
-  "updated_utc": "2026-11-15T01:50:00Z",
+  "updated_utc": "2026-11-15T01:54:00Z",
   "commit": "b9d897c",
-  "summary": "The pushing expert measures 99.48% on loose (380/382) and 91.30% on touching (451/494); pile is omitted until its held-out run completes.",
+  "summary": "The pushing expert measures 99.48% on loose (380/382), 91.30% on touching (451/494), and 67.10% on pile (259/386); touching and pile use physical pushes.",
   "versions": [
     {
       "name": "64c4919",
@@ -141,7 +141,38 @@
         },
         "false_accepts": 1,
         "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/pile70-50-prompt022.json"
+        "source_artifact": "/bulk3/runs/dryrun/benchmark/pile70-50-prompt022.json",
+        "source_revision_note": "64c4919 is the supervisor-verified reference label; archived row files retain their original mixed source commits."
+      },
+      "after": {
+        "expert_version": "b9d897c",
+        "scenes": 50,
+        "bricks": 386,
+        "correct": 259,
+        "percent": 67.1,
+        "pushes": 208,
+        "median_cycle_seconds_per_brick": 9.44,
+        "p90_cycle_seconds_per_brick": 11.829,
+        "failures_by_event": {
+          "miss": 7,
+          "slip": 0,
+          "ik_fail": 126,
+          "unstable": 0,
+          "push_abort": 0
+        },
+        "event_counts": {
+          "drop": 262,
+          "grasp": 261,
+          "ik_fail": 126,
+          "lift": 261,
+          "miss": 7,
+          "present": 524,
+          "push": 208,
+          "reach": 269
+        },
+        "false_accepts": 1,
+        "false_rejects": 0,
+        "source_artifact": "/bulk3/runs/dryrun/benchmark/v2-pile-20261115.json"
       }
     }
   ],

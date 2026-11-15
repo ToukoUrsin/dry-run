@@ -12,7 +12,7 @@ NVIDIA Nemotron (`nvidia/nemotron-3.5-super-vl-120b-a12b`) receives camera-only 
 
 ## Tiger Data
 
-Tiger Cloud stores raw telemetry in a Timescale hypertable with compression and serves continuous aggregates (`rollout_1s` and `benchmark_checkpoint`). The page reads those aggregates rather than raw rows or hand-written scores. The current page data records 17,439 raw telemetry rows, 357 rollout outcomes, 16,334 aggregate rows, three checkpoint rows and compression ratio 2.2; the source and refresh command are in [data/page/tiger.json](data/page/tiger.json). Diagnosis and station views retain recorded evidence and explicit offline states when a live table is unavailable.
+Tiger Cloud stores raw telemetry in a Timescale hypertable with compression and serves continuous aggregates (`rollout_1s`, `benchmark_checkpoint`, tier statistics, failure events and totals). The page reads those aggregates rather than raw rows or hand-written scores. The current page data records 580,704 measured 30 Hz rows, 401 rollout outcomes (400 held-out plus one smoke row), 19,729 aggregate rows, three checkpoint rows and compression ratio 2.176; the source and refresh command are in [data/page/tiger.json](data/page/tiger.json). Diagnosis and station views retain recorded evidence and explicit offline states when a live table is unavailable.
 
 ## Intel
 

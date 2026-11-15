@@ -1,14 +1,426 @@
 {
-  "updated_utc": "2026-11-15T01:16:43Z",
-  "commit": "0d0b556",
-  "summary": "The sentence station batch accepted 32 of 36 layouts after intersection, reach, and camera checks.",
-  "attempted": 36,
-  "accepted": 32,
-  "rejected": 4,
-  "rejected_by_reason": {"rest_intersection": 4},
+  "schema": "dryrun.page.stations.v2",
+  "updated_utc": "2026-11-15T02:15:12Z",
+  "commit": "4ccd19a",
+  "summary": "Twelve sentence stations differ by layout, bowl placement, and camera position. All twelve passed MuJoCo, intersection, reach, and camera checks; the pushing expert sorted 34 of 36 bricks.",
+  "attempted": 15,
+  "accepted": 12,
+  "rejected": 3,
+  "rejected_by_reason": {
+    "unsupported_sentence_parameter": 3
+  },
+  "source": {
+    "generator": "dryrun.stations",
+    "rollout_api": "dryrun.rollout.run",
+    "expert_commit": "b9d897c",
+    "run": "/bulk3/runs/dryrun/stations12-prompt035",
+    "command": "custom subset of dryrun.stations.SENTENCES with count=3 and --expert"
+  },
   "items": [
-    {"seed": 9000, "sentence": "a loose grid of bricks, good and defective bowls behind the arm, inspection camera on the left", "checks": ["MJCF loaded", "no intersections", "reach", "camera coverage"]},
-    {"seed": 9001, "sentence": "a loose grid of bricks, good and defective bowls behind the arm, inspection camera on the right", "checks": ["MJCF loaded", "no intersections", "reach", "camera coverage"]},
-    {"seed": 9002, "sentence": "a loose grid of bricks, good and defective bowls behind the arm, inspection camera in front", "checks": ["MJCF loaded", "no intersections", "reach", "camera coverage"]}
-  ]
+    {
+      "seed": 16000,
+      "kind": "loose grid",
+      "sentence": "a loose grid of bricks, good and defective bowls behind the arm, inspection camera on the left",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/000/top_view.png",
+      "image": "/static/evidence/stations/station_000.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16000
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16001,
+      "kind": "loose grid with front bowls",
+      "sentence": "a loose grid of bricks, good and defective bowls in front of the arm, inspection camera on the left",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/001/top_view.png",
+      "image": "/static/evidence/stations/station_001.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16001
+        ],
+        "bricks": 3,
+        "correct": 2,
+        "score": 0.6666666666666666,
+        "events": 20
+      }
+    },
+    {
+      "seed": 16002,
+      "kind": "loose grid with side bowls",
+      "sentence": "a loose grid of bricks, good and defective bowls on the sides, inspection camera on the left",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/002/top_view.png",
+      "image": "/static/evidence/stations/station_002.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16002
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16003,
+      "kind": "regular tray",
+      "sentence": "a regular tray of bricks, good and defective bowls behind the arm, inspection camera on the left",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/003/top_view.png",
+      "image": "/static/evidence/stations/station_003.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16003
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16004,
+      "kind": "regular tray with front bowls",
+      "sentence": "a regular tray of bricks, good and defective bowls in front of the arm, inspection camera on the left",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/004/top_view.png",
+      "image": "/static/evidence/stations/station_004.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16004
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16005,
+      "kind": "regular tray with side bowls",
+      "sentence": "a regular tray of bricks, good and defective bowls on the sides, inspection camera on the left",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/005/top_view.png",
+      "image": "/static/evidence/stations/station_005.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16005
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16006,
+      "kind": "messy pile",
+      "sentence": "a messy pile of bricks, good and defective bowls behind the arm, inspection camera on the left",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/006/top_view.png",
+      "image": "/static/evidence/stations/station_006.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16006
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16007,
+      "kind": "messy pile with front bowls",
+      "sentence": "a messy pile of bricks, good and defective bowls in front of the arm, inspection camera on the left",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/007/top_view.png",
+      "image": "/static/evidence/stations/station_007.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16007
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16008,
+      "kind": "messy pile with front camera",
+      "sentence": "a messy pile of bricks, good and defective bowls in front of the arm, inspection camera on the right",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/008/top_view.png",
+      "image": "/static/evidence/stations/station_008.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16008
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16009,
+      "kind": "messy pile with side bowls",
+      "sentence": "a messy pile of bricks, good and defective bowls on the sides, inspection camera on the left",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/009/top_view.png",
+      "image": "/static/evidence/stations/station_009.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16009
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16010,
+      "kind": "messy pile with side camera",
+      "sentence": "a messy pile of bricks, good and defective bowls on the sides, inspection camera on the right",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/010/top_view.png",
+      "image": "/static/evidence/stations/station_010.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16010
+        ],
+        "bricks": 3,
+        "correct": 3,
+        "score": 1.0,
+        "events": 18
+      }
+    },
+    {
+      "seed": 16011,
+      "kind": "messy pile with front camera",
+      "sentence": "a messy pile of bricks, good and defective bowls on the sides, inspection camera at the front",
+      "render": "/bulk3/runs/dryrun/stations12-prompt035/renders/011/top_view.png",
+      "image": "/static/evidence/stations/station_011.webp",
+      "checks": [
+        "MuJoCo loaded",
+        "no rest intersections",
+        "bowl separation",
+        "closed-form reach",
+        "camera coverage"
+      ],
+      "check_detail": {
+        "loaded": true,
+        "intersections": [],
+        "bowl_overlap": [],
+        "reach": true,
+        "cameras": true
+      },
+      "expert": {
+        "controller": "pushing expert",
+        "source_commit": "b9d897c",
+        "seeds": [
+          16011
+        ],
+        "bricks": 3,
+        "correct": 2,
+        "score": 0.6666666666666666,
+        "events": 19
+      }
+    }
+  ],
+  "rejected_items": [
+    {
+      "sentence": "a twelve-brick pile with bowls behind the arm",
+      "reason": "The sentence generator contract caps this gallery at three-brick fixtures; a twelve-brick request is retained but not silently changed."
+    },
+    {
+      "sentence": "a tall inspection camera over a narrow table",
+      "reason": "Camera height and table width are fixed station parameters; the parser rejects this request instead of changing physics."
+    },
+    {
+      "sentence": "a tray with bowls on one side and a side camera",
+      "reason": "The current sentence grammar has no one-sided bowl or side-camera parameter; it is retained as unsupported."
+    }
+  ],
+  "gallery_context": {
+    "attempted": 36,
+    "accepted": 32,
+    "rejected": 4,
+    "artifact": "/bulk3/runs/dryrun/stations36-reference-check/summary.json",
+    "note": "The 36-row static gallery retains four rest-intersection rejections; the 12 rows above are the varied subset with fresh pushing-expert scores."
+  }
 }

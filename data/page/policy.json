@@ -1,8 +1,8 @@
 {
   "schema": "dryrun.page.policy.v1",
-  "updated_utc": "2026-11-15T05:04:00Z",
-  "commit": "724cb34",
-  "summary": "Review fix retrained overfit-20 with real same-episode 30-action chunks and one-frame post-step alignment; final closed loop reached 9/20 and grasped 1/20 but sorted 0/20 after the 36-tick prefix, so the 600-demo retrain is gated.",
+  "updated_utc": "2026-11-15T05:08:00Z",
+  "commit": "69116a56ebd8e05419c327cba5977cf535852ec5",
+  "summary": "Review-corrected chunk-30 policy reached 5/20 one-brick scenes but sorted 0/20; M4 remains open because no learned policy has lifted, presented, dropped, or sorted a held-out brick.",
   "dataset": {
     "episodes": 767,
     "frames": 230263,
@@ -718,6 +718,52 @@
           "manifest": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/eval/chunk30-overfit-final-tick0-20261115-1/manifest.json"
         }
       ]
+    },
+    {
+      "name": "onebrick-fixed-chunk30-policy-eval4500-20261115-1",
+      "dataset": "/runs/onebrick-overfit-20-dataset-20261115-1",
+      "episodes": 20,
+      "frames": 6020,
+      "gpu": "T4",
+      "steps": 4500,
+      "chunk_size": 30,
+      "n_action_steps": 1,
+      "action_window": "same-episode t+1..t+30",
+      "action_is_pad": true,
+      "post_step_alignment": "shifted one frame within each episode",
+      "checkpoint": "/runs/onebrick-fixed-chunk30-overfit-20261115-1/act-step-004500.pt",
+      "source_commit": "69116a56ebd8e05419c327cba5977cf535852ec5",
+      "status": "post_physical_stage_fix",
+      "evaluation": [
+        {
+          "name": "onebrick-fixed-chunk30-policy-eval4500-20261115-1",
+          "seeds": "10000-10019",
+          "bricks": 20,
+          "successes": 0,
+          "stages": {
+            "reached": 5,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "closest_approach_mm": {
+            "min": 27.513,
+            "median": 57.554,
+            "max": 129.647
+          },
+          "max_steps": 2200,
+          "open_loop_ticks": 0,
+          "max_delta": 0.06,
+          "render_size": 64,
+          "crop_top": false,
+          "prefix_expert_ticks": 0,
+          "demo_jpeg": false,
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/onebrick-overfit-fixed/onebrick-fixed-chunk30-policy-eval4500-20261115-1/manifest.json"
+        }
+      ],
+      "notes": "Corrected physical-stage evaluator: 0/20 successes, 5/20 reaches, 0 grasps/lifts/presents/drops over 20 one-brick scenes."
     }
   ],
   "openvino": {
@@ -860,5 +906,32 @@
     "before_billed_cost_usd": 0.0,
     "before_credits": -67.91,
     "after": "pending until training completes"
+  },
+  "latest_evaluation": {
+    "name": "onebrick-fixed-chunk30-policy-eval4500-20261115-1",
+    "seeds": "10000-10019",
+    "bricks": 20,
+    "successes": 0,
+    "stages": {
+      "reached": 5,
+      "grasped": 0,
+      "lifted": 0,
+      "presented": 0,
+      "dropped": 0,
+      "right_bowl": 0
+    },
+    "closest_approach_mm": {
+      "min": 27.513,
+      "median": 57.554,
+      "max": 129.647
+    },
+    "max_steps": 2200,
+    "open_loop_ticks": 0,
+    "max_delta": 0.06,
+    "render_size": 64,
+    "crop_top": false,
+    "prefix_expert_ticks": 0,
+    "demo_jpeg": false,
+    "manifest": "/bulk3/runs/dryrun/m4/modal-map/onebrick-overfit-fixed/onebrick-fixed-chunk30-policy-eval4500-20261115-1/manifest.json"
   }
 }

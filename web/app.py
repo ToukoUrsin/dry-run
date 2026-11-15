@@ -95,8 +95,24 @@ def codex_payload() -> dict:
     }
 
 def benchmark_tiers() -> dict:
+    # Tiger is authoritative when connected; the checked file is an honest
+    # fallback for local/offline page builds.
+    if os.environ.get("DRYRUN_DB_URL"):
+        try:
+            from dryrun.telemetry import tier_snapshot
+            return tier_snapshot()
+        except Exception as exc:
+            fallback_error = str(exc)
+        else:
+            fallback_error = None
+    else:
+        fallback_error = None
     try:
-        return json.loads(BENCHMARK_TIERS.read_text())
+        payload = json.loads(BENCHMARK_TIERS.read_text())
+        payload.setdefault("source", "artifact")
+        if fallback_error:
+            payload["database_error"] = fallback_error
+        return payload
     except Exception:
         return {"status": "unavailable", "tiers": [], "message": "No tier benchmark artifact is connected."}
 

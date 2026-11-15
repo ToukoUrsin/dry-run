@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_INPUT = ROOT / "data" / "page" / "codex.json"
 START = datetime(2026, 11, 14, 18, 0, tzinfo=timezone.utc)
 LINES_COMMAND = "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l"
+BOUNDARY = "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`."
 
 SESSION_NAMES = ("main", "inspector", "page", "policy", "analyst")
 SESSION_DATA = [
@@ -81,6 +82,23 @@ def commit_rows() -> list[dict[str, str]]:
         timestamp = datetime.fromisoformat(stamp).astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         rows.append({"t": timestamp, "sha": sha[:7], "subject": subject, "session": commit_session(subject, commit_files(sha))})
     return rows
+
+
+def session_commit_stats(commits: list[dict[str, str]]) -> dict[str, dict[str, object]]:
+    """Return the lane counts and complete commit lists from git attribution."""
+    grouped: dict[str, list[str]] = {name: [] for name in SESSION_NAMES}
+    for row in commits:
+        lane = row["session"]
+        if lane in grouped:
+            grouped[lane].append(row["sha"])
+    return {
+        name: {
+            "commit_count": len(shas),
+            "commits": shas,
+            "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
+        }
+        for name, shas in grouped.items()
+    }
 
 
 def prompt_time(first_line: str) -> str | None:
@@ -158,6 +176,7 @@ def build(input_path: Path) -> dict:
     payload = json.loads(input_path.read_text())
     now = datetime.now(timezone.utc).replace(microsecond=0)
     commits = commit_rows()
+    commit_stats = session_commit_stats(commits)
     prompts = prompt_rows()
     elapsed_hours = round((now - START).total_seconds() / 3600.0, 2)
     payload["updated_utc"] = now.isoformat().replace("+00:00", "Z")
@@ -168,19 +187,29 @@ def build(input_path: Path) -> dict:
     payload["lines_count_command"] = LINES_COMMAND
     payload["prompts_count"] = len(prompts)
     payload["prompts"] = prompts
+    payload["boundary"] = BOUNDARY
+    for session in payload.get("sessions", []):
+        stats = commit_stats.get(session.get("name"))
+        if stats:
+            session.update(stats)
+    generated_night_sessions = []
+    for session in SESSION_DATA:
+        generated = dict(session)
+        generated.update(commit_stats[session["name"]])
+        generated_night_sessions.append(generated)
     payload["night"] = {
         "start_utc": START.isoformat().replace("+00:00", "Z"),
         "end_utc": now.isoformat().replace("+00:00", "Z"),
-        "sessions": SESSION_DATA,
+        "sessions": generated_night_sessions,
         "commits": commits,
         "prompts": prompts,
         "rejections": rejections(),
         "scores": scores(),
         "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
         "totals": {"commits": len(commits), "prompts": len(prompts), "sessions": len(SESSION_NAMES), "lines_of_code": payload["lines_of_code"], "hours": elapsed_hours},
-        "attribution": "Each commit is assigned from touched paths: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other.",
+        "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other. Counts are derived at every refresh.",
         "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-        "boundary": "Everything outside `prompts/` was written by Codex. The two reference sorters under `prompts/` were ported by Codex.",
+        "boundary": BOUNDARY,
     }
     return payload
 

@@ -3,7 +3,7 @@
   "commit": "2de1ae7",
   "schema_version": "prompt024-448-sheet-v1",
   "prompt": "prompts/024-analyst-needs-real-frames.md",
-  "summary": "Nemotron judged 300 new messy and pile failures from real 448 px panels; all 300 strict responses were valid and stage accuracy against simulator events was 43.6667%.",
+  "summary": "Nemotron judged 300 new messy and pile failures from real 448 px panels; all 300 strict responses were valid and stage accuracy against simulator events was 43.6667%. 295/300 are no_clear_grasp, so the constant-guess baseline is 98.3333%, above Nemotron.",
   "model": "NVIDIA Nemotron",
   "failures_analysed": 300,
   "frame_px": [

@@ -5,23 +5,24 @@ The first pass used parallel Codex sessions, but its status claims were rejected
 ## Judge card
 
 Dry Run's goal was to build an evidence-first simulator and page for the
-Junction SO-101 station before a real arm moves. At the generated 03:59 UTC
-snapshot, the repository contained 308 attributed commits, 5 sessions, 9.98
-elapsed goal-mode hours, 12,004 tracked code lines and 47 prompt files. Counts
-are generated from `git log --name-only` by `scripts/night_data.py`; the page
-snapshot is `data/page/codex.json`.
+Junction SO-101 station before a real arm moves. The generated page records
+over 300 attributed commits, five sessions, the wall-clock duration of the
+night and 34.1 summed session hours, over 12,000 tracked code lines, and over
+50 prompt files. Exact values are generated from `git log --name-only` by
+`scripts/night_data.py`; the page snapshot is `data/page/codex.json`.
 
-| Session | Model | Owns | Commits |
-| --- | --- | --- | ---: |
-| `/root` | gpt-6-astra plus gpt-6.1-sol | simulator, expert, benchmark, replay | 157 |
-| `/root/inspector` | gpt-6.1-sol | defects and OpenVINO inspection | 17 |
-| `/root/page` | gpt-6.1-sol | viewer, telemetry, deployment | 58 |
-| `/root/policy` | gpt-6.1-sol | demonstrations, ACT, policy evaluation | 40 |
-| `/root/analyst_impl` | gpt-6.1-sol plus Nemotron | failure analysis, stations, evidence docs | 32 |
+| Session | Session ID | Model | Owns |
+| --- | --- | --- | --- |
+| main | `01a1db37-cd82-7771-9d68-113fc0bb7cfc` | `gpt-6-astra` | simulator, expert, benchmark, replay |
+| inspector | `01a1db6e-0b7e-7103-9c3c-2fc35517f427` | `gpt-6.1-sol` | defects and OpenVINO inspection |
+| page | `01a1db6e-0b22-7971-ae26-5dd52eb3ed3d` | `gpt-6.1-sol` | viewer, telemetry, deployment |
+| policy | `01a1db85-87b9-7760-b934-03b82b6ce199` | `gpt-6.1-sol` | demonstrations, ACT, policy evaluation |
+| analyst | `01a1db85-8680-71e1-8c2c-cea5752bafa1` | `gpt-6.1-sol` | Nemotron, stations, evidence docs |
 
-The four film-plan commits are kept in the `other` lane, so the five session
-lanes sum to 304 and the total is 308. This is why an older page lane count
-must not be compared with a hand-counted main total.
+All commits carry one git author; the five lanes are assigned by touched
+files, not by session identity. `/root/astra_geometry`,
+`/root/curriculum_astra`, and `/root/docs_status` are three subagents of the
+main session.
 
 ## What went wrong and how it was caught
 
@@ -49,7 +50,7 @@ must not be compared with a hand-counted main total.
 | 2026-11-14 | Seed-7 grasp review | gpt-6-astra + gpt-6.1-sol | Added elliptic contacts, noslip iterations, high-friction condim-4 jaw pads, pad-midpoint IK, contact-force logging, and closed-loop jaw stopping. Varied calibration is 8/10 lifted; M1 stays open. |
 | 2026-11-14 | Fly deployment (historical) | gpt-6.1-sol (root) | Deployed the first static dashboard as `dryrun-junction-2026`; its initial smoke test returned HTML at https://dryrun-junction-2026.fly.dev/. The score was unavailable then because no remote Timescale URL was supplied; the later Tiger-backed deployment is audited below. |
 
-| 2026-11-14 | Inspector M2 | gpt-6.1-astra + gpt-6.1-sol | Replaced the 580-image overlay harness with seeded MuJoCo inspection renders, good-only Anomalib training, PaDiM/PatchCore/EfficientAD comparison, OpenVINO CPU timing, held-out defect evaluation and the `Inspector`/photo interfaces. The built-in image-generation tool was unavailable in this session, so the sticker art and table surface are deterministic seeded raster assets generated locally and recorded under the M2 run. |
+| 2026-11-14 | Inspector M2 | gpt-6.1-sol | Replaced the 580-image overlay harness with seeded MuJoCo inspection renders, good-only Anomalib training, PaDiM/PatchCore/EfficientAD comparison, OpenVINO CPU timing, held-out defect evaluation and the `Inspector`/photo interfaces. The built-in image-generation tool was unavailable in this session, so the sticker art and table surface are deterministic seeded raster assets generated locally and recorded under the M2 run. |
 | 2026-11-14 | M2 review gate | codex review (gpt-6.1-sol) | Ran `codex review --uncommitted` before the M2 status commit. The review worker could not start because its Chrome MCP requested approval while this session's policy is `approval=never`; no review findings were returned. Local compile, Inspector, photo CLI and benchmark smoke checks passed. |
 
 2026-11-14 19:00 UTC — Astra geometry correction: the seed-7 bowl overlap was real; the old 246 mm outside diameter was larger than the station spec. `_bowl` now emits 150 mm outside-diameter open bowls and the checker explicitly rejects bowl-centre distance below 150 mm or negative good/defective bowl contacts. Proof: `uv run python -m dryrun.mjcf_station check assets/station.xml` -> `bowl_overlap=[]`, `intersections=[]`, all IK/camera checks pass; a deliberately overlapping copy returned non-empty `bowl_overlap` and failed; `uv run python -m dryrun.mjcf_station batch --seeds 32 --out-dir /bulk2/runs/dryrun/m1/stations_bowlfix --record /bulk2/runs/dryrun/m1/stations_bowlfix.jsonl` -> 32/32 passed. EGL free/top/inspection frames were rerendered to `/bulk2/runs/dryrun/m1/frames_bowlfix/` and inspected: bowls are separate and visibly within the table/arm scene.
@@ -63,11 +64,11 @@ reviewer can follow ownership; each status file is the proof for its feature.
 
 | Session identifier | Model assignment | Feature used | Proof or record |
 | --- | --- | --- | --- |
-| `/root` | `gpt-6-astra` for the main spatial stream, with `gpt-6.1-sol` build work recorded above | MuJoCo station, rollout API, expert and benchmark | `status/M1.md`; `docs/interfaces.md` |
-| `/root/inspector` | `gpt-6.1-sol` work stream from `prompts/010` | Defects, good-only inspector and OpenVINO | `status/M2.md` |
-| `/root/page` | `gpt-6.1-sol` work stream from `prompts/010` | Replay export, telemetry, dashboard and deployment | `status/M3.md`, `status/M6.md` |
-| `/root/policy` | `gpt-6.1-sol` work stream from `prompts/010` | LeRobot data, policy training and policy benchmark | `status/M4.md` |
-| `/root/analyst_impl` | `gpt-6.1-sol` inherited analyst stream | Nemotron failure analysis, scored curriculum and sentence stations | `status/M5.md` |
+| main (`01a1db37…`) | `gpt-6-astra` | MuJoCo station, rollout API, expert and benchmark | `status/M1.md`; `docs/interfaces.md` |
+| inspector (`01a1db6e-0b7e…`) | `gpt-6.1-sol` | Defects, good-only inspector and OpenVINO | `status/M2.md` |
+| page (`01a1db6e-0b22…`) | `gpt-6.1-sol` | Replay export, telemetry, dashboard and deployment | `status/M3.md`, `status/M6.md` |
+| policy (`01a1db85-87b9…`) | `gpt-6.1-sol` | LeRobot data, policy training and policy benchmark | `status/M4.md` |
+| analyst (`01a1db85-8680…`) | `gpt-6.1-sol` | Nemotron failure analysis, scored curriculum and sentence stations | `status/M5.md` |
 
 The documentation pass ran as `/root/docs_status` on `gpt-6.1-sol`: it rewrote
 `README.md`, `SUBMISSION.md`, `FILM_PLAN.md` and `MORNING.md` to link every
@@ -84,23 +85,29 @@ final review because it sees all shared paths.
 | Goal mode | `/root`, gpt-6-astra | `prompts/001-goal.md`; the objective and boundary are recorded in the goal log. |
 | Parallel sessions and delegation | all five paths above | `prompts/010-ultra-and-five-sessions.md`; the session ledger above records ownership. |
 | Ultra effort | all five streams, gpt-6.1-sol and gpt-6-astra | `prompts/010-ultra-and-five-sessions.md`; the supervisor assigned ultra effort to every stream. |
-| Fast service tier | all five streams | The launch records use `service_tier=fast`; no with/without timing comparison was measured, so no timing claim is made. `CODEX.md` and the session logs are the evidence. |
+| Fast service tier | all five streams | Used on all five sessions; no with/without timing comparison was measured. `prompts/010-ultra-and-five-sessions.md` is the evidence. |
 | Astra spatial reasoning | `/root/astra_geometry` and `/root/curriculum_astra`, gpt-6-astra | `prompts/003-astra-for-3d.md`; `status/M1.md`; `status/M5.md`. |
 | Nemotron visual analysis | `/root/analyst_impl`, gpt-6.1-sol plus NVIDIA Nemotron | `dryrun/nemotron.py`; `data/page/analyst.json`; `status/M5.md`. |
 | Models by job | Astra for geometry/spatial checks; Sol for build, page, inspector and policy; Nemotron for visual failure analysis | `prompts/003-astra-for-3d.md`; the five-session ledger; `data/page/analyst.json`. |
 | Browser and public smoke checks | `/root/page`, gpt-6.1-sol | `scripts/smoke_public.py`; page captures and console/error output are under `/bulk3/runs/dryrun/page-shots/`. |
 | AGENTS.md and secret/telemetry boundaries | `/root` and the named streams | `AGENTS.md`; `status/M5.md` records the hsec and telemetry boundaries used. |
-| Codex review | `/root`, gpt-6.1-sol | `/bulk3/runs/dryrun/codex-review-goal012-final.log`; no findings were returned because sandbox/MCP inspection was unavailable, so this is not a green review. |
+| Codex review | main, `gpt-6.1-sol` | Attempted 4 times, blocked before repository inspection, 0 findings. `/bulk3/runs/dryrun/codex-review-goal012-final.log` |
 | Image generation | Codex desktop app, gpt-6.1-sol, codex-cli 0.169.0-alpha.11.1 | **WORKED:** built-in `image_gen` made `table-wood.png` and `defect-stickers.png` (1254x1254); proof `/bulk2/runs/dryrun/codex-features/imagegen/*.png`, `imagegen/mac-try.log`. Server cliproxy did not expose the tool and its sandbox failed (`imagegen/try1.log`), so earlier textures were code-generated. |
 | Sites | Codex desktop app, live APIs | **WORKED:** published owner-only results Site `https://dryrun-results.jarmo1.chatgpt.site` (`appgprj_6af9206a560c8191bc222fffa878783e`); corrected `/api/inspector` to `/api/page/inspector` after the stale synthetic result. Proof `sites/run.jsonl`, `run2.jsonl`, `site-index.html`, `site.png`. |
 | Documents | Codex desktop app | **WORKED with caveat:** wrote `dryrun-test-report.docx`; its stale inspector number and placeholder layout image were wrong, and LibreOffice render was killed. Real render: `docs/dryrun-test-report.pdf`, `page-1.png`; proof `docs/run.jsonl`, `run2.jsonl`. |
+| Computer use | Codex Computer Use on the MacBook (ChatGPT app) | **RAN, observing only:** Touko turned it on during the night; its screen memory logged his own clicks and keys plus 10-minute summaries, e.g. the 03:29:43 UTC Loom "Start recording" for the Dry Run film (`/bulk2/runs/dryrun/codex-features/computer-use/skysight_0320.md`, `cu_events_0320.jsonl`). No log shows Codex driving the Mac itself. |
 
-**Boundary:** Everything outside `prompts/` was written by Codex. The
-supervisor wrote the prompts, and two reference sorters under
-`prompts/021-reference` and `prompts/027-reference`, which Codex ported into
-`dryrun/expert.py`.
+**Boundary:** Everything outside `prompts/` was written by Codex.
 
-2026-11-15 03:10 UTC — Feature audit: image generation, Sites and Documents were exercised with the caveats above. Proof is under `/bulk2/runs/dryrun/codex-features/`.
+**Authorship:** The supervisor (Claude, driving the Codex CLI on Touko's behalf) wrote the prompts and two reference sorters, `prompts/021-reference` and `prompts/027-reference`. Codex ported them into `dryrun/expert.py` and wrote everything else.
+
+The only non-Codex commits are film-plan `44555a4` and `3a8ad76` plus their
+reverts `606c23e` and `9e4bc77`.
+
+Prompt 001 named Terra and Luna as possible models; neither was used, and Luna
+was rate-limited.
+
+2026-11-15 03:10 UTC — Feature audit: image generation, Sites, Documents and Computer Use (observing only) were exercised with the caveats above. Proof is under `/bulk2/runs/dryrun/codex-features/`.
 
 2026-11-14 20:00 UTC — Main rollout API and tier benchmark (`gpt-6-astra`, ultra): published `dryrun.env.StationEnv` and `dryrun.rollout.run` with camera/state-only observations, exact 30 Hz substep accumulation, six-target actions, recorder cycle markers, inspector hook and the shared event vocabulary. Added fixed 80/70/50 loose/messy/pile benchmark partitioning and page replay/thumbnail contract in `docs/interfaces.md`. Smoke proof: `MUJOCO_GL=egl uv run python - <<'PY' ... StationEnv.reset/step ... PY` returned uint8 top/inspection frames and float32[6] joints. The loose benchmark number was withheld: the seeded multi-brick generator and closed-form reach gate were still being replaced, so no score from that run is evidence.
 
@@ -209,7 +216,7 @@ curl -fsSL https://dryrun-junction-2026.fly.dev/api/health
 
 curl -fsSL https://dryrun-junction-2026.fly.dev/api/score
 -> checkpoint=expert-v2-b9d897c, source_commit=b9d897c,
-   correct=1090, bricks=1262, rollouts=200, accuracy=0.8637083994,
+   correct=1090, bricks=1262, rollouts=401, accuracy=0.8637083994,
    false_accepts=1, false_rejects=0, cycle_time_s=10.0500579325
 
 curl -fsSL https://dryrun-junction-2026.fly.dev/api/benchmark-tiers
@@ -218,12 +225,12 @@ curl -fsSL https://dryrun-junction-2026.fly.dev/api/benchmark-tiers
    64c4919 pile=31/386, b9d897c pile=259/386
 
 curl -fsSL https://dryrun-junction-2026.fly.dev/api/telemetry
--> source=timescale, raw_rows=20,723, result_rows=401,
-   diagnoses returned=100, compression_enabled=true, compression_ratio=2.2
+-> source=timescale, raw_rows=580,704, result_rows=19,729,
+   diagnoses returned=0, compression_enabled=true, compression_ratio=2.176
 
 curl -fsSL https://dryrun-junction-2026.fly.dev/api/page/policy
--> commit=bbf30f4, crop224 ACT at 30,000/100,000 steps,
-   0/100 physical stages at the 10k, 20k and 30k maps; status=running
+-> commit=e2134e7, crop224 ACT at 90,000/100,000 steps,
+   0/100 physical stages at the recorded maps; status=running
 ```
 
 The public score is a Tiger-backed simulator checkpoint. The current ACT run

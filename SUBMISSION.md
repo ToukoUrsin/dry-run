@@ -4,11 +4,11 @@ Dry Run is an evidence-first MuJoCo reproduction of the Junction SO-101 brick-so
 
 ## Codex
 
-The Codex page snapshot records 308 attributed commits, five sessions, 9.98 elapsed goal-mode hours, 12,004 tracked code lines and 47 prompt files. The five streams owned simulation/expert work, inspection, page/telemetry, policy, and Nemotron/stations; their models, evidence and session paths are in [CODEX.md](CODEX.md) and [data/page/codex.json](data/page/codex.json). The exact boundary is stated there: the supervisor wrote prompts and Codex ported the two reference sorters.
+The Codex page records over 300 attributed commits, five sessions, the wall-clock night duration and the summed session hours; its generated exact counts are in [data/page/codex.json](data/page/codex.json). The five streams owned simulation/expert work, inspection, page/telemetry, policy, and Nemotron/stations; their exact session IDs and evidence are in [CODEX.md](CODEX.md). The authorship boundary is stated there.
 
 ## Nemotron
 
-NVIDIA Nemotron (`nvidia/nemotron-3.5-super-vl-120b-a12b`) receives camera-only failure evidence and returns a stage, evidence sentence, scene change and selected panel. The 448 px sheet run is 131/300 stage decisions correct (`43.6667%`, 44% rounded) in [data/page/analyst.json](data/page/analyst.json); the earlier 32 px run scored 9% and is withdrawn because the brick was only about two pixels wide. The larger sheets, four key frames and strict schema are the change. Nemotron diagnoses failures and proposes scenes; it is not a learned policy and its 9/24 versus 15/30 curriculum comparison is measured-expert tuning only.
+NVIDIA Nemotron (`nvidia/nemotron-3.5-super-vl-120b-a12b`) receives camera-only failure evidence and returns a stage, evidence sentence, scene change and selected panel. The 448 px sheet run is 131/300 stage decisions correct (`43.6667%`, 44% rounded) in [data/page/analyst.json](data/page/analyst.json). The per-stage table shows that 295/300 failures (`98.3333%`) are `no_clear_grasp`, so a constant guess scores 98.3333%; Nemotron is below it at 43.6667%. The earlier 32 px run scored 9% and is withdrawn because the brick was only about two pixels wide. Nemotron diagnoses failures and proposes scenes; it is not a learned policy and its 9/24 versus 15/30 curriculum comparison is measured-expert tuning only.
 
 ## Tiger Data
 
@@ -16,4 +16,4 @@ Tiger Cloud stores raw telemetry in a Timescale hypertable with compression and 
 
 ## Intel
 
-The simulated station uses the official SO-101 model, seeded Duplo bodies, bowls and top/inspection cameras. The OpenVINO PatchCore inspector trains on 588 real good present frames and evaluates 569 real bricks: 328 good and 241 defective, with 0% false rejects and 0% false accepts; four-thread inference is 216.9 ms median per pair and one-thread inference is 471.8 ms. These figures come from [data/page/inspector.json](data/page/inspector.json). The fixed-scene loose tier is withdrawn; current benchmark evidence uses seeded multi-brick scenes.
+The simulated station uses the official SO-101 model, seeded Duplo bodies, bowls and top/inspection cameras. The OpenVINO PatchCore inspector trains on 588 real good present frames and evaluates 569 real bricks: 328 good and 241 defective, with 0% false rejects and 0% false accepts. Inference is 216.9 ms median per camera frame at four threads (about 0.4 s per brick, two frames) and 471.8 ms per camera frame at one thread (about 0.94 s per brick). These figures come from [data/page/inspector.json](data/page/inspector.json). The fixed-scene loose tier is withdrawn; current benchmark evidence uses seeded multi-brick scenes.

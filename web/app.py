@@ -207,9 +207,10 @@ def document_page(slug: str, prompt_name: str | None = None) -> bytes | None:
         title = path.name
         body = _markdown_to_html(path.read_text()) if slug == "codex" else f"<pre>{_html_escape(path.read_text())}</pre>"
     nav = '<nav><a href="/">Page</a> · <a href="/codex">Codex log</a> · <a href="/prompts">Prompts</a> · <a href="/submission">Submission</a></nav>'
+    page_heading = "" if slug == "codex" else f"<h1>{_html_escape(title)}</h1>"
     return ("<!doctype html><meta charset=\"utf-8\"><title>" + _html_escape(title) +
             " · Dry Run</title><style>body{max-width:960px;margin:40px auto;padding:0 20px;background:#07080a;color:#f4f5f6;font:15px/1.55 system-ui,sans-serif}a{color:#a8e23a}pre{white-space:pre-wrap;font:14px/1.6 ui-monospace,SFMono-Regular,monospace;background:#111419;padding:20px;border-radius:8px;overflow:auto}nav{margin-bottom:28px}h1,h2,h3{line-height:1.15;letter-spacing:-.02em}h1{font-size:36px}h2{font-size:25px;margin-top:38px}h3{font-size:19px;margin-top:28px}p{max-width:75ch}li{margin:5px 0}.doc-table-wrap{overflow-x:auto;margin:18px 0 24px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid #363a40}th{color:#a8e23a;font-weight:650}code{font:13px ui-monospace,SFMono-Regular,monospace;background:#111419;padding:2px 5px;border-radius:3px}</style>" +
-            nav + f"<h1>{_html_escape(title)}</h1>" + body).encode()
+            nav + page_heading + body).encode()
 
 def commit() -> str:
     value = os.environ.get("RELEASE_SHA")

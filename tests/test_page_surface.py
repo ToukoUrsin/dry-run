@@ -33,6 +33,11 @@ def _visible_text() -> str:
     return " ".join(" ".join(parser.parts).split())
 
 
+def _module_text() -> str:
+    page = PAGE.read_text()
+    return page.split('<script type="module">', 1)[1].split("</script>", 1)[0]
+
+
 def test_first_paint_is_tier_first_and_has_no_long_decimal_values():
     text = _visible_text()
     assert "382 of 382 loose sorted" not in text
@@ -41,3 +46,10 @@ def test_first_paint_is_tier_first_and_has_no_long_decimal_values():
     assert "91.3 %" in text
     assert "67.1 %" in text
     assert not re.search(r"(?<![\w.])\d+\.\d{2,}(?![\w.])", text)
+
+
+def test_null_accuracy_is_not_coerced_to_zero():
+    script = _module_text()
+    assert "function finiteNumber(value)" in script
+    assert "Number(d.accuracy?.combined||0)" not in script
+    assert "fmtPct(combined===null?null:combined*100)" in script

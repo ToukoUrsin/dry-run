@@ -4,7 +4,7 @@ from typing import Any
 import numpy as np
 from .env import StationEnv, TIERS
 
-EVENT_NAMES = ("reach", "grasp", "lift", "present", "verdict", "drop", "miss", "slip", "ik_fail", "unstable")
+EVENT_NAMES = ("reach", "grasp", "lift", "present", "verdict", "drop", "push", "miss", "slip", "ik_fail", "unstable")
 
 def _call(controller, obs, env):
     if controller is None or controller == "expert": return env.expert_action()

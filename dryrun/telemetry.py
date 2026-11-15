@@ -41,13 +41,17 @@ def setup(url: str | None = None) -> None:
         cols = {r[0] for r in conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name='rollout_telemetry'").fetchall()}
         if cols:
             if "joint" in cols: conn.execute("ALTER TABLE rollout_telemetry ALTER COLUMN joint DROP NOT NULL")
-            for name, typ in (("checkpoint", "TEXT NOT NULL DEFAULT 'expert'"), ("q0", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q1", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q2", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q3", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q4", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q5", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("gripper", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("event_data", "JSONB")):
+            for name, typ in (("checkpoint", "TEXT NOT NULL DEFAULT 'expert'"), ("tier", "TEXT NOT NULL DEFAULT 'unknown'"), ("expert_version", "TEXT NOT NULL DEFAULT 'unknown'"), ("q0", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q1", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q2", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q3", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q4", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("q5", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("gripper", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("target0", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("target1", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("target2", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("target3", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("target4", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("target5", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("gripper_effort", "DOUBLE PRECISION NOT NULL DEFAULT 0"), ("event_data", "JSONB")):
                 if name not in cols: conn.execute(f"ALTER TABLE rollout_telemetry ADD COLUMN {name} {typ}")
             if "joint" in cols:
                 conn.execute("""UPDATE rollout_telemetry SET q0=COALESCE((joint->>'q0')::double precision,0),q1=COALESCE((joint->>'q1')::double precision,0),q2=COALESCE((joint->>'q2')::double precision,0),q3=COALESCE((joint->>'q3')::double precision,0),q4=COALESCE((joint->>'q4')::double precision,0),q5=COALESCE((joint->>'q5')::double precision,0),gripper=COALESCE((joint->>'q5')::double precision,0) WHERE joint IS NOT NULL""")
         conn.execute("DROP MATERIALIZED VIEW IF EXISTS rollout_1s CASCADE")
         conn.execute("DROP MATERIALIZED VIEW IF EXISTS benchmark_checkpoint CASCADE")
+        conn.execute("DROP MATERIALIZED VIEW IF EXISTS benchmark_tier CASCADE")
         result_cols = {r[0] for r in conn.execute("SELECT column_name FROM information_schema.columns WHERE table_name='rollout_results'").fetchall()}
+        for name, typ in (("tier", "TEXT NOT NULL DEFAULT 'unknown'"), ("expert_version", "TEXT NOT NULL DEFAULT 'unknown'"), ("pushes", "INTEGER NOT NULL DEFAULT 0")):
+            if result_cols and name not in result_cols:
+                conn.execute(f"ALTER TABLE rollout_results ADD COLUMN {name} {typ}")
         pk_def = conn.execute("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conrelid=to_regclass('rollout_results') AND contype='p'").fetchone()
         if result_cols and ("finished_at" not in result_cols or (pk_def and "finished_at" not in pk_def[0])):
             # This table was created by the rejected smoke schema and has no
@@ -66,6 +70,7 @@ def record_rollout(samples: Iterable[Mapping], events: Iterable[Mapping], outcom
     """Persist one real rollout and its result; safe to call from benchmark."""
     _require_db(); rid = rollout_id or f"seed-{seed}-{int(time.time() * 1000)}"
     sample_rows, event_rows, out = list(samples), list(events), dict(outcome)
+    tier = str(out.get("tier", "unknown")); expert_version = str(out.get("expert_version", out.get("commit", "unknown")))
     with psycopg.connect(url or db_url()) as conn:
         with conn.cursor() as cur:
             # Benchmark retries use a stable rollout id.  Avoid duplicating
@@ -74,23 +79,28 @@ def record_rollout(samples: Iterable[Mapping], events: Iterable[Mapping], outcom
             cur.execute("SELECT 1 FROM rollout_results WHERE rollout_id=%s LIMIT 1", (rid,))
             if cur.fetchone() is not None:
                 return rid
+            sample_values = []
             for row in sample_rows:
                 q = (list(row.get("qpos", row.get("joint", [0] * 6))) + [0] * 6)[:6]
-                cur.execute("""INSERT INTO rollout_telemetry
-                    (ts,rollout_id,seed,checkpoint,q0,q1,q2,q3,q4,q5,gripper,event,event_data,outcome)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (_timestamp(row.get("ts")), rid, seed, checkpoint, *[float(x) for x in q], float(row.get("gripper", q[5])), row.get("event"), json.dumps(row.get("event_data")) if row.get("event_data") is not None else None, None))
+                target = (list(row.get("targets", row.get("action", [0] * 6))) + [0] * 6)[:6]
+                sample_values.append((_timestamp(row.get("ts")), rid, seed, checkpoint, tier, expert_version, *[float(x) for x in q], float(row.get("gripper", q[5])), *[float(x) for x in target], float(row.get("gripper_effort", abs(target[5] - q[5]))), row.get("event"), json.dumps(row.get("event_data")) if row.get("event_data") is not None else None, None))
+            if sample_values:
+                cur.executemany("""INSERT INTO rollout_telemetry
+                    (ts,rollout_id,seed,checkpoint,tier,expert_version,q0,q1,q2,q3,q4,q5,gripper,target0,target1,target2,target3,target4,target5,gripper_effort,event,event_data,outcome)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", sample_values)
+            event_values = []
             for event in event_rows:
                 q = (list(event.get("qpos", [0] * 6)) + [0] * 6)[:6]
-                cur.execute("""INSERT INTO rollout_telemetry
-                    (ts,rollout_id,seed,checkpoint,q0,q1,q2,q3,q4,q5,gripper,event,event_data,outcome)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
-                    (_timestamp(event.get("ts")), rid, seed, checkpoint, *[float(x) for x in q], float(event.get("gripper", q[5])), event.get("name", "event"), json.dumps(dict(event)), None))
+                event_values.append((_timestamp(event.get("ts")), rid, seed, tier, expert_version, event.get("name", "event"), json.dumps(dict(event))))
+            if event_values:
+                cur.executemany("""INSERT INTO rollout_events
+                    (ts,rollout_id,seed,tier,expert_version,event,event_data)
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)""", event_values)
             cur.execute("""INSERT INTO rollout_results
-                (finished_at,rollout_id,seed,checkpoint,bricks,correct,drops,false_accepts,false_rejects,cycle_time_s,failure_reason,outcome)
-                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                (finished_at,rollout_id,seed,checkpoint,tier,expert_version,bricks,correct,drops,false_accepts,false_rejects,pushes,cycle_time_s,failure_reason,outcome)
+                VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT DO NOTHING""",
-                (datetime.now(timezone.utc), rid, seed, checkpoint, int(out.get("bricks", 0)), int(out.get("correct", out.get("successes", 0))), int(out.get("drops", 0)), int(out.get("false_accepts", 0)), int(out.get("false_rejects", 0)), out.get("cycle_time_s"), out.get("failure_reason"), json.dumps(out)))
+                (datetime.now(timezone.utc), rid, seed, checkpoint, tier, expert_version, int(out.get("bricks", 0)), int(out.get("correct", out.get("successes", 0))), int(out.get("drops", 0)), int(out.get("false_accepts", 0)), int(out.get("false_rejects", 0)), int(out.get("pushes", 0)), out.get("cycle_time_s"), out.get("failure_reason"), json.dumps(out)))
         conn.commit()
     return rid
 
@@ -167,6 +177,19 @@ def refresh(url: str | None = None) -> None:
     with psycopg.connect(url or db_url(), autocommit=True) as conn:
         conn.execute("CALL refresh_continuous_aggregate('rollout_1s', NULL, NULL)")
         conn.execute("CALL refresh_continuous_aggregate('benchmark_checkpoint', NULL, NULL)")
+        conn.execute("CALL refresh_continuous_aggregate('benchmark_tier', NULL, NULL)")
+
+def tier_snapshot(url: str | None = None) -> dict:
+    """Return tier/version aggregates for the page from Tiger."""
+    _require_db()
+    with psycopg.connect(url or db_url()) as conn:
+        rows = conn.execute("""SELECT tier,expert_version,sum(bricks),sum(correct),sum(false_accepts),sum(false_rejects),sum(pushes),avg(cycle_time_s),sum(rollouts)
+                              FROM benchmark_tier GROUP BY tier,expert_version ORDER BY tier,expert_version""").fetchall()
+    return {"status": "ok", "source": "timescale", "tiers": [
+        {"tier": r[0], "expert_version": r[1], "bricks": int(r[2] or 0), "correct": int(r[3] or 0),
+         "false_accepts": int(r[4] or 0), "false_rejects": int(r[5] or 0), "pushes": int(r[6] or 0),
+         "cycle_time_s": float(r[7]) if r[7] is not None else None, "rollouts": int(r[8] or 0),
+         "score": (int(r[3] or 0) / int(r[2])) if r[2] else None} for r in rows]}
 
 def dashboard_snapshot(url: str | None = None) -> dict:
     """Read only aggregate tables for the public page and deployment snapshot."""

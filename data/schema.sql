@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS rollout_telemetry (
   rollout_id TEXT NOT NULL,
   seed INTEGER NOT NULL,
   checkpoint TEXT NOT NULL DEFAULT 'expert',
+  tier TEXT NOT NULL DEFAULT 'unknown',
+  expert_version TEXT NOT NULL DEFAULT 'unknown',
   q0 DOUBLE PRECISION NOT NULL,
   q1 DOUBLE PRECISION NOT NULL,
   q2 DOUBLE PRECISION NOT NULL,
@@ -12,6 +14,13 @@ CREATE TABLE IF NOT EXISTS rollout_telemetry (
   q4 DOUBLE PRECISION NOT NULL,
   q5 DOUBLE PRECISION NOT NULL,
   gripper DOUBLE PRECISION NOT NULL,
+  target0 DOUBLE PRECISION NOT NULL DEFAULT 0,
+  target1 DOUBLE PRECISION NOT NULL DEFAULT 0,
+  target2 DOUBLE PRECISION NOT NULL DEFAULT 0,
+  target3 DOUBLE PRECISION NOT NULL DEFAULT 0,
+  target4 DOUBLE PRECISION NOT NULL DEFAULT 0,
+  target5 DOUBLE PRECISION NOT NULL DEFAULT 0,
+  gripper_effort DOUBLE PRECISION NOT NULL DEFAULT 0,
   event TEXT,
   event_data JSONB,
   outcome JSONB
@@ -22,6 +31,17 @@ DO $$ BEGIN
   PERFORM add_compression_policy('rollout_telemetry', INTERVAL '10 minutes');
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
+
+CREATE TABLE IF NOT EXISTS rollout_events (
+  ts TIMESTAMPTZ NOT NULL,
+  rollout_id TEXT NOT NULL,
+  seed INTEGER NOT NULL,
+  tier TEXT NOT NULL DEFAULT 'unknown',
+  expert_version TEXT NOT NULL DEFAULT 'unknown',
+  event TEXT NOT NULL,
+  event_data JSONB NOT NULL DEFAULT '{}'::jsonb
+);
+CREATE INDEX IF NOT EXISTS rollout_events_rollout_idx ON rollout_events (rollout_id, ts);
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS rollout_1s
 WITH (timescaledb.continuous) AS
@@ -43,11 +63,14 @@ CREATE TABLE IF NOT EXISTS rollout_results (
   rollout_id TEXT NOT NULL,
   seed INTEGER NOT NULL,
   checkpoint TEXT NOT NULL,
+  tier TEXT NOT NULL DEFAULT 'unknown',
+  expert_version TEXT NOT NULL DEFAULT 'unknown',
   bricks INTEGER NOT NULL,
   correct INTEGER NOT NULL,
   drops INTEGER NOT NULL DEFAULT 0,
   false_accepts INTEGER NOT NULL DEFAULT 0,
   false_rejects INTEGER NOT NULL DEFAULT 0,
+  pushes INTEGER NOT NULL DEFAULT 0,
   cycle_time_s DOUBLE PRECISION,
   failure_reason TEXT,
   outcome JSONB NOT NULL,
@@ -55,6 +78,19 @@ CREATE TABLE IF NOT EXISTS rollout_results (
 );
 SELECT create_hypertable('rollout_results','finished_at',if_not_exists => TRUE);
 CREATE INDEX IF NOT EXISTS rollout_results_checkpoint_idx ON rollout_results (checkpoint, finished_at DESC);
+
+CREATE MATERIALIZED VIEW IF NOT EXISTS benchmark_tier
+WITH (timescaledb.continuous) AS
+SELECT time_bucket('1 day', finished_at) AS bucket, tier, expert_version,
+       sum(bricks) AS bricks, sum(correct) AS correct,
+       sum(false_accepts) AS false_accepts, sum(false_rejects) AS false_rejects,
+       sum(pushes) AS pushes, avg(cycle_time_s) AS cycle_time_s,
+       count(*) AS rollouts
+FROM rollout_results GROUP BY bucket, tier, expert_version;
+DO $$ BEGIN
+  PERFORM add_continuous_aggregate_policy('benchmark_tier', start_offset => INTERVAL '30 days', end_offset => INTERVAL '1 minute', schedule_interval => INTERVAL '1 minute');
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- Camera-only failure analyses are kept separately from rollout outcomes so
 -- the dashboard can show the exact frames, sentence and next-scene batch.

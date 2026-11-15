@@ -65,14 +65,16 @@ def _telemetry_samples(capture: _ReplayCapture, *, base_timestamp: float) -> lis
 
     samples = []
     for frame in capture.frames:
-        joints = frame.get("joints") or frame.get("action") or []
-        joints = list(joints)
-        if len(joints) < 6:
+        joints = list(frame.get("joints") or frame.get("action") or [])
+        targets = list(frame.get("action") or joints)
+        if len(joints) < 6 or len(targets) < 6:
             continue
         samples.append({
             "ts": float(base_timestamp) + float(frame.get("t", 0.0)),
             "qpos": [float(value) for value in joints[:6]],
+            "targets": [float(value) for value in targets[:6]],
             "gripper": float(joints[5]),
+            "gripper_effort": abs(float(targets[5]) - float(joints[5])),
         })
     return samples
 
@@ -93,13 +95,14 @@ def _write_telemetry(row: dict[str, Any], capture: _ReplayCapture, *, base_times
         if isinstance(event, dict) and "ts" not in event and "t" in event:
             event["ts"] = float(base_timestamp) + float(event["t"])
         events.append(event)
+    checkpoint = os.environ.get("DRYRUN_TELEMETRY_CHECKPOINT", f"{row['controller']}-{row['commit'][:12]}")
     telemetry.record_rollout(
         _telemetry_samples(capture, base_timestamp=base_timestamp),
         events,
         _jsonable(row),
         rollout_id=rollout_id,
         seed=int(row["seed"]),
-        checkpoint=str(row["controller"]),
+        checkpoint=checkpoint,
     )
     return "written"
 
@@ -117,6 +120,9 @@ def _jsonable(value: Any) -> Any:
 
 
 def _commit() -> str:
+    override = os.environ.get("DRYRUN_SOURCE_COMMIT")
+    if override:
+        return override
     try:
         return subprocess.check_output(
             ["git", "rev-parse", "HEAD"], text=True, stderr=subprocess.DEVNULL
@@ -186,8 +192,12 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
         "verdicts": sum(1 for e in r.get("events", []) if e.get("event") == "verdict"),
         "scene": [asdict(spec) for spec in specs],
         "events": r.get("events", []),
+        "pushes": sum(1 for e in r.get("events", []) if e.get("event") == "push"),
+        "cycle_time_s": (max((float(e.get("t", 0.0)) for e in r.get("events", [])), default=0.0) / max(1, r["bricks"])),
+        "tier": tier,
         "controller": controller,
         "commit": _commit(),
+        "expert_version": _commit(),
     }
     if export_dir is not None:
         _write_replay(export_dir, row, capture)

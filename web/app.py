@@ -225,6 +225,42 @@ def inspector_payload() -> dict:
 class Handler(BaseHTTPRequestHandler):
     def send_bytes(self, body: bytes, content_type: str, status=200):
         self.send_response(status); self.send_header("Content-Type",content_type); self.send_header("Cache-Control","no-cache"); self.send_header("Content-Length",str(len(body))); self.end_headers(); self.wfile.write(body)
+    def send_video_file(self, path: Path):
+        """Serve replay video with byte ranges so the inspector can seek."""
+        total = path.stat().st_size
+        start, end = 0, total - 1
+        header = self.headers.get("Range", "")
+        if header.startswith("bytes="):
+            value = header[6:].split(",", 1)[0].strip()
+            try:
+                left, right = value.split("-", 1)
+                if left:
+                    start = int(left)
+                    end = int(right) if right else end
+                else:
+                    length = int(right)
+                    start = max(0, total - length)
+                if start < 0 or start >= total or end < start:
+                    raise ValueError
+                end = min(end, total - 1)
+            except (TypeError, ValueError):
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{total}")
+                self.end_headers()
+                return
+        length = end - start + 1
+        status = 206 if header.startswith("bytes=") else 200
+        self.send_response(status)
+        self.send_header("Content-Type", "video/mp4")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Accept-Ranges", "bytes")
+        if status == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{total}")
+        self.send_header("Content-Length", str(length))
+        self.end_headers()
+        with path.open("rb") as fh:
+            fh.seek(start)
+            self.wfile.write(fh.read(length))
     def send_json(self,obj,status=200): self.send_bytes(json.dumps(obj,separators=(",",":"),default=str).encode(),"application/json; charset=utf-8",status)
     def do_GET(self):
         parsed=urlparse(self.path); path=unquote(parsed.path)
@@ -256,7 +292,7 @@ class Handler(BaseHTTPRequestHandler):
             if seed.isdigit():
                 candidates.extend(REPLAY_DIR.glob(f"seed-{seed}*/{file}"))
             for candidate in candidates:
-                if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"video/mp4")
+                if candidate.is_file(): return self.send_video_file(candidate)
             return self.send_json({"status":"unavailable","message":"Camera video is available in the local replay export."},404)
         if path.startswith("/replay-video/"):
             bits=path.strip("/").split("/")
@@ -267,7 +303,7 @@ class Handler(BaseHTTPRequestHandler):
                 candidates.extend(REPLAY_DIR.glob(f"seed-{seed_text}*/{name}"))
             candidates.append(REPLAY_DIR/name)
             for candidate in candidates:
-                if candidate.is_file(): return self.send_bytes(candidate.read_bytes(),"video/mp4")
+                if candidate.is_file(): return self.send_video_file(candidate)
             try:
                 seed_record = replay_payload(int(seed_text)) if seed_text.isdigit() else None
                 key = "top" if name == "top-view.mp4" else "inspection"

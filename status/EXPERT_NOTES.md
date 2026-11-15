@@ -19,3 +19,4 @@ release. Both lost bricks are seed 1079 (7 bricks, 5 correct); the trace has
 an `unstable` event for brick body 14 at 49.600 s after release. The result is
 above the 99% gate, so the pushing expert remains the loose controller. This is
 the known roughly 1-in-900 release-fling case, not a hidden success.
+2026-11-15 camera-only audit at 2b1024a: CameraExpert emits opaque tokens without a physical focus body, so env._active stays None and inspection crops retain other bricks; seed-7 token-2 scores 0.789/0.780 versus expert body-13 0.409/0.417, with paired frames under /bulk3/runs/dryrun/m2_rebuild/camera_trace_seed7_present and real_inspector_seed7_expert.

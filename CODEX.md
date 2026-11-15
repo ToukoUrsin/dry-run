@@ -5,22 +5,22 @@ The first pass used parallel Codex sessions, but its status claims were rejected
 ## Judge card
 
 Dry Run's goal was to build an evidence-first simulator and page for the
-Junction SO-101 station before a real arm moves. At the generated 03:28 UTC
-snapshot, the repository contained 290 attributed commits, 5 sessions, 9.48
-elapsed goal-mode hours, 11,707 tracked code lines and 45 prompt files. Counts
+Junction SO-101 station before a real arm moves. At the generated 03:43 UTC
+snapshot, the repository contained 298 attributed commits, 5 sessions, 9.73
+elapsed goal-mode hours, 11,720 tracked code lines and 46 prompt files. Counts
 are generated from `git log --name-only` by `scripts/night_data.py`; the page
 snapshot is `data/page/codex.json`.
 
 | Session | Model | Owns | Commits |
 | --- | --- | --- | ---: |
-| `/root` | gpt-6-astra plus gpt-6.1-sol | simulator, expert, benchmark, replay | 148 |
-| `/root/inspector` | gpt-6.1-sol | defects and OpenVINO inspection | 16 |
-| `/root/page` | gpt-6.1-sol | viewer, telemetry, deployment | 57 |
-| `/root/policy` | gpt-6.1-sol | demonstrations, ACT, policy evaluation | 35 |
-| `/root/analyst_impl` | gpt-6.1-sol plus Nemotron | failure analysis, stations, evidence docs | 30 |
+| `/root` | gpt-6-astra plus gpt-6.1-sol | simulator, expert, benchmark, replay | 151 |
+| `/root/inspector` | gpt-6.1-sol | defects and OpenVINO inspection | 17 |
+| `/root/page` | gpt-6.1-sol | viewer, telemetry, deployment | 58 |
+| `/root/policy` | gpt-6.1-sol | demonstrations, ACT, policy evaluation | 37 |
+| `/root/analyst_impl` | gpt-6.1-sol plus Nemotron | failure analysis, stations, evidence docs | 31 |
 
 The four film-plan commits are kept in the `other` lane, so the five session
-lanes sum to 286 and the total is 290. This is why an older page lane count
+lanes sum to 294 and the total is 298. This is why an older page lane count
 must not be compared with a hand-counted main total.
 
 ## What went wrong and how it was caught

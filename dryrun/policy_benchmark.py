@@ -9,12 +9,13 @@ from .rollout import run
 
 
 class ACTController:
-    def __init__(self, checkpoint, device: str = "cpu", open_loop_ticks: int = 0, max_delta: float = 0.06, crop_top: bool = False):
+    def __init__(self, checkpoint, device: str = "cpu", open_loop_ticks: int = 0, max_delta: float = 0.06, crop_top: bool = False, demo_jpeg: bool = False):
         self.policy = load_policy(checkpoint, device=device)
         self.device = device
         self.open_loop_ticks = max(0, int(open_loop_ticks))
         self.max_delta = None if max_delta is None or float(max_delta) <= 0 else float(max_delta)
         self.crop_top = bool(crop_top)
+        self.demo_jpeg = bool(demo_jpeg)
         self._action_queue: deque[np.ndarray] = deque()
         shape = self.policy.config.input_features["observation.images.top"].shape
         self.image_size = int(shape[-1])
@@ -24,8 +25,18 @@ class ACTController:
         if self.crop_top:
             from .policy_view import crop_work_area
             top_frame = crop_work_area(top_frame, self.image_size)
+        if self.demo_jpeg:
+            import io
+            from PIL import Image
+            def jpeg78(frame):
+                buf = io.BytesIO(); Image.fromarray(np.asarray(frame, dtype=np.uint8)).save(buf, format="JPEG", quality=78, optimize=True)
+                return np.asarray(Image.open(io.BytesIO(buf.getvalue())).convert("RGB"), dtype=np.uint8)
+            top_frame = jpeg78(top_frame)
+            obs_inspection = jpeg78(obs["inspection"])
+        else:
+            obs_inspection = obs["inspection"]
         top = torch.from_numpy(np.asarray(top_frame).transpose(2, 0, 1)).float().unsqueeze(0).to(self.device) / 255.0
-        inspection = torch.from_numpy(np.asarray(obs["inspection"]).transpose(2, 0, 1)).float().unsqueeze(0).to(self.device) / 255.0
+        inspection = torch.from_numpy(np.asarray(obs_inspection).transpose(2, 0, 1)).float().unsqueeze(0).to(self.device) / 255.0
         if top.shape[-2:] != (self.image_size, self.image_size):
             top = torch.nn.functional.interpolate(top, (self.image_size, self.image_size), mode="bilinear", align_corners=False)
             inspection = torch.nn.functional.interpolate(inspection, (self.image_size, self.image_size), mode="bilinear", align_corners=False)
@@ -78,19 +89,19 @@ class OpenVINOController:
         return np.asarray(self.request.infer({"top": top, "inspection": inspection, "state": state})[self.compiled.output(0)]).reshape(6)
 
 
-def _controller_for(kind: str, checkpoint: str | Path | None, *, open_loop_ticks: int = 0, max_delta: float = 0.06, crop_top: bool = False):
+def _controller_for(kind: str, checkpoint: str | Path | None, *, open_loop_ticks: int = 0, max_delta: float = 0.06, crop_top: bool = False, demo_jpeg: bool = False):
     if kind == "expert":
         return "expert"
     if checkpoint is None:
         raise ValueError(f"--checkpoint is required for {kind} evaluation")
     if kind == "policy":
-        return ACTController(checkpoint, open_loop_ticks=open_loop_ticks, max_delta=max_delta, crop_top=crop_top)
+        return ACTController(checkpoint, open_loop_ticks=open_loop_ticks, max_delta=max_delta, crop_top=crop_top, demo_jpeg=demo_jpeg)
     if kind == "openvino":
         return OpenVINOController(checkpoint, crop_top=crop_top)
     raise ValueError(f"unknown controller {kind!r}")
 
 
-def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, controller: str = "policy", max_steps: int = 3600, export_replays: Path | None = None, open_loop_ticks: int = 0, max_delta: float = 0.06, crop_top: bool = False):
+def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, controller: str = "policy", max_steps: int = 3600, export_replays: Path | None = None, open_loop_ticks: int = 0, max_delta: float = 0.06, crop_top: bool = False, demo_jpeg: bool = False):
     if seeds == 200:
         groups = {"loose": list(range(0, 80)), "messy": list(range(80, 150)), "pile": list(range(150, 200))}
     else:
@@ -109,9 +120,9 @@ def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, 
     for tier, values in groups.items():
         rows = []
         if controller in {"policy", "openvino"}:
-            shared_controller = _controller_for(controller, checkpoint, open_loop_ticks=open_loop_ticks, max_delta=max_delta, crop_top=crop_top) if max_steps <= 1 else None
+            shared_controller = _controller_for(controller, checkpoint, open_loop_ticks=open_loop_ticks, max_delta=max_delta, crop_top=crop_top, demo_jpeg=demo_jpeg) if max_steps <= 1 else None
             def task(seed):
-                controller_obj = shared_controller or _controller_for(controller, checkpoint, open_loop_ticks=open_loop_ticks, max_delta=max_delta, crop_top=crop_top)
+                controller_obj = shared_controller or _controller_for(controller, checkpoint, open_loop_ticks=open_loop_ticks, max_delta=max_delta, crop_top=crop_top, demo_jpeg=demo_jpeg)
                 # A short horizon ends before `present`; avoid compiling the
                 # inspector for every smoke worker. Full-cycle runs still use
                 # the real OpenVINO inspector.
@@ -158,8 +169,8 @@ def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, 
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--controller", choices=("policy", "openvino", "expert"), default="policy"); ap.add_argument("--checkpoint", type=Path, required=False); ap.add_argument("--seeds", type=int, default=200); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-steps", type=int, default=3600); ap.add_argument("--open-loop-ticks", type=int, default=0, help="consume this many ACT chunk actions open-loop"); ap.add_argument("--max-delta", type=float, default=0.06, help="per-tick joint target clamp in radians"); ap.add_argument("--crop-top", action="store_true", help="apply the shared work-area crop before policy resize"); ap.add_argument("--export-replays", type=Path); ap.add_argument("--out", type=Path, default=Path("/bulk3/runs/dryrun/m4/policy-benchmark.json")); a = ap.parse_args()
-    result = evaluate(a.checkpoint, a.seeds, a.workers, a.controller, max_steps=a.max_steps, export_replays=a.export_replays, open_loop_ticks=a.open_loop_ticks, max_delta=a.max_delta, crop_top=a.crop_top); result["max_steps"] = a.max_steps; result["open_loop_ticks"] = a.open_loop_ticks; result["max_delta"] = a.max_delta; result["crop_top"] = a.crop_top; a.out.parent.mkdir(parents=True, exist_ok=True); a.out.write_text(json.dumps(result, indent=2)); print(json.dumps({k: v for k, v in result.items() if k != "tiers"}, indent=2)); print(json.dumps({k: {x: v[x] for x in ("seeds", "bricks", "successes", "score")} for k, v in result["tiers"].items()}, indent=2))
+    ap = argparse.ArgumentParser(); ap.add_argument("--controller", choices=("policy", "openvino", "expert"), default="policy"); ap.add_argument("--checkpoint", type=Path, required=False); ap.add_argument("--seeds", type=int, default=200); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-steps", type=int, default=3600); ap.add_argument("--open-loop-ticks", type=int, default=0, help="consume this many ACT chunk actions open-loop"); ap.add_argument("--max-delta", type=float, default=0.06, help="per-tick joint target clamp in radians"); ap.add_argument("--crop-top", action="store_true", help="apply the shared work-area crop before policy resize"); ap.add_argument("--demo-jpeg", action="store_true", help="match recorder JPEG quality=78 preprocessing"); ap.add_argument("--export-replays", type=Path); ap.add_argument("--out", type=Path, default=Path("/bulk3/runs/dryrun/m4/policy-benchmark.json")); a = ap.parse_args()
+    result = evaluate(a.checkpoint, a.seeds, a.workers, a.controller, max_steps=a.max_steps, export_replays=a.export_replays, open_loop_ticks=a.open_loop_ticks, max_delta=a.max_delta, crop_top=a.crop_top, demo_jpeg=a.demo_jpeg); result["max_steps"] = a.max_steps; result["open_loop_ticks"] = a.open_loop_ticks; result["max_delta"] = a.max_delta; result["crop_top"] = a.crop_top; result["demo_jpeg"] = a.demo_jpeg; a.out.parent.mkdir(parents=True, exist_ok=True); a.out.write_text(json.dumps(result, indent=2)); print(json.dumps({k: v for k, v in result.items() if k != "tiers"}, indent=2)); print(json.dumps({k: {x: v[x] for x in ("seeds", "bricks", "successes", "score")} for k, v in result["tiers"].items()}, indent=2))
 
 
 if __name__ == "__main__": main()

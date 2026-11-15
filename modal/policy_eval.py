@@ -125,6 +125,7 @@ def evaluate_seed(
     render_size: int = 64,
     crop_top: bool = False,
     prefix_expert_ticks: int = 0,
+    demo_jpeg: bool = False,
 ):
     sys.path.insert(0, "/root/repo")
     os.environ.setdefault("MUJOCO_GL", "osmesa")
@@ -141,6 +142,7 @@ def evaluate_seed(
         open_loop_ticks=int(open_loop_ticks),
         max_delta=float(max_delta),
         crop_top=bool(crop_top),
+        demo_jpeg=bool(demo_jpeg),
     )
     controller = _ExpertPrefix(policy_controller, int(prefix_expert_ticks)) if int(prefix_expert_ticks) > 0 else policy_controller
     inspector = Inspector(inspector_model, threads=1)
@@ -162,6 +164,7 @@ def evaluate_seed(
         "render_size": int(render_size),
         "crop_top": bool(crop_top),
         "prefix_expert_ticks": int(prefix_expert_ticks),
+        "demo_jpeg": bool(demo_jpeg),
         "bricks": int(result.get("bricks", 0)),
         "successes": int(result.get("successes", 0)),
         "score": float(result.get("score", 0.0)),
@@ -204,6 +207,7 @@ def main(
     render_size: int = 64,
     crop_top: bool = False,
     prefix_expert_ticks: int = 0,
+    demo_jpeg: bool = False,
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -225,6 +229,7 @@ def main(
                 "render_size": int(render_size),
                 "crop_top": bool(crop_top),
                 "prefix_expert_ticks": int(prefix_expert_ticks),
+                "demo_jpeg": bool(demo_jpeg),
             },
         )
     )
@@ -244,6 +249,7 @@ def main(
         "render_size": int(render_size),
         "crop_top": bool(crop_top),
         "prefix_expert_ticks": int(prefix_expert_ticks),
+        "demo_jpeg": bool(demo_jpeg),
         "dict_name": "dryrun-policy-rows",
         "dict_key_prefix": dict_key_prefix,
         "rows": rows,

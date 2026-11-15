@@ -282,6 +282,71 @@ def layout_bricks(seed: int, sentence: str, count: int | None = None) -> list[Br
             return placed
     raise ValueError(f"could not place measured {n}-brick scene in seed {seed}")
 
+
+def scene_specs_from_dict(seed: int, scene: dict) -> list[BrickSpec]:
+    """Turn one analyst scene specification into physical brick specs.
+
+    Nemotron emits a centre list that is useful as a curriculum hint, but it
+    can contain fewer points than ``brick_count`` (and can request touching
+    rectangles).  The station cannot put overlapping rigid bodies in MuJoCo,
+    so this adapter deterministically expands and separates those hints while
+    retaining their tier, centre and yaw distribution.  The resulting specs
+    are the actual scene used for both demonstrations and evaluation.
+    """
+    n = max(3, min(12, int(scene.get("brick_count", 3))))
+    raw = scene.get("positions") or []
+    if not isinstance(raw, list):
+        raise ValueError("scene positions must be a list")
+    points: list[tuple[float, float]] = []
+    for point in raw:
+        if not isinstance(point, (list, tuple)) or len(point) < 2:
+            continue
+        x, y = float(point[0]), float(point[1])
+        # Accept the pixel-style coordinates produced by early analyst runs.
+        if max(abs(x), abs(y)) > 1.0:
+            x, y = 0.12 + 0.36 * x / 1000.0, y / 1000.0 - 0.5
+        points.append((x, y))
+    if not points:
+        points = [(0.23, 0.0)]
+    rng = random.Random(int(seed) * 7919 + len(points) * 313)
+    # Curriculum batches are deliberately dense, but rigid bodies need a
+    # small clearance to avoid starting in penetration.  Keep the request in
+    # the metadata while using a safe centre distance for the physical scene.
+    spacing = max(0.05, min(0.085, float(scene.get("spacing", 0.05))))
+    placed: list[tuple[float, float]] = []
+    for index in range(n):
+        bx, by = points[index % len(points)]
+        # Deterministically spread repeated/overlapping hints around the
+        # requested centre. Every candidate remains in the work envelope.
+        candidates = [(bx, by)]
+        for radius in (0.025, 0.05, 0.075, 0.10, 0.13):
+            for j in range(12):
+                angle = 2 * math.pi * j / 12 + 0.17 * index
+                candidates.append((bx + radius * math.cos(angle), by + radius * math.sin(angle)))
+        candidates.extend((rng.uniform(.16, .36), rng.uniform(-.14, .14)) for _ in range(64))
+        for x, y in candidates:
+            x, y = max(.16, min(.36, float(x))), max(-.14, min(.14, float(y)))
+            if any(math.hypot(x - ox, y - oy) < spacing for ox, oy in placed):
+                continue
+            placed.append((x, y)); break
+        else:
+            raise ValueError(f"could not separate curriculum scene around {(bx, by)}")
+    spread = max(0.0, min(math.pi, float(scene.get("yaw_spread", 0.0))))
+    tier = str(scene.get("tier", "loose"))
+    specs: list[BrickSpec] = []
+    for index, (x, y) in enumerate(placed):
+        # Explicit analyst coordinates do not carry reliable brick footprints;
+        # use 2x2 bodies so the adapter can guarantee a valid non-overlapping
+        # MuJoCo reset even when a diagnosis asks for touching bricks.
+        size = "2x2"
+        yaw = (index / max(1, n - 1) - .5) * spread
+        defect, color = _scene_labels(seed, index, rng)
+        z = BRICK_H / 2
+        if tier == "pile":
+            z += rng.uniform(.04, .12)
+        specs.append(BrickSpec(index, size, round(x, 4), round(y, 4), defect, color, round(yaw, 6), round(z, 5)))
+    return specs
+
 def _bowl(name: str, x: float, y: float, material: str) -> str:
     # Measured 190 mm inner diameter with a 60 mm wall.  The centre is kept
     # outside the loose brick work area so a top-down grasp has clearance.
@@ -339,7 +404,7 @@ def _brick(spec: BrickSpec) -> str:
     return "".join(bits)
 
 
-def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the sides, inspection camera in front", count: int | None = None, robot_include: str = ROBOT_INCLUDE, look: str = "lab") -> str:
+def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the sides, inspection camera in front", count: int | None = None, robot_include: str = ROBOT_INCLUDE, look: str = "lab", scene_specs: list[BrickSpec] | None = None) -> str:
     """Build a seeded station, optionally with a presentation-only look.
 
     ``look`` is deliberately kept out of the scene layout and all contact
@@ -350,7 +415,7 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     if look not in {"lab", "junction"}:
         raise ValueError("look must be 'lab' or 'junction'")
     opts = parse_sentence(sentence)
-    bricks = layout_bricks(seed, sentence, count)
+    bricks = list(scene_specs) if scene_specs is not None else layout_bricks(seed, sentence, count)
     # Bowl centres stay inside the SO-101's working envelope.  The sentence
     # changes their arrangement while preserving camera and reach validity.
     # Both bowls are on reachable, separated drop points; the sentence only

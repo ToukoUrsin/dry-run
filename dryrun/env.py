@@ -9,7 +9,7 @@ from .grasp_test import ARM_NAMES, ids, qadr
 from .closed_form_ik import IKError, ik_pad_pose
 from .defects import INSPECTION_PRESENT_POSE, render_inspection_frame
 from .expert import MeasuredExpert
-from .mjcf_station import ROOT, layout_bricks, station_xml
+from .mjcf_station import BrickSpec, ROOT, layout_bricks, station_xml
 
 TIERS = {
     "loose": "loose flat bricks, bowls on the sides, inspection camera in front",
@@ -21,17 +21,18 @@ class StationEnv:
     """Vision/state observations at a deterministic public 30 Hz boundary."""
     def __init__(self, seed: int, tier: str | None = None, render_size: int = 64,
                  *, sentence: str | None = None, station_path: Path | None = None,
-                 count: int | None = None, look: str = "lab"):
+                 count: int | None = None, look: str = "lab",
+                 scene_specs: list[BrickSpec] | None = None):
         self.seed = int(seed); self.tier = tier or "loose"; self.look = str(look)
         if self.tier not in TIERS: raise ValueError(f"tier must be one of {sorted(TIERS)}")
         self.sentence = sentence or TIERS[self.tier]
         xml = (Path(station_path).read_text() if station_path is not None else
                station_xml(self.seed, self.sentence, count=count,
                            robot_include=str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve()),
-                           look=look))
+                           look=look, scene_specs=scene_specs))
         self.xml_path = Path("/tmp") / f"dryrun_env_{self.seed}_{self.tier}.xml"; self.xml_path.write_text(xml)
         self.model = mujoco.MjModel.from_xml_path(str(self.xml_path)); self.data = mujoco.MjData(self.model)
-        self.specs = layout_bricks(self.seed, self.sentence, count=count)
+        self.specs = list(scene_specs) if scene_specs is not None else layout_bricks(self.seed, self.sentence, count=count)
         self.arm = ids(self.model); self._qa = qadr(self.model, self.arm)
         self._grip = int(self.model.jnt_qposadr[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, "gripper")])
         self._render_size = int(render_size)

@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 import numpy as np
 from .env import StationEnv, TIERS
+from .mjcf_station import BrickSpec
 
 EVENT_NAMES = ("reach", "grasp", "lift", "present", "verdict", "drop", "push", "miss", "slip", "ik_fail", "unstable")
 
@@ -20,7 +21,7 @@ def _record(record, payload):
     elif callable(record): record(payload)
     else: raise TypeError("record must be callable or expose record(payload)")
 
-def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, tier: str | None = None, max_steps: int = 3600, max_cycles: int | None = None, count: int | None = None, render_size: int = 64, sentence: str | None = None, station_path: str | None = None, look: str = "lab"):
+def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, tier: str | None = None, max_steps: int = 3600, max_cycles: int | None = None, count: int | None = None, render_size: int = 64, sentence: str | None = None, station_path: str | None = None, look: str = "lab", scene_specs: list[BrickSpec] | None = None):
     """Run one scene through the public :class:`StationEnv` boundary.
 
     Expert, learned-policy, and demonstration runs deliberately share the
@@ -36,10 +37,11 @@ def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, t
     if sentence is not None: kwargs["sentence"] = sentence
     if station_path is not None: kwargs["station_path"] = station_path
     if count is not None: kwargs["count"] = count
+    if scene_specs is not None: kwargs["scene_specs"] = scene_specs
     try:
         env = StationEnv(int(seed), **kwargs)
     except TypeError:
-        env = StationEnv(int(seed), tier=tier, render_size=render_size, look=look)
+        env = StationEnv(int(seed), tier=tier, render_size=render_size, look=look, scene_specs=scene_specs)
     obs = env.reset()
     _record(record, {"type": "cycle_start", "brick": None, "task": f"sort {tier}"})
     verdict = 0; steps = 0; seen: set[tuple[Any, ...]] = set(); cycles = 0

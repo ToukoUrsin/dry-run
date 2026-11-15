@@ -1,8 +1,8 @@
 {
   "schema": "dryrun.page.policy.v1",
-  "updated_utc": "2026-11-15T05:27:07Z",
+  "updated_utc": "2026-11-15T05:42:50Z",
   "commit": "36c35fe6dbad63b0df0cc5a8a0a911ebbfd7cffd",
-  "summary": "Corrected chunk-30 overfit continuation reached 10/20 scenes and grasped 2/20 after the 36-tick prefix (12/20 reached and 1/20 lifted from tick 0), but sorted 0/20; M4 remains open.",
+  "summary": "Canonical 200-seed partition is complete: the 224px ACT policy sorted 0/1309 bricks (0/400 loose, 0/515 messy, 0/394 pile) beside expert baselines 162/400, 197/515 and 105/394; DAgger rounds and OpenVINO full-cycle evidence are recorded.",
   "dataset": {
     "episodes": 767,
     "frames": 230263,
@@ -853,6 +853,145 @@
         }
       ],
       "notes": "Continuation reduced corrected teacher-forced MAE to 0.2532 rad but still sorted 0/20; one tick-0 scene reached physical lift."
+    },
+    {
+      "name": "act-crop224-final-canonical-200-20261115-1",
+      "dataset": "/runs/act-crop224-long-20261115-1",
+      "episodes": 767,
+      "frames": 230263,
+      "gpu": "A100",
+      "checkpoint": "/runs/act-crop224-long-20261115-1/act-final.pt",
+      "chunk_size": 60,
+      "n_action_steps": 1,
+      "open_loop_ticks": 30,
+      "max_delta": 0.06,
+      "render_size": 320,
+      "crop_top": true,
+      "source_commit": "e9b5662",
+      "evaluation_contract": "canonical 200 held-out seeds: loose 0-79 (80), messy 80-149 (70), pile 150-199 (50)",
+      "evaluation": [
+        {
+          "tier": "loose",
+          "seeds": "0-79",
+          "bricks": 400,
+          "successes": 0,
+          "stages": {
+            "reached": 61,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "expert_baseline": {
+            "successes": 162,
+            "bricks": 400,
+            "score": 0.405,
+            "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-expert/canonical-expert-loose80-policy-goal-20261115-1/manifest.json"
+          },
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-loose80-20261115-1/manifest.json",
+          "policy_source_commit": "e9b5662",
+          "expert_source_commit": "d55fbbef4ae470d4b7941d1a1115bf9c051a3033"
+        },
+        {
+          "tier": "messy",
+          "seeds": "80-149",
+          "bricks": 515,
+          "successes": 0,
+          "stages": {
+            "reached": 64,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "expert_baseline": {
+            "successes": 197,
+            "bricks": 515,
+            "score": 0.38252427,
+            "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-expert/expert-messy-70-policy-goal-20261115-1/manifest.json"
+          },
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-messy70-20261115-1/manifest.json",
+          "policy_source_commit": "6685818",
+          "expert_source_commit": "871fe1a5fec9646a94ddc067abd48d11a645fc62"
+        },
+        {
+          "tier": "pile",
+          "seeds": "150-199",
+          "bricks": 394,
+          "successes": 0,
+          "stages": {
+            "reached": 41,
+            "grasped": 2,
+            "lifted": 1,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "expert_baseline": {
+            "successes": 105,
+            "bricks": 394,
+            "score": 0.26649746,
+            "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-expert/expert-pile-50-policy-goal-20261115-1/manifest.json"
+          },
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-pile50-20261115-1/manifest.json",
+          "policy_source_commit": "6c2e688",
+          "expert_source_commit": "871fe1a5fec9646a94ddc067abd48d11a645fc62"
+        }
+      ],
+      "notes": "Complete canonical held-out partition: 0/1309 learned-policy successes beside expert baselines 162/400 loose, 197/515 messy, 105/394 pile. This is an honest policy result, not a benchmark claim for the withdrawn loose fixture."
+    },
+    {
+      "name": "dagger-corrected-20261115-1",
+      "dataset": "/bulk3/runs/dryrun/m4/onebrick-overfit-replay-dataset/onebrick-overfit-20-dataset-20261115-1",
+      "episodes": 20,
+      "source_commit": "bdfc194f4c002a1203a209efcbb1fe38ba5f1005",
+      "training": "local CPU, one epoch per round, batch 1024, 6 steps",
+      "rounds": [
+        {
+          "round": 1,
+          "expert_labeled_frames": 20,
+          "frames": 6040,
+          "checkpoint": "/bulk3/runs/dryrun/m4/dagger-corrected-20261115-1/train-1/act-final.pt",
+          "training_log": "/bulk3/runs/dryrun/m4/dagger-corrected-20261115-1/train-1/training.jsonl",
+          "held_out": "0/20",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/dagger-policy/dagger-corrected-round1-20261115-1/manifest.json"
+        },
+        {
+          "round": 2,
+          "expert_labeled_frames": 20,
+          "frames": 6060,
+          "checkpoint": "/bulk3/runs/dryrun/m4/dagger-corrected-20261115-1/train-2/act-final.pt",
+          "training_log": "/bulk3/runs/dryrun/m4/dagger-corrected-20261115-1/train-2/training.jsonl",
+          "held_out": "0/20",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/dagger-policy/dagger-corrected-round2-20261115-1/manifest.json"
+        }
+      ],
+      "notes": "Two real policy-reached-state expert-label rounds completed; each 20-scene overfit score remained 0/20."
+    },
+    {
+      "name": "openvino-policy-loose80-20261115-2",
+      "checkpoint": "/bulk3/runs/dryrun/m4/hi224-policy-final/openvino/policy.xml",
+      "controller": "OpenVINO CPU",
+      "seeds": "0-79",
+      "tier": "loose",
+      "bricks": 400,
+      "successes": 0,
+      "stages": {
+        "reached": 0,
+        "grasped": 0,
+        "lifted": 0,
+        "presented": 0,
+        "dropped": 0,
+        "right_bowl": 0
+      },
+      "max_steps": 2600,
+      "max_delta": 0.06,
+      "render_size": 320,
+      "manifest": "/bulk3/runs/dryrun/m4/modal-map/openvino-policy/openvino-policy-loose80-20261115-2/manifest.json",
+      "source_commit": "871fe1a5fec9646a94ddc067abd48d11a645fc62",
+      "notes": "Full-cycle OpenVINO controller map through the same rollout API; 0/400 sorted."
     }
   ],
   "openvino": {
@@ -1046,6 +1185,139 @@
           "manifest": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/eval/chunk30-overfit-continued-tick0-20261115-1/manifest.json"
         }
       ]
+    },
+    "canonical_benchmark": {
+      "checkpoint": "/runs/act-crop224-long-20261115-1/act-final.pt",
+      "policy_source": "e9b5662 / 6685818 / 6c2e688",
+      "expert_sources": "d55fbbef / 871fe1a5",
+      "total_bricks": 1309,
+      "policy_successes": 0,
+      "tiers": [
+        {
+          "tier": "loose",
+          "seeds": "0-79",
+          "bricks": 400,
+          "successes": 0,
+          "stages": {
+            "reached": 61,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "expert_baseline": {
+            "successes": 162,
+            "bricks": 400,
+            "score": 0.405,
+            "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-expert/canonical-expert-loose80-policy-goal-20261115-1/manifest.json"
+          },
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-loose80-20261115-1/manifest.json",
+          "policy_source_commit": "e9b5662",
+          "expert_source_commit": "d55fbbef4ae470d4b7941d1a1115bf9c051a3033"
+        },
+        {
+          "tier": "messy",
+          "seeds": "80-149",
+          "bricks": 515,
+          "successes": 0,
+          "stages": {
+            "reached": 64,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "expert_baseline": {
+            "successes": 197,
+            "bricks": 515,
+            "score": 0.38252427,
+            "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-expert/expert-messy-70-policy-goal-20261115-1/manifest.json"
+          },
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-messy70-20261115-1/manifest.json",
+          "policy_source_commit": "6685818",
+          "expert_source_commit": "871fe1a5fec9646a94ddc067abd48d11a645fc62"
+        },
+        {
+          "tier": "pile",
+          "seeds": "150-199",
+          "bricks": 394,
+          "successes": 0,
+          "stages": {
+            "reached": 41,
+            "grasped": 2,
+            "lifted": 1,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "expert_baseline": {
+            "successes": 105,
+            "bricks": 394,
+            "score": 0.26649746,
+            "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-expert/expert-pile-50-policy-goal-20261115-1/manifest.json"
+          },
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-pile50-20261115-1/manifest.json",
+          "policy_source_commit": "6c2e688",
+          "expert_source_commit": "871fe1a5fec9646a94ddc067abd48d11a645fc62"
+        }
+      ],
+      "openvino": {
+        "successes": "0/400",
+        "manifest": "/bulk3/runs/dryrun/m4/modal-map/openvino-policy/openvino-policy-loose80-20261115-2/manifest.json"
+      }
+    },
+    "dagger": {
+      "name": "dagger-corrected-20261115-1",
+      "dataset": "/bulk3/runs/dryrun/m4/onebrick-overfit-replay-dataset/onebrick-overfit-20-dataset-20261115-1",
+      "episodes": 20,
+      "source_commit": "bdfc194f4c002a1203a209efcbb1fe38ba5f1005",
+      "training": "local CPU, one epoch per round, batch 1024, 6 steps",
+      "rounds": [
+        {
+          "round": 1,
+          "expert_labeled_frames": 20,
+          "frames": 6040,
+          "checkpoint": "/bulk3/runs/dryrun/m4/dagger-corrected-20261115-1/train-1/act-final.pt",
+          "training_log": "/bulk3/runs/dryrun/m4/dagger-corrected-20261115-1/train-1/training.jsonl",
+          "held_out": "0/20",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/dagger-policy/dagger-corrected-round1-20261115-1/manifest.json"
+        },
+        {
+          "round": 2,
+          "expert_labeled_frames": 20,
+          "frames": 6060,
+          "checkpoint": "/bulk3/runs/dryrun/m4/dagger-corrected-20261115-1/train-2/act-final.pt",
+          "training_log": "/bulk3/runs/dryrun/m4/dagger-corrected-20261115-1/train-2/training.jsonl",
+          "held_out": "0/20",
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/dagger-policy/dagger-corrected-round2-20261115-1/manifest.json"
+        }
+      ],
+      "notes": "Two real policy-reached-state expert-label rounds completed; each 20-scene overfit score remained 0/20."
+    },
+    "openvino_full_cycle": {
+      "name": "openvino-policy-loose80-20261115-2",
+      "checkpoint": "/bulk3/runs/dryrun/m4/hi224-policy-final/openvino/policy.xml",
+      "controller": "OpenVINO CPU",
+      "seeds": "0-79",
+      "tier": "loose",
+      "bricks": 400,
+      "successes": 0,
+      "stages": {
+        "reached": 0,
+        "grasped": 0,
+        "lifted": 0,
+        "presented": 0,
+        "dropped": 0,
+        "right_bowl": 0
+      },
+      "max_steps": 2600,
+      "max_delta": 0.06,
+      "render_size": 320,
+      "manifest": "/bulk3/runs/dryrun/m4/modal-map/openvino-policy/openvino-policy-loose80-20261115-2/manifest.json",
+      "source_commit": "871fe1a5fec9646a94ddc067abd48d11a645fc62",
+      "notes": "Full-cycle OpenVINO controller map through the same rollout API; 0/400 sorted."
     }
   },
   "modal_billing": {
@@ -1056,32 +1328,110 @@
     "after": "pending until training completes"
   },
   "latest_evaluation": {
-    "name": "act-chunk30-overfit-continued-20261115-1",
-    "seeds": "10000-10019",
-    "bricks": 20,
+    "name": "act-crop224-final-canonical-200-20261115-1",
+    "seeds": "loose 0-79; messy 80-149; pile 150-199",
+    "bricks": 1309,
     "successes": 0,
     "stages": {
-      "reached": 10,
+      "reached": 166,
       "grasped": 2,
-      "lifted": 0,
+      "lifted": 1,
       "presented": 0,
       "dropped": 0,
       "right_bowl": 0
     },
-    "closest_approach_mm": {
-      "min": 13.835,
-      "median": 28.175,
-      "max": 90.635
-    },
-    "max_steps": 330,
+    "checkpoint": "/runs/act-crop224-long-20261115-1/act-final.pt",
     "open_loop_ticks": 30,
     "max_delta": 0.06,
-    "render_size": 64,
-    "crop_top": false,
-    "prefix_expert_ticks": 36,
-    "demo_jpeg": true,
-    "checkpoint": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/continued-act-final.pt",
-    "manifest": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/eval/chunk30-overfit-continued-prefix36-20261115-1/manifest.json",
-    "source_commit": "36c35fe6dbad63b0df0cc5a8a0a911ebbfd7cffd"
+    "render_size": 320,
+    "crop_top": true,
+    "manifests": [
+      "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-loose80-20261115-1/manifest.json",
+      "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-messy70-20261115-1/manifest.json",
+      "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-pile50-20261115-1/manifest.json"
+    ],
+    "source_commit": "e9b5662"
+  },
+  "canonical_benchmark": {
+    "checkpoint": "/runs/act-crop224-long-20261115-1/act-final.pt",
+    "policy_source": "e9b5662 / 6685818 / 6c2e688",
+    "expert_sources": "d55fbbef / 871fe1a5",
+    "total_bricks": 1309,
+    "policy_successes": 0,
+    "tiers": [
+      {
+        "tier": "loose",
+        "seeds": "0-79",
+        "bricks": 400,
+        "successes": 0,
+        "stages": {
+          "reached": 61,
+          "grasped": 0,
+          "lifted": 0,
+          "presented": 0,
+          "dropped": 0,
+          "right_bowl": 0
+        },
+        "expert_baseline": {
+          "successes": 162,
+          "bricks": 400,
+          "score": 0.405,
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-expert/canonical-expert-loose80-policy-goal-20261115-1/manifest.json"
+        },
+        "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-loose80-20261115-1/manifest.json",
+        "policy_source_commit": "e9b5662",
+        "expert_source_commit": "d55fbbef4ae470d4b7941d1a1115bf9c051a3033"
+      },
+      {
+        "tier": "messy",
+        "seeds": "80-149",
+        "bricks": 515,
+        "successes": 0,
+        "stages": {
+          "reached": 64,
+          "grasped": 0,
+          "lifted": 0,
+          "presented": 0,
+          "dropped": 0,
+          "right_bowl": 0
+        },
+        "expert_baseline": {
+          "successes": 197,
+          "bricks": 515,
+          "score": 0.38252427,
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-expert/expert-messy-70-policy-goal-20261115-1/manifest.json"
+        },
+        "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-messy70-20261115-1/manifest.json",
+        "policy_source_commit": "6685818",
+        "expert_source_commit": "871fe1a5fec9646a94ddc067abd48d11a645fc62"
+      },
+      {
+        "tier": "pile",
+        "seeds": "150-199",
+        "bricks": 394,
+        "successes": 0,
+        "stages": {
+          "reached": 41,
+          "grasped": 2,
+          "lifted": 1,
+          "presented": 0,
+          "dropped": 0,
+          "right_bowl": 0
+        },
+        "expert_baseline": {
+          "successes": 105,
+          "bricks": 394,
+          "score": 0.26649746,
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-expert/expert-pile-50-policy-goal-20261115-1/manifest.json"
+        },
+        "manifest": "/bulk3/runs/dryrun/m4/modal-map/canonical-policy/act-crop224-final-pile50-20261115-1/manifest.json",
+        "policy_source_commit": "6c2e688",
+        "expert_source_commit": "871fe1a5fec9646a94ddc067abd48d11a645fc62"
+      }
+    ],
+    "openvino": {
+      "successes": "0/400",
+      "manifest": "/bulk3/runs/dryrun/m4/modal-map/openvino-policy/openvino-policy-loose80-20261115-2/manifest.json"
+    }
   }
 }

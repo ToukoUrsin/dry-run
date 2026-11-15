@@ -215,6 +215,7 @@ def rollout_seed(
     max_cycles: int | None = 1,
     run_id: str = "latest",
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
+    render_size: int = 64,
 ):
     """Run one expert seed and persist a shard before returning its summary."""
 
@@ -233,6 +234,7 @@ def rollout_seed(
         record=recorder,
         max_steps=int(max_steps),
         max_cycles=max_cycles,
+        render_size=int(render_size),
     )
     if recorder._open is not None:
         recorder.cycle_end(bool(result.get("successes", 0)))
@@ -246,6 +248,7 @@ def rollout_seed(
         "tier": str(tier),
         "max_steps": int(max_steps),
         "max_cycles": max_cycles,
+        "render_size": int(render_size),
         "result": _jsonable(result),
         "cycles": [c for c in recorder.cycles if c.get("success")],
         "cycles_seen": len(recorder.cycles),
@@ -286,6 +289,7 @@ def main(
     out_dir: str = "/bulk3/runs/dryrun/m4/modal-map/demo-map",
     download: bool = False,
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
+    render_size: int = 64,
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -299,6 +303,7 @@ def main(
                 "max_cycles": int(max_cycles) if max_cycles > 0 else None,
                 "run_id": run_id,
                 "inspector_model": inspector_model,
+                "render_size": int(render_size),
             },
         )
     )
@@ -312,6 +317,7 @@ def main(
         "tier": tier,
         "max_steps": int(max_steps),
         "max_cycles": int(max_cycles) if max_cycles > 0 else None,
+        "render_size": int(render_size),
         "dict_name": "dryrun-demo-shards",
         "dict_key_prefix": dict_key_prefix,
         "rows": rows,

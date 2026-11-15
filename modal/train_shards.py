@@ -1,4 +1,4 @@
-"""Train ACT from independent ten-seed LeRobot datasets on an A10G."""
+"""Train ACT from independent ten-seed LeRobot datasets on an A100."""
 from __future__ import annotations
 
 import json
@@ -23,7 +23,7 @@ image = (
 )
 
 
-@app.function(image=image, gpu="A10G", timeout=7200, retries=2, volumes=volume_mounts)
+@app.function(image=image, gpu="A100", timeout=14400, retries=2, volumes=volume_mounts)
 def train_shards(
     run_id: str,
     shard_indices: list[int],
@@ -32,6 +32,8 @@ def train_shards(
     epochs: int = 1,
     batch_size: int = 512,
     checkpoint_minutes: float = 15.0,
+    checkpoint_every_steps: int = 2500,
+    image_size: int = 64,
 ):
     import sys
 
@@ -55,7 +57,7 @@ def train_shards(
         raise FileNotFoundError(f"no completed datasets for run {run_id}: {shard_indices}")
     dataset = ConcatDataset(datasets)
 
-    cfg = act_config(chunk_size=60)
+    cfg = act_config(chunk_size=60, image_size=int(image_size))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     torch.set_num_threads(4)
     policy = __import__("lerobot.policies.act", fromlist=["ACTPolicy"]).ACTPolicy(cfg).to(device)
@@ -73,13 +75,13 @@ def train_shards(
         inspection = torch.stack([row["observation.images.inspection"] for row in rows]).float()
         state = torch.stack([row["observation.state"] for row in rows]).float()
         verdict = torch.stack([row["inspection.verdict"] for row in rows]).float().reshape(len(rows), 1)
-        action = torch.stack([row["action"] for row in rows]).float()[:, None, :].repeat(1, 60, 1)
+        action = torch.stack([row["action"] for row in rows]).float()[:, None, :].repeat(1, cfg.chunk_size, 1)
         return {
             "observation.images.top": top.to(device),
             "observation.images.inspection": inspection.to(device),
             "observation.state": torch.cat([state, verdict], dim=1).to(device),
             "action": action.to(device),
-            "action_is_pad": torch.zeros(len(rows), 60, dtype=torch.bool, device=device),
+            "action_is_pad": torch.zeros(len(rows), cfg.chunk_size, dtype=torch.bool, device=device),
         }
 
     rows_log = []
@@ -108,17 +110,19 @@ def train_shards(
                 log.write(json.dumps(row) + "\n")
                 log.flush()
                 rows_log.append(row)
-                if elapsed >= next_checkpoint:
+                if int(checkpoint_every_steps) > 0 and step % int(checkpoint_every_steps) == 0:
                     torch.save(
                         {
                             "state_dict": policy.state_dict(),
                             "step": step,
                             "architecture": "LeRobot ACT",
                             "chunk_size": 60,
+                            "image_size": int(image_size),
                             "dataset_roots": roots,
                         },
                         output / f"act-step-{step:06d}.pt",
                     )
+                if elapsed >= next_checkpoint:
                     next_checkpoint += float(checkpoint_minutes) * 60.0
     final = output / "act-final.pt"
     torch.save(
@@ -127,6 +131,7 @@ def train_shards(
             "step": step,
             "architecture": "LeRobot ACT",
             "chunk_size": 60,
+            "image_size": int(image_size),
             "dataset_roots": roots,
         },
         final,
@@ -144,7 +149,9 @@ def train_shards(
         "checkpoint": str(final),
         "log": str(log_path),
         "device": str(device),
-        "gpu": "A10G",
+        "gpu": "A100",
+        "image_size": int(image_size),
+        "checkpoint_every_steps": int(checkpoint_every_steps),
         "seconds": time.perf_counter() - started,
     }
     (output / "training.json").write_text(json.dumps(summary, indent=2) + "\n")
@@ -162,6 +169,8 @@ def main(
     epochs: int = 1,
     batch_size: int = 512,
     checkpoint_minutes: float = 15.0,
+    checkpoint_every_steps: int = 2500,
+    image_size: int = 64,
 ):
     indices = [int(value) for value in shard_indices.split(",") if value.strip()]
     result = train_shards.remote(
@@ -172,6 +181,8 @@ def main(
         epochs=epochs,
         batch_size=batch_size,
         checkpoint_minutes=checkpoint_minutes,
+        checkpoint_every_steps=checkpoint_every_steps,
+        image_size=int(image_size),
     )
     target = Path(local_out) / run_id
     target.mkdir(parents=True, exist_ok=True)

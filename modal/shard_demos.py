@@ -32,13 +32,31 @@ image = (
 )
 
 
-def _decode(value: str | None):
+def _features(image_size: int) -> dict[str, dict[str, Any]]:
+    size = int(image_size)
+    if size < 16:
+        raise ValueError(f"image_size must be at least 16, got {size}")
+    return {
+        "observation.images.top": {"dtype": "image", "shape": (size, size, 3)},
+        "observation.images.inspection": {"dtype": "image", "shape": (size, size, 3)},
+        "observation.state": {"dtype": "float32", "shape": (6,)},
+        "action": {"dtype": "float32", "shape": (6,)},
+        "inspection.verdict": {"dtype": "int8", "shape": (1,)},
+        "success": {"dtype": "bool", "shape": (1,)},
+    }
+
+
+def _decode(value: str | None, image_size: int = 64):
     import numpy as np
     from PIL import Image
 
+    size = int(image_size)
     if not value:
-        return np.zeros((64, 64, 3), dtype=np.uint8)
-    return np.asarray(Image.open(io.BytesIO(base64.b64decode(value))).convert("RGB"))
+        return np.zeros((size, size, 3), dtype=np.uint8)
+    image = Image.open(io.BytesIO(base64.b64decode(value))).convert("RGB")
+    if image.size != (size, size):
+        image = image.resize((size, size), Image.Resampling.BILINEAR)
+    return np.asarray(image)
 
 
 def _jsonable(value: Any) -> Any:
@@ -58,6 +76,7 @@ def merge_shard(
     run_id: str,
     tier: str = "loose",
     dataset_name: str = "dataset",
+    image_size: int = 64,
 ) -> dict[str, Any]:
     """Merge one ten-seed group into its private volume."""
 
@@ -65,8 +84,6 @@ def merge_shard(
 
     sys.path.insert(0, "/root/repo")
     from lerobot.datasets.lerobot_dataset import LeRobotDataset
-    from dryrun.demos import FEATURES
-
     index = int(spec["index"])
     if index not in demo_volumes:
         raise ValueError(f"shard index must be 0..19, got {index}")
@@ -78,7 +95,7 @@ def merge_shard(
     dataset = LeRobotDataset.create(
         "dryrun-so101",
         fps=30,
-        features=FEATURES,
+        features=_features(int(image_size)),
         root=root,
         robot_type="so101",
         use_videos=False,
@@ -106,8 +123,8 @@ def merge_shard(
 
                 dataset.add_frame(
                     {
-                        "observation.images.top": _decode(frame.get("top_jpeg")),
-                        "observation.images.inspection": _decode(frame.get("inspection_jpeg")),
+                        "observation.images.top": _decode(frame.get("top_jpeg"), image_size),
+                        "observation.images.inspection": _decode(frame.get("inspection_jpeg"), image_size),
                         "observation.state": np.asarray(frame.get("state", [0] * 6), dtype=np.float32),
                         "action": np.asarray(frame.get("action", [0] * 6), dtype=np.float32),
                         "inspection.verdict": np.asarray([int(frame.get("verdict", 0))], dtype=np.int8),
@@ -154,6 +171,7 @@ def main(
     seeds: str = ",".join(str(i) for i in range(200)),
     tier: str = "loose",
     dataset_name: str = "dataset",
+    image_size: int = 64,
     out_dir: str = "/bulk3/runs/dryrun/m4/modal-map/demo-shards",
 ):
     values = [int(value) for value in seeds.split(",") if value.strip()]
@@ -164,7 +182,7 @@ def main(
     rows = list(
         merge_shard.map(
             specs,
-            kwargs={"run_id": run_id, "tier": tier, "dataset_name": dataset_name},
+            kwargs={"run_id": run_id, "tier": tier, "dataset_name": dataset_name, "image_size": int(image_size)},
         )
     )
     rows.sort(key=lambda row: row["shard"])
@@ -176,6 +194,7 @@ def main(
         "run_id": run_id,
         "tier": tier,
         "dataset_name": dataset_name,
+        "image_size": int(image_size),
         "rows": rows,
         "episodes": sum(int(row["episodes"]) for row in rows),
         "frames": sum(int(row["frames"]) for row in rows),

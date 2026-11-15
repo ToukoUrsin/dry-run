@@ -77,6 +77,7 @@ def evaluate_seed(
     source_commit: str = "unknown",
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
     open_loop_ticks: int = 0,
+    max_delta: float = 0.06,
 ):
     sys.path.insert(0, "/root/repo")
     os.environ.setdefault("MUJOCO_GL", "osmesa")
@@ -91,6 +92,7 @@ def evaluate_seed(
         checkpoint,
         device="cuda" if torch.cuda.is_available() else "cpu",
         open_loop_ticks=int(open_loop_ticks),
+        max_delta=float(max_delta),
     )
     inspector = Inspector(inspector_model, threads=1)
     result = run(int(seed), controller, inspector=inspector, tier=tier, max_steps=int(max_steps))
@@ -105,6 +107,7 @@ def evaluate_seed(
         "checkpoint": checkpoint,
         "max_steps": int(max_steps),
         "open_loop_ticks": int(open_loop_ticks),
+        "max_delta": float(max_delta),
         "bricks": int(result.get("bricks", 0)),
         "successes": int(result.get("successes", 0)),
         "score": float(result.get("score", 0.0)),
@@ -141,6 +144,7 @@ def main(
     download: bool = False,
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
     open_loop_ticks: int = 0,
+    max_delta: float = 0.06,
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -157,6 +161,7 @@ def main(
                 "source_commit": source_commit,
                 "inspector_model": inspector_model,
                 "open_loop_ticks": int(open_loop_ticks),
+                "max_delta": float(max_delta),
             },
         )
     )
@@ -171,6 +176,7 @@ def main(
         "checkpoint": checkpoint,
         "max_steps": int(max_steps),
         "open_loop_ticks": int(open_loop_ticks),
+        "max_delta": float(max_delta),
         "dict_name": "dryrun-policy-rows",
         "dict_key_prefix": dict_key_prefix,
         "rows": rows,

@@ -11,10 +11,11 @@ from lerobot.configs.types import PolicyFeature, FeatureType
 ROOT = Path("/bulk3/runs/dryrun/m4")
 
 
-def act_config(chunk_size: int = 4) -> ACTConfig:
+def act_config(chunk_size: int = 4, image_size: int = 64) -> ACTConfig:
+    image_size = int(image_size)
     features = {
-        "observation.images.top": PolicyFeature(FeatureType.VISUAL, (3, 64, 64)),
-        "observation.images.inspection": PolicyFeature(FeatureType.VISUAL, (3, 64, 64)),
+        "observation.images.top": PolicyFeature(FeatureType.VISUAL, (3, image_size, image_size)),
+        "observation.images.inspection": PolicyFeature(FeatureType.VISUAL, (3, image_size, image_size)),
         "observation.state": PolicyFeature(FeatureType.STATE, (7,)),
     }
     return ACTConfig(
@@ -27,7 +28,7 @@ def act_config(chunk_size: int = 4) -> ACTConfig:
     )
 
 
-def _batch(rows, device):
+def _batch(rows, device, chunk_size: int = 4):
     # LeRobot returns images as CHW float tensors in [0,1].  Add the verdict
     # channel to the six measured joints; this is the inspector interface.
     top = torch.stack([r["observation.images.top"] for r in rows]).float()
@@ -36,16 +37,16 @@ def _batch(rows, device):
     verdict = torch.stack([r["inspection.verdict"] for r in rows]).float().reshape(len(rows), 1)
     state = torch.cat([state, verdict], dim=1)
     action = torch.stack([r["action"] for r in rows]).float()
-    action = action[:, None, :].repeat(1, 4, 1)
+    action = action[:, None, :].repeat(1, int(chunk_size), 1)
     return {"observation.images.top": top.to(device), "observation.images.inspection": inspection.to(device),
             "observation.state": state.to(device), "action": action.to(device),
-            "action_is_pad": torch.zeros(len(rows), 4, dtype=torch.bool, device=device)}
+            "action_is_pad": torch.zeros(len(rows), int(chunk_size), dtype=torch.bool, device=device)}
 
 
-def train(dataset: str | Path, *, out: Path = ROOT, epochs: int = 2, batch_size: int = 8, checkpoint_every: int = 25):
+def train(dataset: str | Path, *, out: Path = ROOT, epochs: int = 2, batch_size: int = 8, checkpoint_every: int = 25, chunk_size: int = 4, image_size: int = 64):
     out.mkdir(parents=True, exist_ok=True); log_path = out / "training.jsonl"
     ds = LeRobotDataset("dryrun-so101", root=dataset, download_videos=False)
-    cfg = act_config(); device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    cfg = act_config(chunk_size=chunk_size, image_size=image_size); device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     policy = ACTPolicy(cfg).to(device); policy.train()
     optimizer = torch.optim.AdamW(policy.parameters(), lr=cfg.optimizer_lr)
     steps = 0; rows = []; started = time.perf_counter()
@@ -55,27 +56,27 @@ def train(dataset: str | Path, *, out: Path = ROOT, epochs: int = 2, batch_size:
             for start in range(0, len(order), batch_size):
                 examples = [ds[i] for i in order[start:start + batch_size]]
                 if not examples: continue
-                loss, pieces = policy(_batch(examples, device)); optimizer.zero_grad(); loss.backward(); optimizer.step()
+                loss, pieces = policy(_batch(examples, device, cfg.chunk_size)); optimizer.zero_grad(); loss.backward(); optimizer.step()
                 steps += 1
                 row = {"step": steps, "epoch": epoch + 1, "loss": float(loss.detach().cpu()), "l1_loss": float(pieces["l1_loss"]), "seconds": time.perf_counter() - started}
                 log.write(json.dumps(row) + "\n"); log.flush(); rows.append(row); print(json.dumps(row))
                 if steps % checkpoint_every == 0:
-                    torch.save({"state_dict": policy.state_dict(), "architecture": "LeRobot ACT", "step": steps}, out / f"act-step-{steps:06d}.pt")
+                    torch.save({"state_dict": policy.state_dict(), "architecture": "LeRobot ACT", "step": steps, "chunk_size": int(chunk_size), "image_size": int(image_size)}, out / f"act-step-{steps:06d}.pt")
     final = out / "act-final.pt"
-    torch.save({"state_dict": policy.state_dict(), "architecture": "LeRobot ACT", "step": steps}, final)
-    summary = {"dataset": str(dataset), "frames": len(ds), "epochs": epochs, "steps": steps, "initial_loss": rows[0]["loss"] if rows else None, "final_loss": rows[-1]["loss"] if rows else None, "seconds": time.perf_counter() - started, "checkpoint": str(final), "log": str(log_path), "device": str(device), "model": "ACT"}
+    torch.save({"state_dict": policy.state_dict(), "architecture": "LeRobot ACT", "step": steps, "chunk_size": int(chunk_size), "image_size": int(image_size)}, final)
+    summary = {"dataset": str(dataset), "frames": len(ds), "epochs": epochs, "steps": steps, "initial_loss": rows[0]["loss"] if rows else None, "final_loss": rows[-1]["loss"] if rows else None, "seconds": time.perf_counter() - started, "checkpoint": str(final), "log": str(log_path), "device": str(device), "model": "ACT", "chunk_size": int(chunk_size), "image_size": int(image_size)}
     (out / "training.json").write_text(json.dumps(summary, indent=2)); return summary
 
 
 def load_policy(checkpoint: str | Path, device: str = "cpu"):
     blob = torch.load(checkpoint, map_location=device, weights_only=False)
-    policy = ACTPolicy(act_config(int(blob.get("chunk_size", 4)))).to(device)
+    policy = ACTPolicy(act_config(int(blob.get("chunk_size", 4)), int(blob.get("image_size", 64)))).to(device)
     policy.load_state_dict(blob["state_dict"]); policy.eval(); return policy
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--dataset", type=Path, default=ROOT / "lerobot-dataset"); ap.add_argument("--out", type=Path, default=ROOT); ap.add_argument("--epochs", type=int, default=2); ap.add_argument("--batch-size", type=int, default=8); ap.add_argument("--checkpoint-every", type=int, default=25)
-    a = ap.parse_args(); print(json.dumps(train(a.dataset, out=a.out, epochs=a.epochs, batch_size=a.batch_size, checkpoint_every=a.checkpoint_every), indent=2))
+    ap = argparse.ArgumentParser(); ap.add_argument("--dataset", type=Path, default=ROOT / "lerobot-dataset"); ap.add_argument("--out", type=Path, default=ROOT); ap.add_argument("--epochs", type=int, default=2); ap.add_argument("--batch-size", type=int, default=8); ap.add_argument("--checkpoint-every", type=int, default=25); ap.add_argument("--chunk-size", type=int, default=4); ap.add_argument("--image-size", type=int, default=64)
+    a = ap.parse_args(); print(json.dumps(train(a.dataset, out=a.out, epochs=a.epochs, batch_size=a.batch_size, checkpoint_every=a.checkpoint_every, chunk_size=a.chunk_size, image_size=a.image_size), indent=2))
 
 
 if __name__ == "__main__": main()

@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T05:04:06Z",
+  "updated_utc": "2026-11-15T05:13:20Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -1184,7 +1184,11 @@
         "total": 0,
         "rows": []
       }
-    }
+    },
+    "follow_bricks_artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_follow_bricks_053.json",
+    "verdict_route_fix_commit": "3a7438c",
+    "fixed_point_crop_commit": "685c85e",
+    "follow_bricks_finding": "Five printed chains are false rejects ending in the defective bowl after grasp/lift/present/verdict/drop. The 13 gripped-to-presented gap is mostly max-step truncation; camera and physical identifiers diverge, so unmatched verdicts previously defaulted every route to defective."
   },
   "yaw_provenance": {
     "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_sweep_yaw_provenance.json",
@@ -1517,6 +1521,20 @@
         17
       ],
       "status": "diagnostic; valid 20 rows; hidden-state crop selection removed"
+    },
+    {
+      "stage": "review_follow_bricks_verdict_route",
+      "fix": "associate latest physical present-frame verdict with opaque camera token",
+      "fix_commit": "3a7438c",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_verdict_route.json",
+      "status": "rerun complete; totals unchanged, followed by fixed-point crop commit 685c85e"
+    },
+    {
+      "stage": "review_final_fixed_point_crop",
+      "fix": "fixed central crop at measured presentation point",
+      "fix_commit": "685c85e",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_final_followup.json",
+      "status": "rerun in progress"
     }
   ]
 }

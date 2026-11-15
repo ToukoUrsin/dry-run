@@ -13,6 +13,11 @@ if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 os.environ.setdefault("MUJOCO_GL", "egl")
 RUNS = Path("/bulk3/runs/dryrun")
 REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", str(RUNS / "goal-page-audit-0312")))
+TIER_REPLAY_LOCAL_DIRS = {
+    "loose": RUNS / "goal-page-audit-0312/seed-7",
+    "messy": RUNS / "m1/replay-touching-seed1001-b9d897c",
+    "pile": RUNS / "m1/replay-pile-seed1045-b9d897c",
+}
 BENCHMARK_TIERS = Path(os.environ.get("DRYRUN_BENCHMARK_TIERS", str(RUNS / "benchmark/tier-summary-64c.json")))
 # The page's scene is exported from the compiled MuJoCo station model.  Keep a
 # small compatibility list for older deployments while allowing Fly to mount
@@ -256,6 +261,39 @@ def replay_payload(seed: int) -> dict | None:
             except Exception: continue
     return None
 
+def tier_replay_dir(tier: str) -> Path | None:
+    """Locate the featured simulated replay for a page tier."""
+    tier = str(tier).lower()
+    remote_name = {"messy": "touching", "pile": "pile"}.get(tier, tier)
+    candidates = [REPLAY_DIR / "tiers" / remote_name]
+    if tier == "loose":
+        candidates.extend([REPLAY_DIR / "seed-1001", REPLAY_DIR / "seed-7"])
+    local = TIER_REPLAY_LOCAL_DIRS.get(tier)
+    if local is not None:
+        candidates.append(local)
+    for candidate in candidates:
+        if candidate.is_dir() and (candidate / "top-view.mp4").is_file():
+            return candidate
+    return None
+
+def tier_replay_payload(tier: str) -> dict | None:
+    directory = tier_replay_dir(tier)
+    if directory is None:
+        return None
+    path = directory / "replay.json.gz"
+    if not path.is_file():
+        return None
+    try:
+        import gzip
+        with gzip.open(path, "rt", encoding="utf-8") as fh:
+            payload = json.load(fh)
+        payload.setdefault("videos", {"top": "top-view.mp4", "inspection": "inspection-camera.mp4"})
+        payload.setdefault("tier", tier)
+        payload.setdefault("provenance", replay_provenance(payload))
+        return payload
+    except Exception:
+        return None
+
 def replay_list():
     rows=[]
     mounted_post_main = _external_post_main()
@@ -423,6 +461,10 @@ class Handler(BaseHTTPRequestHandler):
         if path=="/api/rollouts": return self.send_json(replay_list())
         if path=="/api/replays": return self.send_json(replay_list())
         if path=="/api/scenes": return self.send_json(replay_list())
+        if path.startswith("/api/tier-replays/"):
+            tier = path.rsplit("/", 1)[-1]
+            obj = tier_replay_payload(tier) if re.fullmatch(r"[A-Za-z0-9_-]+", tier) else None
+            return self.send_json(obj or {"status":"unavailable","message":"That tier replay is not mounted."}, 200 if obj else 404)
         if path.startswith("/api/replays/"):
             try: obj=replay_payload(int(path.rsplit("/",1)[1]))
             except (ValueError,TypeError): obj=None
@@ -435,6 +477,16 @@ class Handler(BaseHTTPRequestHandler):
             for candidate in candidates:
                 if candidate.is_file(): return self.send_video_file(candidate)
             return self.send_json({"status":"unavailable","message":"Camera video is available in the local replay export."},404)
+        if path.startswith("/tier-replay/"):
+            bits = path.strip("/").split("/")
+            tier, name = (bits[-2], bits[-1]) if len(bits) >= 3 else ("", "")
+            if not re.fullmatch(r"[A-Za-z0-9_-]+", tier) or name not in {"top-view.mp4", "inspection-camera.mp4"}:
+                return self.send_json({"error":"invalid tier replay path"}, 400)
+            directory = tier_replay_dir(tier)
+            candidate = directory / name if directory is not None else None
+            if candidate is not None and candidate.is_file():
+                return self.send_video_file(candidate)
+            return self.send_json({"status":"unavailable","message":"That tier replay video is not mounted."},404)
         if path.startswith("/replay-video/"):
             bits=path.strip("/").split("/")
             name=bits[-1]

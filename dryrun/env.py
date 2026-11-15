@@ -1,6 +1,7 @@
 """Public SO-101 MuJoCo environment for expert and learned rollouts."""
 from __future__ import annotations
 from pathlib import Path
+import os
 from typing import Any
 import numpy as np
 import mujoco
@@ -33,6 +34,7 @@ class StationEnv:
         self.specs = layout_bricks(self.seed, self.sentence, count=count)
         self.arm = ids(self.model); self._qa = qadr(self.model, self.arm)
         self._grip = int(self.model.jnt_qposadr[mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, "gripper")])
+        self._render_size = int(render_size)
         self.renderer = mujoco.Renderer(self.model, render_size, render_size); self._inspection_renderer = mujoco.Renderer(self.model, render_size, render_size)
         self._planner = MeasuredExpert(self)
         self._last_obs: dict[str, Any] | None = None
@@ -63,7 +65,15 @@ class StationEnv:
         # remain current at the 30 Hz physics boundary.  A fresh frame is
         # available on the presentation holds (their phase boundaries are
         # aligned to the 30-tick cadence).
-        if self._last_obs is None or self._ticks % 30 == 0 or self._force_inspection:
+        if os.environ.get("DRYRUN_TELEMETRY_ONLY") == "1":
+            # Tiger backfills need the real physics/joint tick stream, not
+            # camera pixels.  Avoiding EGL renders makes the six bounded
+            # COPY batches finish without changing any simulation state.
+            if self._last_obs is None:
+                blank = np.zeros((self._render_size, self._render_size, 3), dtype=np.uint8)
+                self._last_obs = {"top": blank, "inspection": blank.copy()}
+            self._force_inspection = False
+        elif self._last_obs is None or self._ticks % 30 == 0 or self._force_inspection:
             self.renderer.update_scene(self.data, "top_view")
             top = self.renderer.render().copy().astype(np.uint8)
             inspection = render_inspection_frame(self.model, self.data, self._inspection_renderer, focus_body=self._active)

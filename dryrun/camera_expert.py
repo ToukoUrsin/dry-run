@@ -217,7 +217,10 @@ class CameraExpert(MeasuredExpert):
         jaw = np.array((math.cos(jaw_ang), math.sin(jaw_ang), 0.0))
         qn = self._ik((.22, 0.0, .14), pitch=.6)
         qh = self._ik((x, y, .075), jaw=jaw, q0=qn) if qn is not None else None
-        qg = self._ik((x, y, .0174), jaw=jaw, q0=qh) if qh is not None else None
+        # The camera-grasp debug set found the previous target about 4.4 mm
+        # above the measured brick-centre height; XY and yaw were within a few
+        # millimetres/degrees.  Keep the approach and lift poses unchanged.
+        qg = self._ik((x, y, .0130), jaw=jaw, q0=qh) if qh is not None else None
         ql = self._ik((x, y, .07), jaw=jaw, q0=qg) if qg is not None else None
         if any(q is None for q in (qn, qh, qg, ql)):
             self._emit("ik_fail", brick=token, reason="camera_estimate_unreachable")

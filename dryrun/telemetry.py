@@ -13,7 +13,9 @@ except ImportError:
 
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA = ROOT / "data" / "schema.sql"
-DEFAULT_URL = "postgresql://postgres:dryrun@127.0.0.1:55439/dryrun"
+# Keep the local development fallback credential-free. Production and Tiger
+# runs provide their URLs through the environment instead.
+DEFAULT_URL = "postgresql://127.0.0.1:55439/dryrun"
 
 def db_url() -> str:
     return os.environ.get("DRYRUN_DB_URL", DEFAULT_URL)

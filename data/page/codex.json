@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T01:47:14Z",
-  "commit": "0cb10d1",
+  "updated_utc": "2026-11-15T02:07:51Z",
+  "commit": "0fed5e4",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -12,10 +12,10 @@
     "total": 34.1,
     "basis": "tmux session lifetimes at the update timestamp; this is elapsed goal-mode session time, not claimed human labor."
   },
-  "commits_total": 210,
+  "commits_total": 228,
   "commits_total_at_prompt_035": 203,
-  "commits_count_command": "git rev-list --count HEAD",
-  "lines_of_code": 10843,
+  "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
+  "lines_of_code": 10939,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
   "supervisor_prompts": 33,
   "subagents_spawned": null,
@@ -285,184 +285,2013 @@
       "commit": "7f84b77"
     }
   ],
-  "prompts_count": 35,
+  "prompts_count": 39,
   "prompts_note": "The supervisor total is 33 at Prompt 035; the filesystem currently contains 35 prompt files, including 034 and 035 and three newly written untracked files.",
   "prompts": [
     {
-      "path": "prompts/001-goal.md",
-      "utc": null,
-      "first_line": "# Goal for Codex: Dry Run"
+      "t": null,
+      "file": "prompts/001-goal.md",
+      "title": "Dry Run goal",
+      "to": "main"
     },
     {
-      "path": "prompts/002-first-pass-rejected.md",
-      "utc": "2026-11-14T18:05:00Z",
-      "first_line": "# Supervisor to Codex, Sat 14.11.2026 18:05 UTC: the first pass is rejected"
+      "t": "2026-11-14T18:05:00Z",
+      "file": "prompts/002-first-pass-rejected.md",
+      "title": "the first pass is rejected",
+      "to": "main"
     },
     {
-      "path": "prompts/003-astra-for-3d.md",
-      "utc": "2026-11-14T18:12:00Z",
-      "first_line": "# Supervisor to Codex, Sat 14.11.2026 18:12 UTC: GPT-6 Astra is now available, use it for the 3D work"
+      "t": "2026-11-14T18:12:00Z",
+      "file": "prompts/003-astra-for-3d.md",
+      "title": "GPT 6 Astra is now available use it",
+      "to": "main"
     },
     {
-      "path": "prompts/004-review-of-seed7.md",
-      "utc": "2026-11-14T18:32:00Z",
-      "first_line": "# Supervisor to Codex, Sat 14.11.2026 18:32 UTC: review of `seed7_real2.mp4`"
+      "t": "2026-11-14T18:32:00Z",
+      "file": "prompts/004-review-of-seed7.md",
+      "title": "review of seed7 real2 mp4",
+      "to": "main"
     },
     {
-      "path": "prompts/005-gpu-on-modal.md",
-      "utc": "2026-11-14T18:38:00Z",
-      "first_line": "# Supervisor to Codex, Sat 14.11.2026 18:38 UTC: a GPU is available on Modal"
+      "t": "2026-11-14T18:38:00Z",
+      "file": "prompts/005-gpu-on-modal.md",
+      "title": "a GPU is available on Modal",
+      "to": "main"
     },
     {
-      "path": "prompts/006-split-and-grasp-review.md",
-      "utc": "2026-11-14T19:00:00Z",
-      "first_line": "# Supervisor to Codex (main session), Sat 14.11.2026 19:00 UTC: the work is split three ways, and a review of the grasp trials"
+      "t": "2026-11-14T19:00:00Z",
+      "file": "prompts/006-split-and-grasp-review.md",
+      "title": "the work is split three ways and a",
+      "to": "main"
     },
     {
-      "path": "prompts/007-page.md",
-      "utc": "2026-11-14T19:00:00Z",
-      "first_line": "# Supervisor to Codex (page session), Sat 14.11.2026 19:00 UTC: you own the page, the replay and the telemetry"
+      "t": "2026-11-14T19:00:00Z",
+      "file": "prompts/007-page.md",
+      "title": "you own the page the replay and the",
+      "to": "page"
     },
     {
-      "path": "prompts/008-inspector.md",
-      "utc": "2026-11-14T19:00:00Z",
-      "first_line": "# Supervisor to Codex (inspector session), Sat 14.11.2026 19:00 UTC: you own the defects and the inspector"
+      "t": "2026-11-14T19:00:00Z",
+      "file": "prompts/008-inspector.md",
+      "title": "you own the defects and the inspector",
+      "to": "inspector"
     },
     {
-      "path": "prompts/009-tiger-cloud.md",
-      "utc": "2026-11-14T19:20:00Z",
-      "first_line": "# Supervisor to the page session, Sat 14.11.2026 19:20 UTC: Tiger Cloud is ready"
+      "t": "2026-11-14T19:20:00Z",
+      "file": "prompts/009-tiger-cloud.md",
+      "title": "Tiger Cloud is ready",
+      "to": "page"
     },
     {
-      "path": "prompts/010-ultra-and-five-sessions.md",
-      "utc": "2026-11-14T19:30:00Z",
-      "first_line": "# Supervisor to every Dry Run session, Sat 14.11.2026 19:30 UTC: Touko's order"
+      "t": "2026-11-14T19:30:00Z",
+      "file": "prompts/010-ultra-and-five-sessions.md",
+      "title": "Touko's order",
+      "to": "all"
     },
     {
-      "path": "prompts/011-policy.md",
-      "utc": "2026-11-14T19:30:00Z",
-      "first_line": "# Supervisor to the policy session, Sat 14.11.2026 19:30 UTC"
+      "t": "2026-11-14T19:30:00Z",
+      "file": "prompts/011-policy.md",
+      "title": "Supervisor to the policy session Sat 14 11",
+      "to": "policy"
     },
     {
-      "path": "prompts/012-analyst.md",
-      "utc": "2026-11-14T19:30:00Z",
-      "first_line": "# Supervisor to the analyst session, Sat 14.11.2026 19:30 UTC"
+      "t": "2026-11-14T19:30:00Z",
+      "file": "prompts/012-analyst.md",
+      "title": "Supervisor to the analyst session Sat 14 11",
+      "to": "analyst"
     },
     {
-      "path": "prompts/013-soren-but-real.md",
-      "utc": "2026-11-14T19:38:00Z",
-      "first_line": "# Supervisor to every Dry Run session, Sat 14.11.2026 19:38 UTC: what Soren did well, and how we do it for real"
+      "t": "2026-11-14T19:38:00Z",
+      "file": "prompts/013-soren-but-real.md",
+      "title": "what Soren did well and how we do",
+      "to": "all"
     },
     {
-      "path": "prompts/014-inspector-rejected.md",
-      "utc": "2026-11-14T19:47:00Z",
-      "first_line": "# Supervisor to the inspector session, Sat 14.11.2026 19:47 UTC: M2 is not complete"
+      "t": "2026-11-14T19:47:00Z",
+      "file": "prompts/014-inspector-rejected.md",
+      "title": "M2 is not complete",
+      "to": "inspector"
     },
     {
-      "path": "prompts/015-page-rejected.md",
-      "utc": "2026-11-14T19:53:00Z",
-      "first_line": "# Supervisor to the page session, Sat 14.11.2026 19:53 UTC: M6 is not complete, and the live page is broken"
+      "t": "2026-11-14T19:53:00Z",
+      "file": "prompts/015-page-rejected.md",
+      "title": "M6 is not complete and the live page",
+      "to": "page"
     },
     {
-      "path": "prompts/016-loose-tier-rigged.md",
-      "utc": "2026-11-14T19:58:00Z",
-      "first_line": "# Supervisor to main, Sat 14.11.2026 19:58 UTC: the loose tier is rigged, and why the grasp keeps failing"
+      "t": "2026-11-14T19:58:00Z",
+      "file": "prompts/016-loose-tier-rigged.md",
+      "title": "the loose tier is rigged and why the",
+      "to": "main"
     },
     {
-      "path": "prompts/017-jaws-too-narrow.md",
-      "utc": "2026-11-14T20:40:00Z",
-      "first_line": "# Supervisor to main, Sat 14.11.2026 20:40 UTC: the jaws barely open wider than a brick"
+      "t": "2026-11-14T20:40:00Z",
+      "file": "prompts/017-jaws-too-narrow.md",
+      "title": "the jaws barely open wider than a brick",
+      "to": "main"
     },
     {
-      "path": "prompts/018-page-look.md",
-      "utc": "2026-11-14T20:42:00Z",
-      "first_line": "# Supervisor to the page session, Sat 14.11.2026 20:42 UTC: what the live page looks like now"
+      "t": "2026-11-14T20:42:00Z",
+      "file": "prompts/018-page-look.md",
+      "title": "what the live page looks like now",
+      "to": "page"
     },
     {
-      "path": "prompts/019-grasp-recipe-measured.md",
-      "utc": "2026-11-14T22:10:00Z",
-      "first_line": "# Supervisor to main, Sat 14.11.2026 22:10 UTC: stop tuning. Here is a measured recipe that sorts 96.7 %"
+      "t": "2026-11-14T22:10:00Z",
+      "file": "prompts/019-grasp-recipe-measured.md",
+      "title": "stop tuning Here is a measured recipe that",
+      "to": "main"
     },
     {
-      "path": "prompts/020-present-pose-and-what-changes.md",
-      "utc": "2026-11-14T22:20:00Z",
-      "first_line": "# Supervisor to inspector, page, policy and analyst, Sat 14.11.2026 22:20 UTC: the expert is being replaced; what changes for you"
+      "t": "2026-11-14T22:20:00Z",
+      "file": "prompts/020-present-pose-and-what-changes.md",
+      "title": "the expert is being replaced what changes for",
+      "to": "inspector"
     },
     {
-      "path": "prompts/021-reference-expert.md",
-      "utc": "2026-11-14T23:05:00Z",
-      "first_line": "# Supervisor to main, Sat 14.11.2026 23:05 UTC: your expert does not work; here is one that sorts 382 of 382"
+      "t": "2026-11-14T23:05:00Z",
+      "file": "prompts/021-reference-expert.md",
+      "title": "your expert does not work here is one",
+      "to": "main"
     },
     {
-      "path": "prompts/022-expert-works-now-everything-else.md",
-      "utc": "2026-11-14T23:30:00Z",
-      "first_line": "# Supervisor to all sessions, Sat 14.11.2026 23:30 UTC: the expert works. Now build everything that waited for it."
+      "t": "2026-11-14T23:30:00Z",
+      "file": "prompts/022-expert-works-now-everything-else.md",
+      "title": "the expert works Now build everything that waited",
+      "to": "all"
     },
     {
-      "path": "prompts/023-page-must-show-the-real-robot.md",
-      "utc": "2026-11-14T23:58:00Z",
-      "first_line": "# Supervisor to page, Sat 14.11.2026 23:58 UTC: the first screen is rejected again. Show the real robot sorting."
+      "t": "2026-11-14T23:58:00Z",
+      "file": "prompts/023-page-must-show-the-real-robot.md",
+      "title": "the first screen is rejected again Show the",
+      "to": "page"
     },
     {
-      "path": "prompts/024-analyst-needs-real-frames.md",
-      "utc": "2026-11-15T00:17:00Z",
-      "first_line": "# Supervisor to analyst, Sun 15.11.2026 00:17 UTC: 32-pixel frames are not evidence"
+      "t": "2026-11-15T00:17:00Z",
+      "file": "prompts/024-analyst-needs-real-frames.md",
+      "title": "32 pixel frames are not evidence",
+      "to": "analyst"
     },
     {
-      "path": "prompts/025-page-close-up.md",
-      "utc": "2026-11-15T00:26:00Z",
-      "first_line": "# Supervisor to page, Sun 15.11.2026 00:26 UTC: real robot is on the page now. Good. Now make it the thing people look at"
+      "t": "2026-11-15T00:26:00Z",
+      "file": "prompts/025-page-close-up.md",
+      "title": "real robot is on the page now Good",
+      "to": "page"
     },
     {
-      "path": "prompts/026-policy-clock.md",
-      "utc": "2026-11-15T00:33:00Z",
-      "first_line": "# Supervisor to policy, Sun 15.11.2026 00:33 UTC: no training has started. Train now, on what exists"
+      "t": "2026-11-15T00:33:00Z",
+      "file": "prompts/026-policy-clock.md",
+      "title": "no training has started Train now on what",
+      "to": "policy"
     },
     {
-      "path": "prompts/027-expert-pushes-clusters-apart.md",
-      "utc": "2026-11-15T00:52:00Z",
-      "first_line": "# Supervisor to main, Sun 15.11.2026 00:52 UTC: second reference expert. Touching bricks 44 % → 94 %, pile 8 % → 59 %"
+      "t": "2026-11-15T00:52:00Z",
+      "file": "prompts/027-expert-pushes-clusters-apart.md",
+      "title": "second reference expert Touching bricks 44 94 pile",
+      "to": "main"
     },
     {
-      "path": "prompts/028-film-open.md",
-      "utc": "2026-11-15T00:53:00Z",
-      "first_line": "# Supervisor to analyst (docs), Sun 15.11.2026 00:53 UTC: the film has a finished cold open. Write it into the plan"
+      "t": "2026-11-15T00:53:00Z",
+      "file": "prompts/028-film-open.md",
+      "title": "the film has a finished cold open Write",
+      "to": "analyst"
     },
     {
-      "path": "prompts/029-arm-mesh-is-crumpled.md",
-      "utc": "2026-11-15T01:03:00Z",
-      "first_line": "# Supervisor to page, Sun 15.11.2026 01:03 UTC: framing, top bar, tiers, phone are right now. The arm is not"
+      "t": "2026-11-15T01:03:00Z",
+      "file": "prompts/029-arm-mesh-is-crumpled.md",
+      "title": "framing top bar tiers phone are right now",
+      "to": "page"
     },
     {
-      "path": "prompts/030-policy-train-for-real.md",
-      "utc": "2026-11-15T01:05:00Z",
-      "first_line": "# Supervisor to policy, Sun 15.11.2026 01:05 UTC: 201 steps on 64-pixel images is not a training run"
+      "t": "2026-11-15T01:05:00Z",
+      "file": "prompts/030-policy-train-for-real.md",
+      "title": "201 steps on 64 pixel images is not",
+      "to": "policy"
     },
     {
-      "path": "prompts/031-every-rollout-into-tiger.md",
-      "utc": "2026-11-15T01:06:00Z",
-      "first_line": "# Supervisor to main, Sun 15.11.2026 01:06 UTC: Tiger Cloud holds one old rollout. It must hold every benchmark rollout"
+      "t": "2026-11-15T01:06:00Z",
+      "file": "prompts/031-every-rollout-into-tiger.md",
+      "title": "Tiger Cloud holds one old rollout It must",
+      "to": "main"
     },
     {
-      "path": "prompts/032-camera-only-expert.md",
-      "utc": "2026-11-15T01:11:00Z",
-      "first_line": "# Supervisor to inspector, Sun 15.11.2026 01:11 UTC: a sorter that reads no simulator state at all"
+      "t": "2026-11-15T01:11:00Z",
+      "file": "prompts/032-camera-only-expert.md",
+      "title": "a sorter that reads no simulator state at",
+      "to": "inspector"
     },
     {
-      "path": "prompts/033-fill-the-page.md",
-      "utc": "2026-11-15T01:14:00Z",
-      "first_line": "# Supervisor to all five sessions, Sun 15.11.2026 01:14 UTC: the page is one good screen and five empty tabs"
+      "t": "2026-11-15T01:14:00Z",
+      "file": "prompts/033-fill-the-page.md",
+      "title": "the page is one good screen and five",
+      "to": "all"
     },
     {
-      "path": "prompts/034-live-page-broken.md",
-      "utc": "2026-11-15T01:41:00Z",
-      "first_line": "# Supervisor to page, Sun 15.11.2026 01:41 UTC: the live first screen is broken right now. Fix before anything else"
+      "t": "2026-11-15T01:41:00Z",
+      "file": "prompts/034-live-page-broken.md",
+      "title": "the live first screen is broken right now",
+      "to": "page"
     },
     {
-      "path": "prompts/035-analyst-sections.md",
-      "utc": "2026-11-15T01:42:00Z",
-      "first_line": "# Supervisor to analyst, Sun 15.11.2026 01:42 UTC: your three page sections are live. They are thin"
+      "t": "2026-11-15T01:42:00Z",
+      "file": "prompts/035-analyst-sections.md",
+      "title": "your three page sections are live They are",
+      "to": "analyst"
+    },
+    {
+      "t": "2026-11-15T01:53:00Z",
+      "file": "prompts/036-inspector-next.md",
+      "title": "the retrained inspector checks out Four things to",
+      "to": "inspector"
+    },
+    {
+      "t": "2026-11-15T02:01:00Z",
+      "file": "prompts/037-redesign-around-the-3d.md",
+      "title": "redesign the page around the 3D This replaces",
+      "to": "page"
+    },
+    {
+      "t": "2026-11-15T02:02:00Z",
+      "file": "prompts/038-the-night-in-one-picture.md",
+      "title": "data for the night in one picture page",
+      "to": "analyst"
+    },
+    {
+      "t": "2026-11-15T02:03:00Z",
+      "file": "prompts/039-junction-look.md",
+      "title": "a station look that matches the real Junction",
+      "to": "main"
     }
   ],
-  "boundary": "The grasp recipe and two reference experts were prototyped by the supervising agent outside Codex and handed over in prompts/019, 021 and 027."
+  "boundary": "The grasp recipe and two reference experts were prototyped by the supervising agent outside Codex and handed over in prompts/019, 021 and 027.",
+  "night": {
+    "start_utc": "2026-11-14T18:00:00Z",
+    "end_utc": "2026-11-15T02:07:51Z",
+    "sessions": [
+      {
+        "name": "main",
+        "model": "gpt-6-astra",
+        "effort": "ultra",
+        "owns": "simulator, expert, benchmark, replay"
+      },
+      {
+        "name": "inspector",
+        "model": "gpt-6.1-sol",
+        "effort": "ultra",
+        "owns": "defects and anomaly inspection"
+      },
+      {
+        "name": "page",
+        "model": "gpt-6.1-sol",
+        "effort": "ultra",
+        "owns": "viewer, telemetry, deployment"
+      },
+      {
+        "name": "policy",
+        "model": "gpt-6.1-sol",
+        "effort": "ultra",
+        "owns": "demos, ACT, policy evaluation"
+      },
+      {
+        "name": "analyst",
+        "model": "gpt-6.1-sol plus Nemotron",
+        "effort": "ultra",
+        "owns": "Nemotron, stations, evidence docs"
+      }
+    ],
+    "commits": [
+      {
+        "t": "2026-11-14T18:02:00Z",
+        "sha": "5a6047d",
+        "subject": "add analysis pipeline telemetry and milestone evidence",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:02:04Z",
+        "sha": "efb74fd",
+        "subject": "M1: add seeded station simulator and benchmark",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:02:15Z",
+        "sha": "70df899",
+        "subject": "feat: add Dry Run dashboard and defect API",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T18:02:43Z",
+        "sha": "93f1a17",
+        "subject": "chore: remove generated bytecode from M1 artifact",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:03:27Z",
+        "sha": "b1b6dfd",
+        "subject": "reject first pass and remove unsupported milestone claims",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:03:37Z",
+        "sha": "51df8ef",
+        "subject": "remove empty bootstrap artifact",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:21:27Z",
+        "sha": "f4817e3",
+        "subject": "Add validated spatial station generator and renders",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:24:50Z",
+        "sha": "4ed77b4",
+        "subject": "add real Anomalib inspector training and OpenVINO evaluation",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-14T18:29:07Z",
+        "sha": "253aff8",
+        "subject": "build real MuJoCo station and keep milestone evidence honest",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:35:00Z",
+        "sha": "b0bc88b",
+        "subject": "add real telemetry dataset policy nemotron and OpenVINO evidence",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:36:31Z",
+        "sha": "942566a",
+        "subject": "read dashboard telemetry from Timescale aggregates",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T18:37:10Z",
+        "sha": "da1f8ab",
+        "subject": "record real telemetry policy and Nemotron evidence honestly",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:42:37Z",
+        "sha": "8bf81de",
+        "subject": "measure learned policy in MuJoCo against expert",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T18:48:05Z",
+        "sha": "f4d0bc7",
+        "subject": "Measure SO-101 friction grasp contacts",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:50:35Z",
+        "sha": "56a9d64",
+        "subject": "record grasp review and deploy public dashboard",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:50:46Z",
+        "sha": "63291ad",
+        "subject": "clarify remaining real-rollout gates",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T18:53:10Z",
+        "sha": "d74c624",
+        "subject": "document rerun policy artifacts and dashboard deployment",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:53:40Z",
+        "sha": "de5be43",
+        "subject": "declare Timescale client dependency",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T18:54:00Z",
+        "sha": "d48b31d",
+        "subject": "document real current project state",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T19:00:45Z",
+        "sha": "338c9c8",
+        "subject": "Reject overlapping bowls in station checks",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:26:46Z",
+        "sha": "153c027",
+        "subject": "polish replay dashboard responsive states",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T19:26:58Z",
+        "sha": "350036b",
+        "subject": "publish shared rollout API",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:28:24Z",
+        "sha": "6c61592",
+        "subject": "connect telemetry to Tiger Cloud and sync rollouts",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:28:53Z",
+        "sha": "004141f",
+        "subject": "complete replay export contract and verification metadata",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:29:16Z",
+        "sha": "4f37d18",
+        "subject": "docs: publish evidence-led submission and film plan",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T19:30:15Z",
+        "sha": "c669382",
+        "subject": "show live database health and embedded replay cameras",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T19:30:21Z",
+        "sha": "8080e8f",
+        "subject": "add recorded seed seven replay trace",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:30:48Z",
+        "sha": "8f87348",
+        "subject": "prove Tiger Cloud telemetry and Fly deployment",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:31:55Z",
+        "sha": "dba8a10",
+        "subject": "serve embedded replay camera and mesh assets",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T19:32:52Z",
+        "sha": "4bb01be",
+        "subject": "report telemetry health from aggregate tables",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:33:15Z",
+        "sha": "348a766",
+        "subject": "expose saved failure diagnoses and shared schema",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T19:33:47Z",
+        "sha": "370fd44",
+        "subject": "Build Nemotron failure analyst and curriculum comparison",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T19:34:36Z",
+        "sha": "e1ec562",
+        "subject": "update M3 proof for aggregate-only public telemetry",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:35:18Z",
+        "sha": "c50ccfa",
+        "subject": "run local inspector for custom drawn defects",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T19:35:35Z",
+        "sha": "ff3d3bf",
+        "subject": "document telemetry sync and final page proof",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T19:39:13Z",
+        "sha": "00a15d4",
+        "subject": "docs: refresh Tiger and deployment proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:40:41Z",
+        "sha": "de46fbf",
+        "subject": "Add reproducible Nemotron scoring command",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T19:40:53Z",
+        "sha": "7a71c29",
+        "subject": "fix dashboard metric accessibility labels",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T19:41:09Z",
+        "sha": "817de72",
+        "subject": "prove inspector evaluation metrics",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-14T19:41:59Z",
+        "sha": "b6f9f80",
+        "subject": "document complete inspector milestone",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:43:55Z",
+        "sha": "6a0bf00",
+        "subject": "align rollout API and tier benchmark",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:44:09Z",
+        "sha": "9175750",
+        "subject": "log rollout API and loose tier gate",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T19:44:25Z",
+        "sha": "45bfa1d",
+        "subject": "record current M1 tier evidence honestly",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:47:15Z",
+        "sha": "b9f9019",
+        "subject": "feat: run live custom defects through Modal",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:49:57Z",
+        "sha": "089daab",
+        "subject": "docs: prove live custom defect rollout",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:51:01Z",
+        "sha": "40d23d4",
+        "subject": "fix: keep aggregate dashboard compatible with old schema",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:54:30Z",
+        "sha": "9fafea9",
+        "subject": "feat: add public smoke gate and inspector endpoint",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T19:55:08Z",
+        "sha": "d79fec4",
+        "subject": "align inspector and dagger contracts",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T19:57:06Z",
+        "sha": "195a633",
+        "subject": "reject rigged loose benchmark and add honesty gate",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:57:13Z",
+        "sha": "123be0e",
+        "subject": "fix: serve measured inspector metrics on Fly",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T19:57:29Z",
+        "sha": "e8ebd24",
+        "subject": "fix benchmark honesty test root",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:58:37Z",
+        "sha": "36102bf",
+        "subject": "complete expert rollout API result contract",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:59:29Z",
+        "sha": "fa96660",
+        "subject": "enforce fixed held-out tier counts",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T19:59:56Z",
+        "sha": "1287f37",
+        "subject": "docs: record public browser smoke proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:00:28Z",
+        "sha": "46711bd",
+        "subject": "feat: add honest scenes and compare workspace views",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T20:02:10Z",
+        "sha": "e8612ae",
+        "subject": "Add closed-form SO-101 position IK",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:02:29Z",
+        "sha": "ed39898",
+        "subject": "Match SO-101 shoulder offset in analytic FK",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:02:34Z",
+        "sha": "f1a3037",
+        "subject": "docs: update M6 workspace smoke proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:03:19Z",
+        "sha": "fcd2bae",
+        "subject": "docs: point M6 smoke command to final screenshots",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:03:19Z",
+        "sha": "e30d1db",
+        "subject": "docs: distinguish recorded replay from held-out score",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:03:34Z",
+        "sha": "2f8eb96",
+        "subject": "docs: record deployed workspace commit",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:04:52Z",
+        "sha": "4642538",
+        "subject": "feat: add closed-form IK margin gate for scene candidates",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:05:11Z",
+        "sha": "2b5c618",
+        "subject": "test: fail smoke on empty inspector data",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:06:39Z",
+        "sha": "aa34a8e",
+        "subject": "feat: expose Codex build timeline on evidence page",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T20:07:43Z",
+        "sha": "3de7028",
+        "subject": "docs: record Codex workspace panel proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:07:47Z",
+        "sha": "8db7277",
+        "subject": "Add closed-form SO-101 pose IK and 10k cross-check",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:07:58Z",
+        "sha": "12bf2bd",
+        "subject": "refine reach gate with pitch-scanned best IK pose",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:08:46Z",
+        "sha": "8f783de",
+        "subject": "fix: seed brick sizes and yaw in stations",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:08:55Z",
+        "sha": "9e1b416",
+        "subject": "docs: describe Codex timeline endpoint",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T20:09:49Z",
+        "sha": "53e600f",
+        "subject": "test: guard seeded loose scene variation",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:10:16Z",
+        "sha": "092c3d9",
+        "subject": "Add exact open-jaw pad midpoint IK path",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:11:48Z",
+        "sha": "5d82b71",
+        "subject": "Test exact open-jaw midpoint IK",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:14:07Z",
+        "sha": "42be580",
+        "subject": "route benchmark through seeded rollout and closed-form IK",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:16:09Z",
+        "sha": "76b61ef",
+        "subject": "keep seeded scenes within available reach envelope",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:17:46Z",
+        "sha": "c8215b9",
+        "subject": "Calibrate closed-form pad IK across jaw openings",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:18:23Z",
+        "sha": "db8623a",
+        "subject": "Use valid seeded scene in IK model test",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:19:39Z",
+        "sha": "8b357df",
+        "subject": "expand measured reach evidence and honor jaw opening",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:27:06Z",
+        "sha": "2c4f621",
+        "subject": "parallelize corrected benchmark rollouts",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:27:39Z",
+        "sha": "c8f2f88",
+        "subject": "vary seeded yaw through brick symmetry branches",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:31:01Z",
+        "sha": "323f1ab",
+        "subject": "honest seeded scenes and visible inspector defects",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:31:10Z",
+        "sha": "81d9098",
+        "subject": "calibrate polar reach map and keep M1 honest",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:32:05Z",
+        "sha": "0d82128",
+        "subject": "measure full-stud long-brick polar cells",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:34:30Z",
+        "sha": "3e9450c",
+        "subject": "bound measured scene packing retries",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:35:02Z",
+        "sha": "d513e97",
+        "subject": "keep seeded brick indices unique",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:35:42Z",
+        "sha": "ec8d670",
+        "subject": "record final honest loose smoke",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:36:10Z",
+        "sha": "9504470",
+        "subject": "correct accepted polar cell count",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:42:54Z",
+        "sha": "178c82e",
+        "subject": "polish replay workspace camera and scene rendering",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:43:57Z",
+        "sha": "f5e4355",
+        "subject": "hide empty workspace sections and select failed replay",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T20:44:23Z",
+        "sha": "205dab0",
+        "subject": "align rollout export with jaw calibration",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:50:08Z",
+        "sha": "ab9eb36",
+        "subject": "record corrected seeded rollout smoke",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T20:52:03Z",
+        "sha": "f697e76",
+        "subject": "trigger live defect rollout from page",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T20:57:58Z",
+        "sha": "9899980",
+        "subject": "calibrate fingertip jaw grasp path",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T21:02:20Z",
+        "sha": "84c0c7c",
+        "subject": "label inspector matrix and first attempt",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T21:03:28Z",
+        "sha": "ce2b703",
+        "subject": "hide unavailable workspace views",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T21:09:16Z",
+        "sha": "e97624d",
+        "subject": "turn dashboard sections into workspace views",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T21:16:53Z",
+        "sha": "e0dd01b",
+        "subject": "add Modal mapped rollout and policy evaluation",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T21:20:20Z",
+        "sha": "8309852",
+        "subject": "run Modal policy map on T4",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T21:21:11Z",
+        "sha": "ce62a24",
+        "subject": "wait for a rendered viewer in public smoke",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T21:21:12Z",
+        "sha": "2dc3b59",
+        "subject": "make seeded inspection and rollout verdicts honest",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-14T21:26:59Z",
+        "sha": "6a19689",
+        "subject": "make viewer readiness deterministic",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T21:29:51Z",
+        "sha": "fc1ec92",
+        "subject": "keep station workspace at the top",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T21:29:52Z",
+        "sha": "ddabfaf",
+        "subject": "record honest seeded rollout and inspector evidence",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T21:30:44Z",
+        "sha": "de65ad9",
+        "subject": "calibrate fingertip reach and measured scene eligibility",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T21:40:37Z",
+        "sha": "c7b0f6b",
+        "subject": "restore verified fingertip grasp calibration",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T21:53:02Z",
+        "sha": "0634042",
+        "subject": "stabilize seeded fingertip rollouts",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T21:54:17Z",
+        "sha": "2ccbacc",
+        "subject": "prove benchmark telemetry and page gates",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T21:55:22Z",
+        "sha": "809fb2e",
+        "subject": "Align SO-101 fingertip pads at calibrated opening",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T21:59:12Z",
+        "sha": "fa6eab2",
+        "subject": "normalize page and telemetry evidence",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T22:04:25Z",
+        "sha": "80126c2",
+        "subject": "persist mapped policy rows across Modal preemption",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T22:04:34Z",
+        "sha": "66614fc",
+        "subject": "retry mapped rollouts after Modal preemption",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T22:09:17Z",
+        "sha": "021ce66",
+        "subject": "shape evidence page as workspace",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T22:10:38Z",
+        "sha": "d083bf9",
+        "subject": "document measured loose scene contract",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T22:14:18Z",
+        "sha": "3d9cf2a",
+        "subject": "record workspace deployment proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T22:15:55Z",
+        "sha": "2e99a05",
+        "subject": "implement measured grasp recipe expert path",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T22:30:25Z",
+        "sha": "209e1bd",
+        "subject": "prefer populated current inspector page artifact",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T22:30:44Z",
+        "sha": "c0268d3",
+        "subject": "add Modal inspector draw boundary",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-14T22:37:47Z",
+        "sha": "c0c0265",
+        "subject": "route replay export through public rollout API",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T22:38:14Z",
+        "sha": "8b3d3a4",
+        "subject": "complete camera-only failure analyst evidence",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T22:41:17Z",
+        "sha": "d094081",
+        "subject": "label archived replays as validation",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T22:46:34Z",
+        "sha": "b6933e3",
+        "subject": "refresh public proof for archived validation replay",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T22:52:56Z",
+        "sha": "15b3a11",
+        "subject": "sync replay videos and preserve inspection evidence",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T22:55:03Z",
+        "sha": "b4fd608",
+        "subject": "make Modal maps durable and export shards to bulk3",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T22:56:25Z",
+        "sha": "3b1a725",
+        "subject": "add single-writer Modal demo merge",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T22:57:01Z",
+        "sha": "ed9839c",
+        "subject": "record latest public smoke proof",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T22:58:48Z",
+        "sha": "57ded3f",
+        "subject": "fix Modal demo merge import path",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T22:59:05Z",
+        "sha": "a152a80",
+        "subject": "align M6 proof with latest deployment",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T22:59:43Z",
+        "sha": "3eb30b6",
+        "subject": "document latest page telemetry release",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T23:02:42Z",
+        "sha": "76ac0a5",
+        "subject": "surface seeded replay exports honestly",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T23:02:55Z",
+        "sha": "fcbb1c8",
+        "subject": "pin Modal policy evaluator LeRobot version",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T23:04:41Z",
+        "sha": "ae875c6",
+        "subject": "record seeded replay discovery release",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T23:06:54Z",
+        "sha": "7bcbfd6",
+        "subject": "record final analyst evidence and reference handoff",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T23:08:02Z",
+        "sha": "bff1e00",
+        "subject": "document reference expert boundary",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T23:13:34Z",
+        "sha": "25be420",
+        "subject": "align inspector renders with measured presentation shot",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T23:19:35Z",
+        "sha": "64c4919",
+        "subject": "port measured reference expert and complete loose benchmark",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T23:30:36Z",
+        "sha": "3013b1b",
+        "subject": "serve only post-main replays and score them correctly",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T23:31:45Z",
+        "sha": "40bef5f",
+        "subject": "allow replay exports to record inspector verdicts",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T23:37:18Z",
+        "sha": "da3b8ce",
+        "subject": "prepare current expert policy data and Modal maps",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-14T23:40:39Z",
+        "sha": "2de1ae7",
+        "subject": "build real messy and pile tiers and inspector replay evidence",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T23:48:01Z",
+        "sha": "ad4d006",
+        "subject": "exclude pre-handoff checkpoints from public score",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-14T23:48:22Z",
+        "sha": "056bf8a",
+        "subject": "record prompt022 tier scores and featured replay",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-14T23:48:49Z",
+        "sha": "d420bba",
+        "subject": "include free view in measured replay export",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-14T23:57:42Z",
+        "sha": "233d811",
+        "subject": "serve compiled MuJoCo viewer scene artifact",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:00:37Z",
+        "sha": "34d05a5",
+        "subject": "show real MuJoCo replay on evidence page",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:00:55Z",
+        "sha": "ef18ecc",
+        "subject": "cap MuJoCo viewer scene geometry",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:01:53Z",
+        "sha": "bcee980",
+        "subject": "stop replay export at expert completion",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:04:39Z",
+        "sha": "13a05bd",
+        "subject": "show honest unavailable states without N/A",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:05:21Z",
+        "sha": "8a49a88",
+        "subject": "keep empty telemetry out of page error state",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:10:57Z",
+        "sha": "69155a6",
+        "subject": "record live MuJoCo page proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:12:27Z",
+        "sha": "123dfd5",
+        "subject": "anchor inspection verdict to replay stage",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:15:28Z",
+        "sha": "bbe2a02",
+        "subject": "record final stage anchored page proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:15:57Z",
+        "sha": "4308bd5",
+        "subject": "use neutral verdict card shadow",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:18:00Z",
+        "sha": "a4e1219",
+        "subject": "record complete three-view inspector replay",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T00:18:47Z",
+        "sha": "21f86a3",
+        "subject": "separate archived pad failure from current M1 gate",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:19:33Z",
+        "sha": "59c864d",
+        "subject": "record final live page proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:20:54Z",
+        "sha": "59cd610",
+        "subject": "state simulation provenance in hero",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:22:39Z",
+        "sha": "bd6fc43",
+        "subject": "extend Modal demo merge timeout for large maps",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T00:24:33Z",
+        "sha": "cb66f13",
+        "subject": "frame viewer close around work area",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:25:36Z",
+        "sha": "b4e8374",
+        "subject": "record current live page and telemetry audit",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:26:04Z",
+        "sha": "23ff073",
+        "subject": "record current replay route provenance",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T00:26:33Z",
+        "sha": "be0b567",
+        "subject": "make close-up replay the first-screen story",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:27:54Z",
+        "sha": "44d345a",
+        "subject": "keep closeup page routes optional",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:28:06Z",
+        "sha": "0d0b556",
+        "subject": "support explicit twelve-brick scenes",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:29:50Z",
+        "sha": "0339c52",
+        "subject": "record explicit scene count contract",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:31:46Z",
+        "sha": "9ebd9d9",
+        "subject": "fit work area in portrait viewer",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:36:23Z",
+        "sha": "f823523",
+        "subject": "record Nemotron curriculum tuning comparison",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T00:38:21Z",
+        "sha": "b2d888b",
+        "subject": "serve replay videos with byte ranges",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:38:58Z",
+        "sha": "792c0e5",
+        "subject": "widen portrait station framing",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:44:32Z",
+        "sha": "428944a",
+        "subject": "show pause state during autoplay",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T00:45:45Z",
+        "sha": "8d7ed4e",
+        "subject": "log scene contract verification",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T00:50:18Z",
+        "sha": "569dee1",
+        "subject": "record close-up page proof",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:50:23Z",
+        "sha": "0bf08b0",
+        "subject": "fix benchmark reproduction command",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T00:52:11Z",
+        "sha": "e990856",
+        "subject": "Document dryrun film cold open",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:53:31Z",
+        "sha": "b9d897c",
+        "subject": "port cluster-pushing reference expert v2",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T00:55:45Z",
+        "sha": "a74e011",
+        "subject": "record policy clock shards training and stage evals",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T00:56:13Z",
+        "sha": "77eab83",
+        "subject": "clarify policy clock artifact provenance",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T00:57:12Z",
+        "sha": "0dcd8ee",
+        "subject": "record policy clock commands",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T01:03:47Z",
+        "sha": "d4f8613",
+        "subject": "add bounded ACT action chunk fallback",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T01:08:34Z",
+        "sha": "c6d8196",
+        "subject": "train high resolution ACT with safe action chunks",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T01:11:13Z",
+        "sha": "e1b0120",
+        "subject": "batch benchmark rollouts into Tiger telemetry",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:11:58Z",
+        "sha": "3852872",
+        "subject": "serve benchmark tier aggregates from Tiger",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T01:12:08Z",
+        "sha": "eba9d3e",
+        "subject": "add safe policy scoring telemetry and export timing",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T01:14:35Z",
+        "sha": "87130ca",
+        "subject": "export full resolution arm mesh with crease normals",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:15:12Z",
+        "sha": "a118859",
+        "subject": "publish measured policy page data",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T01:15:31Z",
+        "sha": "7a60f8f",
+        "subject": "publish tier and Tiger page data",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:16:10Z",
+        "sha": "243af10",
+        "subject": "add camera perception and inspector page evidence",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T01:18:08Z",
+        "sha": "c23feb6",
+        "subject": "mask parked robot in camera perception",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:18:59Z",
+        "sha": "f537b87",
+        "subject": "Publish analyst and page evidence artifacts",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T01:21:30Z",
+        "sha": "8d38f44",
+        "subject": "add camera-only sorter and inspector page payload",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:27:30Z",
+        "sha": "d5c2b99",
+        "subject": "update page data with pushing tier result",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:28:11Z",
+        "sha": "6fdca32",
+        "subject": "publish touching after-tier page result",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:29:00Z",
+        "sha": "bee6d85",
+        "subject": "document camera-only interface and inspector modes",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T01:29:56Z",
+        "sha": "f99d4d0",
+        "subject": "record real inspector and camera-only evidence",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:30:12Z",
+        "sha": "ec71796",
+        "subject": "refresh inspector page with adapted real test",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T01:31:07Z",
+        "sha": "53cbe17",
+        "subject": "parallelize high-resolution shard loading",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T01:32:13Z",
+        "sha": "d2f3983",
+        "subject": "record camera-only public rollout smoke",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T01:32:28Z",
+        "sha": "045279a",
+        "subject": "record camera-only rollout smoke outcome",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:34:11Z",
+        "sha": "9c6d9c3",
+        "subject": "make inspector page metrics renderable",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T01:35:26Z",
+        "sha": "1acc9d8",
+        "subject": "refresh inspector page timestamp",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T01:37:48Z",
+        "sha": "1a043aa",
+        "subject": "fill page with measured session evidence",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T01:38:12Z",
+        "sha": "9b9c934",
+        "subject": "exclude generated datasets from deploy context",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:38:36Z",
+        "sha": "5267589",
+        "subject": "refresh Tiger page snapshot",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:38:55Z",
+        "sha": "2a3ffca",
+        "subject": "limit arm masking to yellow perception",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:40:31Z",
+        "sha": "535df97",
+        "subject": "guard camera sorter from brick qpos",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:43:07Z",
+        "sha": "3a8ad76",
+        "subject": "Film plan: 20 s Nemotron beat, drop the curriculum table",
+        "session": "other"
+      },
+      {
+        "t": "2026-11-15T01:44:08Z",
+        "sha": "79f2ef3",
+        "subject": "refresh measured pushing tier page data",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:44:36Z",
+        "sha": "d664948",
+        "subject": "refresh Tiger page snapshot",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:44:56Z",
+        "sha": "44555a4",
+        "subject": "Film plan: software only, no physical station shots",
+        "session": "other"
+      },
+      {
+        "t": "2026-11-15T01:44:58Z",
+        "sha": "7f84b77",
+        "subject": "guard live tier payload and keep cameras visible",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T01:45:27Z",
+        "sha": "5d6cd02",
+        "subject": "record measured loose release limit",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:45:49Z",
+        "sha": "0cb10d1",
+        "subject": "record pushing expert tier comparison",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:49:36Z",
+        "sha": "ecb77e3",
+        "subject": "fill Codex evidence page section",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:50:16Z",
+        "sha": "b7238f2",
+        "subject": "point touching tier page data to Tiger run",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:50:24Z",
+        "sha": "5a4ae84",
+        "subject": "refresh Tiger page data after touching rerun",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:51:32Z",
+        "sha": "606c23e",
+        "subject": "Revert \"Film plan: software only, no physical station shots\"",
+        "session": "other"
+      },
+      {
+        "t": "2026-11-15T01:51:32Z",
+        "sha": "9e4bc77",
+        "subject": "Revert \"Film plan: 20 s Nemotron beat, drop the curriculum table\"",
+        "session": "other"
+      },
+      {
+        "t": "2026-11-15T01:53:31Z",
+        "sha": "e9c98df",
+        "subject": "publish pushing pile tier page result",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:53:45Z",
+        "sha": "40cc569",
+        "subject": "close pushing expert tier measurements",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:58:56Z",
+        "sha": "854a88a",
+        "subject": "qualify before tier provenance and timings",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T01:58:57Z",
+        "sha": "bf43aa1",
+        "subject": "make real inspector the default model",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T01:59:29Z",
+        "sha": "1bcb197",
+        "subject": "publish camera-only stage sweep on inspector page",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T01:59:53Z",
+        "sha": "4b6d235",
+        "subject": "record camera-only Modal stage sweep",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:00:54Z",
+        "sha": "3835c39",
+        "subject": "polish tier comparisons and measured page labels",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T02:04:33Z",
+        "sha": "fe79071",
+        "subject": "add junction presentation look and replay metadata",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:04:36Z",
+        "sha": "5d7e114",
+        "subject": "publish inspector end-to-end tier results",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:04:56Z",
+        "sha": "bb7a8e6",
+        "subject": "thread Junction look through rollout API",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:05:58Z",
+        "sha": "92f0d86",
+        "subject": "publish high resolution ACT policy evidence",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T02:07:11Z",
+        "sha": "fdce312",
+        "subject": "publish inspector mark sensitivity and speed",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T02:07:41Z",
+        "sha": "0fed5e4",
+        "subject": "record inspector follow-up measurements",
+        "session": "main"
+      }
+    ],
+    "prompts": [
+      {
+        "t": null,
+        "file": "prompts/001-goal.md",
+        "title": "Dry Run goal",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T18:05:00Z",
+        "file": "prompts/002-first-pass-rejected.md",
+        "title": "the first pass is rejected",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T18:12:00Z",
+        "file": "prompts/003-astra-for-3d.md",
+        "title": "GPT 6 Astra is now available use it",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T18:32:00Z",
+        "file": "prompts/004-review-of-seed7.md",
+        "title": "review of seed7 real2 mp4",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T18:38:00Z",
+        "file": "prompts/005-gpu-on-modal.md",
+        "title": "a GPU is available on Modal",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T19:00:00Z",
+        "file": "prompts/006-split-and-grasp-review.md",
+        "title": "the work is split three ways and a",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T19:00:00Z",
+        "file": "prompts/007-page.md",
+        "title": "you own the page the replay and the",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-14T19:00:00Z",
+        "file": "prompts/008-inspector.md",
+        "title": "you own the defects and the inspector",
+        "to": "inspector"
+      },
+      {
+        "t": "2026-11-14T19:20:00Z",
+        "file": "prompts/009-tiger-cloud.md",
+        "title": "Tiger Cloud is ready",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-14T19:30:00Z",
+        "file": "prompts/010-ultra-and-five-sessions.md",
+        "title": "Touko's order",
+        "to": "all"
+      },
+      {
+        "t": "2026-11-14T19:30:00Z",
+        "file": "prompts/011-policy.md",
+        "title": "Supervisor to the policy session Sat 14 11",
+        "to": "policy"
+      },
+      {
+        "t": "2026-11-14T19:30:00Z",
+        "file": "prompts/012-analyst.md",
+        "title": "Supervisor to the analyst session Sat 14 11",
+        "to": "analyst"
+      },
+      {
+        "t": "2026-11-14T19:38:00Z",
+        "file": "prompts/013-soren-but-real.md",
+        "title": "what Soren did well and how we do",
+        "to": "all"
+      },
+      {
+        "t": "2026-11-14T19:47:00Z",
+        "file": "prompts/014-inspector-rejected.md",
+        "title": "M2 is not complete",
+        "to": "inspector"
+      },
+      {
+        "t": "2026-11-14T19:53:00Z",
+        "file": "prompts/015-page-rejected.md",
+        "title": "M6 is not complete and the live page",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-14T19:58:00Z",
+        "file": "prompts/016-loose-tier-rigged.md",
+        "title": "the loose tier is rigged and why the",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T20:40:00Z",
+        "file": "prompts/017-jaws-too-narrow.md",
+        "title": "the jaws barely open wider than a brick",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T20:42:00Z",
+        "file": "prompts/018-page-look.md",
+        "title": "what the live page looks like now",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-14T22:10:00Z",
+        "file": "prompts/019-grasp-recipe-measured.md",
+        "title": "stop tuning Here is a measured recipe that",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T22:20:00Z",
+        "file": "prompts/020-present-pose-and-what-changes.md",
+        "title": "the expert is being replaced what changes for",
+        "to": "inspector"
+      },
+      {
+        "t": "2026-11-14T23:05:00Z",
+        "file": "prompts/021-reference-expert.md",
+        "title": "your expert does not work here is one",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-14T23:30:00Z",
+        "file": "prompts/022-expert-works-now-everything-else.md",
+        "title": "the expert works Now build everything that waited",
+        "to": "all"
+      },
+      {
+        "t": "2026-11-14T23:58:00Z",
+        "file": "prompts/023-page-must-show-the-real-robot.md",
+        "title": "the first screen is rejected again Show the",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-15T00:17:00Z",
+        "file": "prompts/024-analyst-needs-real-frames.md",
+        "title": "32 pixel frames are not evidence",
+        "to": "analyst"
+      },
+      {
+        "t": "2026-11-15T00:26:00Z",
+        "file": "prompts/025-page-close-up.md",
+        "title": "real robot is on the page now Good",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-15T00:33:00Z",
+        "file": "prompts/026-policy-clock.md",
+        "title": "no training has started Train now on what",
+        "to": "policy"
+      },
+      {
+        "t": "2026-11-15T00:52:00Z",
+        "file": "prompts/027-expert-pushes-clusters-apart.md",
+        "title": "second reference expert Touching bricks 44 94 pile",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-15T00:53:00Z",
+        "file": "prompts/028-film-open.md",
+        "title": "the film has a finished cold open Write",
+        "to": "analyst"
+      },
+      {
+        "t": "2026-11-15T01:03:00Z",
+        "file": "prompts/029-arm-mesh-is-crumpled.md",
+        "title": "framing top bar tiers phone are right now",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-15T01:05:00Z",
+        "file": "prompts/030-policy-train-for-real.md",
+        "title": "201 steps on 64 pixel images is not",
+        "to": "policy"
+      },
+      {
+        "t": "2026-11-15T01:06:00Z",
+        "file": "prompts/031-every-rollout-into-tiger.md",
+        "title": "Tiger Cloud holds one old rollout It must",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-15T01:11:00Z",
+        "file": "prompts/032-camera-only-expert.md",
+        "title": "a sorter that reads no simulator state at",
+        "to": "inspector"
+      },
+      {
+        "t": "2026-11-15T01:14:00Z",
+        "file": "prompts/033-fill-the-page.md",
+        "title": "the page is one good screen and five",
+        "to": "all"
+      },
+      {
+        "t": "2026-11-15T01:41:00Z",
+        "file": "prompts/034-live-page-broken.md",
+        "title": "the live first screen is broken right now",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-15T01:42:00Z",
+        "file": "prompts/035-analyst-sections.md",
+        "title": "your three page sections are live They are",
+        "to": "analyst"
+      },
+      {
+        "t": "2026-11-15T01:53:00Z",
+        "file": "prompts/036-inspector-next.md",
+        "title": "the retrained inspector checks out Four things to",
+        "to": "inspector"
+      },
+      {
+        "t": "2026-11-15T02:01:00Z",
+        "file": "prompts/037-redesign-around-the-3d.md",
+        "title": "redesign the page around the 3D This replaces",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-15T02:02:00Z",
+        "file": "prompts/038-the-night-in-one-picture.md",
+        "title": "data for the night in one picture page",
+        "to": "analyst"
+      },
+      {
+        "t": "2026-11-15T02:03:00Z",
+        "file": "prompts/039-junction-look.md",
+        "title": "a station look that matches the real Junction",
+        "to": "main"
+      }
+    ],
+    "rejections": [
+      {
+        "t": "2026-11-14T18:05:00Z",
+        "label": "first pass rejected",
+        "prompt": "prompts/002-first-pass-rejected.md",
+        "evidence": "The 245-line first pass had no real simulator or evidence."
+      },
+      {
+        "t": "2026-11-14T18:32:00Z",
+        "label": "zero pickups found",
+        "prompt": "prompts/004-review-of-seed7.md",
+        "evidence": "The review calls zero pickups the blocker."
+      },
+      {
+        "t": "2026-11-14T19:47:00Z",
+        "label": "inspector rejected good bricks",
+        "prompt": "prompts/014-inspector-rejected.md",
+        "evidence": "The first real-frame attempt rejected good bricks."
+      },
+      {
+        "t": "2026-11-14T19:58:00Z",
+        "label": "rigged fixed-scene tier",
+        "prompt": "prompts/016-loose-tier-rigged.md",
+        "evidence": "The one-brick fixed spot was withdrawn as a benchmark."
+      },
+      {
+        "t": "2026-11-14T22:10:00Z",
+        "label": "zero of fifty after four hours",
+        "prompt": "prompts/019-grasp-recipe-measured.md",
+        "evidence": "The measured recipe prompt records zero of fifty."
+      },
+      {
+        "t": "2026-11-15T01:05:00Z",
+        "label": "policy reached zero stages",
+        "prompt": "prompts/030-policy-train-for-real.md",
+        "evidence": "The 201-step run reached zero at every stage."
+      },
+      {
+        "t": "2026-11-15T01:41:00Z",
+        "label": "live page broken",
+        "prompt": "prompts/034-live-page-broken.md",
+        "evidence": "The live page had a console error and lost its first screen."
+      }
+    ],
+    "scores": [
+      {
+        "t": "2026-11-14T21:21:12Z",
+        "tier": "loose",
+        "sorted": 0,
+        "bricks": 50,
+        "commit": "2dc3b59",
+        "kind": "smoke",
+        "source": "status/M1.md"
+      },
+      {
+        "t": "2026-11-14T23:19:35Z",
+        "tier": "loose",
+        "sorted": 203,
+        "bricks": 205,
+        "commit": "64c4919",
+        "kind": "held-out",
+        "source": "status/M1.md"
+      },
+      {
+        "t": "2026-11-14T23:19:35Z",
+        "tier": "loose",
+        "sorted": 382,
+        "bricks": 382,
+        "commit": "64c4919",
+        "kind": "held-out",
+        "source": "status/M1.md"
+      },
+      {
+        "t": "2026-11-14T23:40:39Z",
+        "tier": "touching",
+        "sorted": 217,
+        "bricks": 494,
+        "commit": "2de1ae7",
+        "kind": "held-out",
+        "source": "status/M1.md"
+      },
+      {
+        "t": "2026-11-14T23:40:39Z",
+        "tier": "pile",
+        "sorted": 31,
+        "bricks": 386,
+        "commit": "2de1ae7",
+        "kind": "held-out",
+        "source": "status/M1.md"
+      },
+      {
+        "t": "2026-11-15T00:53:31Z",
+        "tier": "loose",
+        "sorted": 380,
+        "bricks": 382,
+        "commit": "b9d897c",
+        "kind": "held-out",
+        "source": "data/page/tiers.json"
+      },
+      {
+        "t": "2026-11-15T00:53:31Z",
+        "tier": "touching",
+        "sorted": 451,
+        "bricks": 494,
+        "commit": "b9d897c",
+        "kind": "held-out",
+        "source": "data/page/tiers.json"
+      },
+      {
+        "t": "2026-11-15T00:53:31Z",
+        "tier": "pile",
+        "sorted": 259,
+        "bricks": 386,
+        "commit": "b9d897c",
+        "kind": "held-out",
+        "source": "data/page/tiers.json"
+      }
+    ],
+    "totals": {
+      "commits": 228,
+      "prompts": 39,
+      "sessions": 5,
+      "lines_of_code": 10939,
+      "hours": 8.13
+    },
+    "attribution": "Each commit is assigned from touched paths: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other.",
+    "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",
+    "boundary": "Everything outside `prompts/` was written by Codex. The two reference sorters under `prompts/` were ported by Codex."
+  }
 }

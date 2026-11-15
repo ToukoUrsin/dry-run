@@ -25,18 +25,18 @@ can be rerun. Open milestones are deliberately called open.
   sentence-to-station machinery and bounded local worker. Their proof is in
   `status/M5.md`; `data/codex_log.jsonl` is the page-readable build ledger.
 
-The loose-tier expert is the measured external reference supplied in
-`prompts/021-reference-expert.md`, integrated in commit `64c4919`. Earlier
-expert rollouts are validation traces only. The authoritative held-out result
-is 382/382 correct on seeds 1000--1079; see `status/M1.md` and
-`/bulk3/runs/dryrun/benchmark/loose80-reference.json`. The supervisor's
-repository benchmark check on seeds 0--39 is preserved at
-`/bulk3/runs/dryrun/benchmark/loose40-repo-api-supervisor.json` (203/205).
+The fixed-scene loose tier was withdrawn after review because it repeated one
+brick at one position for every seed. Its historical scores are retained only
+as failure evidence and are not benchmark or training results. Current page
+evidence uses seeded multi-brick scenes; the measured touching and pile rows
+are recorded in `data/page/codex.json` and `status/M5.md`.
 
 The grasp recipe and cycle timings were measured and prototyped by the
-supervising agent outside Codex, then handed over in `prompts/019-grasp-recipe-measured.md`
-and `prompts/021-reference/`. Codex integrated that recipe into the station,
-rollout API, scoring and benchmark paths; no earlier failed score is reused.
+supervising agent outside Codex, then handed over in
+`prompts/019-grasp-recipe-measured.md` and `prompts/021-reference/`. Codex
+integrated the recipe into the station, rollout API, scoring and replay paths;
+the station and analyst artifacts document which runs are diagnostic or
+benchmark evidence.
 
 ## Reproduce the checks
 
@@ -57,6 +57,11 @@ For the Nemotron run, use the secret without printing it:
 ```bash
 hsec exec --only NVIDIA_API_KEY -- uv run python -m dryrun.nemotron --help
 ```
+
+The completed 448 px diagnostic score and its confusion table are in
+`/bulk3/runs/dryrun/nemotron_prompt024/score-final-merged/score.json`; the
+measured curriculum comparison and 36-sentence station rollout are proven in
+`status/M5.md`.
 
 The local page uses `DRYRUN_DB_URL` and port `8898`. The public deployment is
 `https://dryrun-junction-2026.fly.dev/`; it must show an explicit empty or

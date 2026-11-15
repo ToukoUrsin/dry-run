@@ -155,7 +155,16 @@ terminal row under `/bulk3/runs/dryrun/`. After a run,
 `dryrun.nemotron_prompt024_score` ID-aligns the 300 event-derived labels and
 writes `predictions.jsonl`, denominator-300 stage accuracy, per-stage counts,
 tier breakdown, and a confusion table with an explicit `unresolved` column.
-The withdrawn 32px and 64px analyst artifacts are never used by this contract.
+The merged run at `/bulk3/runs/dryrun/nemotron_prompt024/score-final-merged/`
+is 300/300 valid with stage accuracy `0.436667`; the withdrawn 32px and 64px
+analyst artifacts are never used by this contract. The measured curriculum
+comparison is recorded in `status/M5.md` and keeps the suggested and random
+arms separate until a learned-policy checkpoint exists.
+
+The current Astra sentence audit is 36 requests, with every accepted station
+checked for MuJoCo load, rest intersections, reach and camera coverage before
+the exact XML is sent through `dryrun.rollout.run`; its retained summary is
+`/bulk3/runs/dryrun/stations-final-audit-2344/summary.json`.
 
 ## Rollout API (main, published 2026-11-14)
 

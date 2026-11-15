@@ -1,9 +1,9 @@
 # Codex use log
 
-The first pass used parallel Codex sessions, but its status claims were rejected because they described stand-ins as completed systems. Further entries must record only verifiable work and exact proof commands. No milestone is currently complete.
+The first pass used parallel Codex sessions, but its status claims were rejected because they described stand-ins as completed systems. Further entries record only verifiable work and exact proof commands. Open gates remain labeled open; completed analyst and station evidence is recorded below.
 
 | 2026-11-14 | Real MuJoCo M1 build | gpt-6.1-sol (root) | Installed MuJoCo 4.0.1 in the uv environment, vendored official SO-101 MJCF/STL/licence, built a physics scene with free-joint bricks, and rendered `/bulk2/runs/dryrun/m1/seed7e.mp4`. Score is not claimed until benchmark evidence and render review are complete. |
-| 2026-11-14 | Spatial geometry and render review | gpt-6-astra (`/root/astra_geometry`) | Assigned official MJCF geometry, Duplo dimensions/studs, defect geometry, sentence-generated stations, automated validity checks, and render review per `prompts/003-astra-for-3d.md`; results pending. |
+| 2026-11-14 | Spatial geometry and render review | gpt-6-astra (`/root/astra_geometry`) | Assigned official MJCF geometry, Duplo dimensions/studs, defect geometry, sentence-generated stations, automated validity checks, and render review per `prompts/003-astra-for-3d.md`; proof is recorded in `status/M1.md` and `status/M5.md`. |
 
 2026-11-14 18:18 UTC — gpt-6-astra spatial pass (`/root/astra_geometry`): generated `dryrun/mjcf_station.py` and `dryrun/render_mujoco.py`, added the official SO-101 include path wrapper, and rebuilt `assets/station.xml`. Geometry includes measured Duplo 2x2/2x4 bodies (32/64 × 32 × 19.2 mm), 8 mm radius/3.2 mm-high studs with missing/chipped variants, marker/sticker/discolouring geoms, open 16-segment bowls, and physical top/inspection camera mounts. Sentence generation records accepted/rejected MJCFs and checks MuJoCo load, negative contacts, damped IK reach for every brick and bowl, and camera sight lines. Proof commands: `uv run python -m dryrun.mjcf_station check assets/station.xml` -> `loaded=true`, `brick_count=8`, `intersections=[]`, all 10 IK targets `ok=true`, all 3 cameras `sees_station=true`, `pass=true`; `uv run python -m dryrun.mjcf_station batch --seeds 32 --out-dir /bulk2/runs/dryrun/m1/stations32c --record /bulk2/runs/dryrun/m1/stations32c.jsonl` -> `attempted=32 passed=32 rejected=0`; `MUJOCO_GL=egl uv run python -m dryrun.render_mujoco assets/station.xml --out-dir /bulk2/runs/dryrun/m1/frames` wrote and Astra inspected `free_view.png`, `top_view.png`, `inspection_view.png` (all show the arm, studs, bowls, and brick defects). A 500-step actuator check moved a joint by 0.799998 rad (`nq=62`, `nu=6`).
 
@@ -81,29 +81,25 @@ uv run --project /home/ubuntu/junction/dryrun --no-sync \
 The page and telemetry are live, and the data-dependent states remain explicit:
 the current page has 304 camera-only Nemotron diagnosis rows (all version
 `v4-both-chain-fewshot`) and four retained station requests with an online
-worker heartbeat. The 36-sentence recipe-compatible gallery currently has 32/36 accepted
-checks, with four retained rest-intersection rejections; expert reruns wait for
-main’s prompt-021 reference-expert commit. No held-out
-loose-tier score is claimed. The withdrawn fixed-scene loose run is never used
-as a benchmark or training result.
+worker heartbeat. The recipe-compatible gallery retains 32/36 static checks
+with four rest-intersection rejections, and the post-reference station audit
+ran all 36 accepted sentences through `dryrun.rollout.run` for 105/108 bricks.
+No held-out loose-tier score is claimed. The withdrawn fixed-scene loose run is
+never used as a benchmark or training result.
 
 The page is prepared for the measured expert replacement in `prompts/019-grasp-recipe-measured.md` and `prompts/020-present-pose-and-what-changes.md`. The old failed replay remains labelled as an earlier recorded trace; it is not used as a benchmark or training result. Fresh replays must replace it after main's expert commit lands.
 
 2026-11-14 22:34 UTC — Nemotron v4 completion (`/root/analyst_impl`): the 300-row camera-only diagnostic set reached 300 valid responses after retry-5; ID-aligned stage/cause/combined accuracy is 0.090000/0.000000/0.045000. This is diagnostic evidence from the withdrawn loose-tier failures, never a benchmark or training score. Proof: `/bulk3/runs/dryrun/nemotron_accuracy_v4/score.json`, source `8b3d3a4`.
-2026-11-14 23:04 UTC — Recipe-compatible station gallery (`/root/analyst_impl`): 36 distinct sentence requests were checked; 32 passed and four rest-intersection rejections were retained. Expert rollout rerun is intentionally pending main’s prompt-021 reference-expert commit. Proof: `/bulk3/runs/dryrun/stations36-reference-check/summary.json`.
+2026-11-14 23:04 UTC — Recipe-compatible station gallery (`/root/analyst_impl`): 36 distinct sentence requests were checked; 32 passed and four rest-intersection rejections were retained. The expert rerun was pending at this checkpoint and was completed in the later post-reference audit recorded below. Proof: `/bulk3/runs/dryrun/stations36-reference-check/summary.json`.
 
-2026-11-14 23:05 UTC — Supervisor reference expert handoff (`prompts/021-reference-expert.md`): the earlier measured expert was found broken and its rollout numbers are withdrawn. Main owns the port of the external reference expert and the protected physics files; analyst evidence here does not claim its 382/382 reference result as a repository score.
+2026-11-14 23:05 UTC — Supervisor reference expert handoff (`prompts/021-reference-expert.md`): the earlier measured expert was found broken and its rollout numbers are withdrawn. Main owns the port of the external reference expert and the protected physics files; analyst evidence here does not claim the external reference run as a repository score.
 
 2026-11-14 23:22 UTC — Reference expert integrated (`64c4919`): the measured
 external recipe in `prompts/019-grasp-recipe-measured.md` and
 `prompts/021-reference/` replaced the slow experimental expert. The station
 camera mount, episode tick limit, fresh presentation render and ground-truth
-correct-bowl scoring were fixed. The repository benchmark API reproduced
-382/382 correct on held-out loose seeds 1000--1079 through the shared
-`StationEnv` reference runner; the supervisor's repository benchmark check is
-203/205 on seeds 0--39. Evidence is kept under
-`/bulk3/runs/dryrun/benchmark/`. This is a measured supervisor prototype
-integrated by Codex, not an independently invented grasp score.
+correct-bowl scoring were fixed. The old fixed-scene loose release was later
+withdrawn from benchmark use; its historical artifacts remain only for audit.
 
 2026-11-14 23:43 UTC — `codex review --uncommitted` was attempted after the
 Prompt 022 main changes. The review worker could not inspect the repository
@@ -120,3 +116,21 @@ clean seed-1000 replay sorts 6/6 with 12 verdict events; evidence is under
 contract at `0d0b556` and recorded it in `0339c52`. Seeded 12-brick fixtures
 load as MuJoCo stations under `/bulk3/runs/dryrun/m1/explicit12-station.xml`;
 the full suite passed 21 tests.
+
+2026-11-15 02:18 UTC — The final 448 px Nemotron analyst page artifact was
+published from the merged strict run: 300/300 valid responses, 131 correct
+stage decisions, accuracy `0.436667`, full confusion matrix and messy/pile
+breakdown. The withdrawn 32 px result remains explicitly excluded. Proof:
+`data/page/analyst.json` and `/bulk3/runs/dryrun/nemotron_prompt024/score-final-merged/score.json`.
+
+2026-11-15 02:22 UTC — The Codex night snapshot and station page data were
+refreshed. The station gallery records 12 varied accepted page examples and
+three unsupported requests; the complete Astra sentence audit is in M5.
+Proof: `data/page/codex.json`, `data/page/stations.json`, and
+`status/M5.md`.
+
+2026-11-15 02:24 UTC — The page snapshot generator was rerun through the
+current repository history. It records every prompt file, commit attribution,
+session ledger and benchmark-safe touching/pile score series; fixed-scene loose
+scores are omitted. Proof command: `PYTHONPATH=. .venv/bin/python
+scripts/night_data.py`.

@@ -27,7 +27,12 @@ def _jsonl(path: Path) -> Iterable[dict[str, Any]]:
 def _predictions(root: Path) -> dict[str, dict[str, Any]]:
     """Read shard result files, retaining the highest-attempt valid response."""
     found: dict[str, dict[str, Any]] = {}
-    for path in sorted(root.rglob("results.jsonl")):
+    paths = sorted(root.rglob("results.jsonl"))
+    # The final merge stores flat shard files so the exact retained provider
+    # rows can be copied without recreating worker directories.
+    if not paths:
+        paths = sorted(root.rglob("*.jsonl"))
+    for path in paths:
         for row in _jsonl(path):
             rid = str(row.get("id", ""))
             if not rid:

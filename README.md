@@ -49,7 +49,7 @@ uv run python -c 'import mujoco; print(mujoco.__version__)'
 uv run python -m dryrun.mjcf_station check assets/station.xml
 uv run python -m dryrun.mjcf_station batch --seeds 32
 MUJOCO_GL=egl uv run python -m dryrun.render --seed 7 --out /bulk3/runs/dryrun/m1/seed7.mp4
-python -m dryrun benchmark --seeds 200
+python -m dryrun.benchmark --seeds 200
 ```
 
 For the Nemotron run, use the secret without printing it:

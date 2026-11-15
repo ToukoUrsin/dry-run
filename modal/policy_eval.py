@@ -76,6 +76,7 @@ def evaluate_seed(
     run_id: str = "latest",
     source_commit: str = "unknown",
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
+    open_loop_ticks: int = 0,
 ):
     sys.path.insert(0, "/root/repo")
     os.environ.setdefault("MUJOCO_GL", "osmesa")
@@ -86,7 +87,11 @@ def evaluate_seed(
     from dryrun.rollout import run
     from dryrun.inspector import Inspector
 
-    controller = ACTController(checkpoint, device="cuda" if torch.cuda.is_available() else "cpu")
+    controller = ACTController(
+        checkpoint,
+        device="cuda" if torch.cuda.is_available() else "cpu",
+        open_loop_ticks=int(open_loop_ticks),
+    )
     inspector = Inspector(inspector_model, threads=1)
     result = run(int(seed), controller, inspector=inspector, tier=tier, max_steps=int(max_steps))
     stages = _stage_counts(result.get("events", []))
@@ -99,6 +104,7 @@ def evaluate_seed(
         "tier": str(tier),
         "checkpoint": checkpoint,
         "max_steps": int(max_steps),
+        "open_loop_ticks": int(open_loop_ticks),
         "bricks": int(result.get("bricks", 0)),
         "successes": int(result.get("successes", 0)),
         "score": float(result.get("score", 0.0)),
@@ -134,6 +140,7 @@ def main(
     out_dir: str = "/bulk3/runs/dryrun/m4/modal-map/policy-map",
     download: bool = False,
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
+    open_loop_ticks: int = 0,
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -149,6 +156,7 @@ def main(
                 "run_id": run_id,
                 "source_commit": source_commit,
                 "inspector_model": inspector_model,
+                "open_loop_ticks": int(open_loop_ticks),
             },
         )
     )
@@ -162,6 +170,7 @@ def main(
         "tier": tier,
         "checkpoint": checkpoint,
         "max_steps": int(max_steps),
+        "open_loop_ticks": int(open_loop_ticks),
         "dict_name": "dryrun-policy-rows",
         "dict_key_prefix": dict_key_prefix,
         "rows": rows,

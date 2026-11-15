@@ -200,6 +200,52 @@ def bowl_mask(shape: tuple[int, int], calibration: TopCameraCalibration, *, cent
     return out
 
 
+def arm_mask_from_kinematics(shape: tuple[int, int], calibration: TopCameraCalibration, model, joint_positions: Sequence[float] | Mapping[str, float], *, radius_px: float = 22.0) -> np.ndarray:
+    """Project the parked robot links into an image mask.
+
+    This helper creates a fresh MuJoCo data object and writes only the six
+    measured arm hinge readings.  It selects the named robot link bodies
+    before reading their positions, so brick bodies and their state never
+    enter the perception path.  A conservative thick-line mask is sufficient
+    here: the arm is parked and the goal is to prevent yellow pixels from
+    becoming brick detections.
+    """
+    import mujoco
+
+    h, w = int(shape[0]), int(shape[1]); out = np.zeros((h, w), dtype=bool)
+    data = mujoco.MjData(model)
+    names = ("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper")
+    if isinstance(joint_positions, Mapping):
+        values = {str(k): float(v) for k, v in joint_positions.items()}
+    else:
+        values = {name: float(v) for name, v in zip(names, joint_positions)}
+    for name, value in values.items():
+        jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, name)
+        if jid >= 0:
+            data.qpos[int(model.jnt_qposadr[jid])] = value
+    mujoco.mj_forward(model, data)
+    link_names = ("base", "shoulder", "upper_arm", "lower_arm", "wrist", "gripper", "moving_jaw_so101_v1")
+    points: list[tuple[float, float]] = []
+    for name in link_names:
+        bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, name)
+        if bid < 0:
+            continue
+        # This access is made only after filtering against the fixed robot
+        # link allow-list above; no brick body id can be selected here.
+        points.append(project_world_to_pixel(data.xpos[bid], calibration))
+    if not points:
+        return out
+    yy, xx = np.indices((h, w), dtype=np.float32)
+    r2 = float(radius_px) ** 2
+    for px, py in points:
+        out |= (xx - px) ** 2 + (yy - py) ** 2 <= r2
+    for (x1, y1), (x2, y2) in zip(points, points[1:]):
+        dx, dy = x2 - x1, y2 - y1; den = dx * dx + dy * dy
+        t = np.clip(((xx - x1) * dx + (yy - y1) * dy) / max(den, 1e-9), 0.0, 1.0)
+        out |= (xx - (x1 + t * dx)) ** 2 + (yy - (y1 + t * dy)) ** 2 <= r2
+    return out
+
+
 def detect_bricks(
     image: np.ndarray,
     calibration: TopCameraCalibration | None = None,
@@ -297,4 +343,4 @@ segment_bricks = detect_bricks
 mask_bowls = bowl_mask
 
 
-__all__ = ["PERCEPTION_RESOLUTION_PX", "TopCameraCalibration", "BrickDetection", "top_camera_calibration", "calibrate_top_camera", "project_world_to_pixel", "world_from_pixel", "bowl_mask", "mask_bowls", "detect_bricks", "segment_bricks", "evaluate_perception"]
+__all__ = ["PERCEPTION_RESOLUTION_PX", "TopCameraCalibration", "BrickDetection", "top_camera_calibration", "calibrate_top_camera", "project_world_to_pixel", "world_from_pixel", "bowl_mask", "mask_bowls", "arm_mask_from_kinematics", "detect_bricks", "segment_bricks", "evaluate_perception"]

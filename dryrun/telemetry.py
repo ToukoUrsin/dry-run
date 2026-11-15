@@ -69,6 +69,14 @@ def _timestamp(value):
     if isinstance(value, (float, int)): return datetime.fromtimestamp(value, timezone.utc)
     return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
 
+def _public_frame_value(value):
+    """Remove local filesystem prefixes from diagnosis paths in API rows."""
+    if isinstance(value, (list, tuple)):
+        return [Path(str(item)).name for item in value]
+    if value is None:
+        return None
+    return Path(str(value)).name
+
 def record_rollout(samples: Iterable[Mapping], events: Iterable[Mapping], outcome: Mapping, *, rollout_id: str | None = None, seed: int = 0, checkpoint: str = "expert", url: str | None = None) -> str:
     """Persist one real rollout and its result; safe to call from benchmark."""
     _require_db(); rid = rollout_id or f"seed-{seed}-{int(time.time() * 1000)}"
@@ -79,6 +87,9 @@ def record_rollout(samples: Iterable[Mapping], events: Iterable[Mapping], outcom
             # Benchmark retries use a stable rollout id.  Avoid duplicating
             # the 30 Hz hypertable rows when the same completed rollout is
             # sent again (for example after a failed aggregate refresh).
+            # Serialize retries for the same id before checking the result;
+            # the unique index in schema.sql is the final database guard.
+            cur.execute("SELECT pg_advisory_xact_lock(hashtext(%s))", (rid,))
             cur.execute("SELECT 1 FROM rollout_results WHERE rollout_id=%s LIMIT 1", (rid,))
             if cur.fetchone() is not None:
                 return rid
@@ -86,7 +97,8 @@ def record_rollout(samples: Iterable[Mapping], events: Iterable[Mapping], outcom
             for row in sample_rows:
                 q = (list(row.get("qpos", row.get("joint", [0] * 6))) + [0] * 6)[:6]
                 target = (list(row.get("targets", row.get("action", [0] * 6))) + [0] * 6)[:6]
-                sample_values.append((_timestamp(row.get("ts")), rid, seed, checkpoint, tier, expert_version, *[float(x) for x in q], float(row.get("gripper", q[5])), *[float(x) for x in target], float(row.get("gripper_effort", abs(target[5] - q[5]))), row.get("event"), Jsonb(row.get("event_data")) if row.get("event_data") is not None else None, None))
+                sample_outcome = {"status": str(out.get("status", "complete"))}
+                sample_values.append((_timestamp(row.get("ts")), rid, seed, checkpoint, tier, expert_version, *[float(x) for x in q], float(row.get("gripper", q[5])), *[float(x) for x in target], float(row.get("gripper_effort", abs(target[5] - q[5]))), row.get("event"), Jsonb(row.get("event_data")) if row.get("event_data") is not None else None, Jsonb(sample_outcome)))
             if sample_values:
                 # COPY keeps one network stream per completed episode while
                 # preserving every 30 Hz row in the hypertable.
@@ -196,10 +208,13 @@ def tier_snapshot(url: str | None = None) -> dict:
     """Return tier/version aggregates for the page from Tiger."""
     _require_db()
     with psycopg.connect(url or db_url()) as conn:
-        rows = conn.execute("""SELECT t.tier,t.expert_version,t.bricks,t.correct,t.false_accepts,t.false_rejects,t.pushes,t.cycle_time_s,t.rollouts,
+        rows = conn.execute("""SELECT t.tier,t.expert_version,
+                                     sum(t.bricks),sum(t.correct),sum(t.false_accepts),sum(t.false_rejects),sum(t.pushes),
+                                     sum(t.cycle_time_s * t.rollouts) / NULLIF(sum(t.rollouts), 0),sum(t.rollouts),
                                      s.median_cycle_time_s,s.p90_cycle_time_s,s.pushes_per_rollout
                               FROM benchmark_tier t
                               LEFT JOIN benchmark_tier_stats s USING (tier,expert_version)
+                              GROUP BY t.tier,t.expert_version,s.median_cycle_time_s,s.p90_cycle_time_s,s.pushes_per_rollout
                               ORDER BY t.tier,t.expert_version""").fetchall()
         failures = conn.execute("SELECT tier,expert_version,event,failures FROM benchmark_failure_event ORDER BY tier,expert_version,event").fetchall()
     failure_map = {}
@@ -251,7 +266,7 @@ def dashboard_snapshot(url: str | None = None) -> dict:
             item = dict(zip(keys, row)); item["bucket"] = item["bucket"].isoformat() if hasattr(item["bucket"], "isoformat") else item["bucket"]; rows.append(item)
         checkpoints = [{"checkpoint": r[0], "bricks": r[1], "correct": r[2], "drops": r[3], "false_accepts": r[4], "false_rejects": r[5], "cycle_time_s": r[6], "rollouts": r[7], "source_commit": source_commits.get(str(r[0]))} for r in summary]
     before, after = [int(x or 0) for x in compression]
-    diagnoses = [{"created_at": r[0].isoformat() if hasattr(r[0], "isoformat") else r[0], "rollout_id": r[1], "model": r[2], "version": r[3], "frame_paths": r[4], "failure_stage": r[5], "cause": r[6], "frame": r[7], "scene_features": r[8], "next_scenes": r[9]} for r in diagnosis_rows]
+    diagnoses = [{"created_at": r[0].isoformat() if hasattr(r[0], "isoformat") else r[0], "rollout_id": r[1], "model": r[2], "version": r[3], "frame_paths": _public_frame_value(r[4]), "failure_stage": r[5], "cause": r[6], "frame": _public_frame_value(r[7]), "scene_features": r[8], "next_scenes": r[9]} for r in diagnosis_rows]
     # Station requests are an optional analyst-session extension. Keep the
     # telemetry dashboard readable against a cloud schema created before that
     # extension; an absent queue means an honest empty station gallery.
@@ -288,7 +303,7 @@ def ingest_replay(path: str | Path, url: str | None = None) -> str:
 
 def sync(source_url: str | None = None, target_url: str | None = None) -> dict:
     """Copy complete local rollouts to Tiger Cloud, idempotently by rollout id."""
-    _require_db(); source_url = source_url or DEFAULT_URL; target_url = target_url or os.environ.get("DRYRUN_TIGER_DB_URL")
+    _require_db(); source_url = source_url or db_url(); target_url = target_url or os.environ.get("DRYRUN_TIGER_DB_URL")
     if not target_url: raise RuntimeError("DRYRUN_TIGER_DB_URL is not set")
     setup(target_url)
     copied = 0

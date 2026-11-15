@@ -1,109 +1,16 @@
 {
-  "updated_utc": "2026-11-15T01:15:27Z",
-  "commit": "b9d897c",
-  "summary": "The new pushing expert is measured at 99.48% on the held-out loose tier; touching and pile after-runs are still being recorded.",
-  "tiers": {
-    "loose": {
-      "before": {
-        "expert_version": "64c4919",
-        "scenes": 80,
-        "bricks": 382,
-        "correct": 382,
-        "percent": 100.0,
-        "pushes": 0,
-        "median_cycle_seconds_per_brick": 9.0,
-        "failures_by_event": {
-          "miss": 0,
-          "slip": 0,
-          "ik_fail": 0,
-          "unstable": 0,
-          "push_abort": 0
-        },
-        "false_accepts": 0,
-        "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/loose80-reference.json",
-        "row_commits": [
-          "25be420f843b",
-          "bff1e0073f0b"
-        ]
-      },
-      "after": {
-        "expert_version": "b9d897c",
-        "scenes": 80,
-        "bricks": 382,
-        "correct": 380,
-        "percent": 99.48,
-        "pushes": 0,
-        "median_cycle_seconds_per_brick": 9.0,
-        "failures_by_event": {
-          "miss": 0,
-          "slip": 0,
-          "ik_fail": 0,
-          "unstable": 1,
-          "push_abort": 0
-        },
-        "false_accepts": 0,
-        "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/v2-loose-20261115.json",
-        "row_commits": [
-          "0dcd8eedeb76",
-          "77eab83c3f0b",
-          "a74e0113b743",
-          "b9d897cf6f52",
-          "d4f86132466a"
-        ]
-      }
-    },
-    "messy": {
-      "before": {
-        "expert_version": "2de1ae7",
-        "scenes": 70,
-        "bricks": 494,
-        "correct": 217,
-        "percent": 43.93,
-        "pushes": 0,
-        "median_cycle_seconds_per_brick": 9.0,
-        "failures_by_event": {
-          "miss": 1,
-          "slip": 0,
-          "ik_fail": 265,
-          "unstable": 2,
-          "push_abort": 0
-        },
-        "false_accepts": 0,
-        "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/messy70-50-prompt022.json",
-        "row_commits": [
-          "2de1ae706130",
-          "40bef5fbc686",
-          "da3b8ce28fea"
-        ]
-      }
-    },
-    "pile": {
-      "before": {
-        "expert_version": "2de1ae7",
-        "scenes": 50,
-        "bricks": 386,
-        "correct": 31,
-        "percent": 8.03,
-        "pushes": 0,
-        "median_cycle_seconds_per_brick": 9.0,
-        "failures_by_event": {
-          "miss": 2,
-          "slip": 0,
-          "ik_fail": 347,
-          "unstable": 1,
-          "push_abort": 0
-        },
-        "false_accepts": 1,
-        "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/pile70-50-prompt022.json",
-        "row_commits": [
-          "2de1ae706130"
-        ]
-      }
-    }
-  },
-  "replays": []
+  "updated_utc": "2026-11-15T01:16:43Z",
+  "commit": "64c4919",
+  "summary": "The supervisor-verified reference expert sorted 382 of 382 loose-tier bricks across 80 scenes.",
+  "versions": [
+    {"name": "64c4919", "role": "before", "source": "supervisor-verified held-out benchmark"}
+  ],
+  "tiers": [
+    {"id": "loose", "label": "Loose", "scenes": 80, "bricks": 382, "correct": 382, "percent": 100.0},
+    {"id": "touching", "label": "Touching", "scenes": 70, "bricks": 494, "correct": 217, "percent": 43.9},
+    {"id": "pile", "label": "Pile", "scenes": 50, "bricks": 386, "correct": 31, "percent": 8.0}
+  ],
+  "replays": [
+    {"id": "loose-1001", "tier": "loose", "seed": 1001, "score": 1.0, "bricks": 3, "pushes": 0, "commit": "40bef5f"}
+  ]
 }

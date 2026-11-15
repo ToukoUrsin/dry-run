@@ -126,26 +126,10 @@ def render_inspection_frame(
     """
     configure_inspection_camera(model)
     mujoco.mj_forward(model, data)
-    # CameraExpert deliberately keeps opaque pick tokens and cannot set the
-    # environment's physical active-body field.  At a present event the held
-    # brick is the body nearest the measured presentation point; use that
-    # geometric focus for the crop while leaving physical rollout state and
-    # contact bookkeeping untouched.  Explicit focus_body remains the
-    # authoritative path for the measured expert and synthetic renders.
-    if focus_body is None:
-        brick_ids = [
-            body_id
-            for body_id in range(model.nbody)
-            if (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body_id) or "").startswith("brick_")
-        ]
-        if brick_ids:
-            target_xy = INSPECTION_PRESENT_POSE[:2]
-            nearest = min(
-                brick_ids,
-                key=lambda body_id: float(np.linalg.norm(data.xpos[body_id, :2] - target_xy)),
-            )
-            if float(np.linalg.norm(data.xpos[nearest, :2] - target_xy)) <= 0.12:
-                focus_body = int(nearest)
+    # Camera-only controllers keep opaque pick tokens and cannot identify a
+    # simulator brick body.  Keep this path fixed at the measured presentation
+    # camera instead of selecting a body by data.xpos (hidden state).  The
+    # measured expert may still pass an explicit focus_body for its crop.
     old_rgba = model.geom_rgba.copy()
     try:
         _hide_noninspection_geometry(model, focus_body=focus_body)

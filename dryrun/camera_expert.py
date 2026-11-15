@@ -337,6 +337,10 @@ class CameraExpert(MeasuredExpert):
             if not self._camera_parked:
                 qpark = self._ik(CAMERA_PARK_TCP, pitch=.6)
                 if qpark is not None:
+                    # Misses collected before parking were taken with the arm
+                    # over the table and must not count against the parked
+                    # camera's look budget.
+                    self._look_misses = 0
                     self._parking = True
                     self._motion = self._move(qpark, Q_OPEN, 1.0, "camera_park")
                     return np.asarray(next(self._motion), dtype=np.float32)

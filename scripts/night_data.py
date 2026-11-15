@@ -210,6 +210,9 @@ def build(input_path: Path) -> dict:
     payload["supervisor_prompts"] = len(prompts)
     payload["prompts_note"] = "Count is generated from prompts/*.md by scripts/night_data.py at each refresh."
     payload["prompts"] = prompts
+    payload["hours"]["wall_clock_night"] = elapsed_hours
+    payload["hours"]["summed_session_hours"] = payload["hours"].get("total")
+    payload["hours"]["basis"] = "wall_clock_night is elapsed UTC duration from the run start; summed_session_hours is the sum of the five recorded tmux session lifetimes."
     payload["boundary"] = BOUNDARY
     payload["authorship"] = AUTHORSHIP
     payload["review"] = dict(REVIEW)
@@ -221,6 +224,8 @@ def build(input_path: Path) -> dict:
     }
     payload["session_ids"] = dict(SESSION_IDS)
     payload["subagents"] = dict(SUBAGENTS)
+    payload["subagents_spawned"] = SUBAGENTS["count"]
+    payload["subagents_note"] = SUBAGENTS["note"]
     for session in payload.get("sessions", []):
         stats = commit_stats.get(session.get("name"))
         if stats:

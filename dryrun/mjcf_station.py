@@ -339,7 +339,16 @@ def _brick(spec: BrickSpec) -> str:
     return "".join(bits)
 
 
-def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the sides, inspection camera in front", count: int | None = None, robot_include: str = ROBOT_INCLUDE) -> str:
+def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the sides, inspection camera in front", count: int | None = None, robot_include: str = ROBOT_INCLUDE, look: str = "lab") -> str:
+    """Build a seeded station, optionally with a presentation-only look.
+
+    ``look`` is deliberately kept out of the scene layout and all contact
+    parameters.  The default ``lab`` branch emits the historical XML exactly;
+    ``junction`` only swaps materials, table texture, and lighting for the
+    real-station side-by-side film.
+    """
+    if look not in {"lab", "junction"}:
+        raise ValueError("look must be 'lab' or 'junction'")
     opts = parse_sentence(sentence)
     bricks = layout_bricks(seed, sentence, count)
     # Bowl centres stay inside the SO-101's working envelope.  The sentence
@@ -360,22 +369,34 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     cam = np.array([.1194, -.1430, .2296])
     cam_local = cam - cam_mount
     axes = "0.6290 -0.7774 0 0.6449 0.5218 0.5584"
+    if look == "junction":
+        table_asset = '<texture name="junction_wood" type="2d" builtin="checker" width="16" height="16" rgb1="0.56 0.32 0.17" rgb2="0.72 0.46 0.27"/><material name="table_mat" texture="junction_wood" texrepeat="3 3" rgba="0.72 0.46 0.27 1"/>'
+        good_asset = '<material name="good_bowl" rgba="0.0 0.6941176 0.7411765 1"/>'
+        bad_asset = '<material name="bad_bowl" rgba="0.9098039 0.3921569 0.172549 1"/>'
+        visual = '<visual><headlight diffuse="0.9 0.9 0.9" ambient="0.42 0.42 0.42" specular="0.12 0.12 0.12"/><global offwidth="960" offheight="720"/></visual>'
+        light = '<light name="key" pos="0.15 -0.55 1.7" dir="-0.1 0.2 -1" directional="true" castshadow="true" diffuse="1 0.93 0.82" specular="0.25 0.25 0.25"/>'
+    else:
+        table_asset = '<material name="table_mat" rgba="0.18 0.21 0.24 1"/>'
+        good_asset = '<material name="good_bowl" rgba="0.08 0.55 0.25 1"/>'
+        bad_asset = '<material name="bad_bowl" rgba="0.75 0.12 0.12 1"/>'
+        visual = '<visual><headlight diffuse="0.8 0.8 0.8" ambient="0.35 0.35 0.35" specular="0.1 0.1 0.1"/><global offwidth="960" offheight="720"/></visual>'
+        light = '<light name="key" pos="0.25 -0.45 1.5" dir="-0.2 0.3 -1" directional="true" castshadow="true"/>'
     pieces = [f'''<?xml version="1.0" encoding="UTF-8"?>
 <mujoco model="dryrun_station_seed_{seed}">
   <compiler angle="radian" autolimits="true"/>
   <option timestep="0.002" integrator="implicitfast" gravity="0 0 -9.81" cone="elliptic" impratio="10" noslip_iterations="3" iterations="100" ls_iterations="50"/>
   <include file="{_xml_escape(robot_include)}"/>
-  <visual><headlight diffuse="0.8 0.8 0.8" ambient="0.35 0.35 0.35" specular="0.1 0.1 0.1"/><global offwidth="960" offheight="720"/></visual>
+  {visual}
   <asset>
-    <material name="table_mat" rgba="0.18 0.21 0.24 1"/>
-    <material name="good_bowl" rgba="0.08 0.55 0.25 1"/>
-    <material name="bad_bowl" rgba="0.75 0.12 0.12 1"/>
+    {table_asset}
+    {good_asset}
+    {bad_asset}
     <material name="brick_red" rgba="0.75 0.08 0.04 1"/><material name="brick_blue" rgba="0.05 0.25 0.8 1"/>
     <material name="brick_yellow" rgba="0.95 0.65 0.04 1"/><material name="brick_green" rgba="0.1 0.65 0.2 1"/>
     <material name="sticker" rgba="0.95 0.95 0.95 1"/><material name="defect_black" rgba="0.03 0.03 0.03 1"/><material name="discolour" rgba="0.20 0.08 0.05 1"/>
   </asset>
   <worldbody>
-    <light name="key" pos="0.25 -0.45 1.5" dir="-0.2 0.3 -1" directional="true" castshadow="true"/>
+    {light}
   <geom name="table" type="box" pos="0.15 0 -0.045" size="0.62 0.48 0.045" material="table_mat" friction="0.5 0.1 0.02" solref="0.0002 1" solimp="0.99 0.999 0.001"/>
     {'<geom name="pile_disc" type="cylinder" pos="0.2188 0 0.001" size="0.05 0.001" material="table_mat" friction="0.8 0.1 0.02"/>' if opts["layout"] == "pile" else ''}
     <geom name="table_edge" type="box" pos="0.15 0.47 0.04" size="0.62 0.025 0.08" material="table_mat"/>

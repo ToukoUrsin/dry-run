@@ -38,7 +38,7 @@ def _quat(q: np.ndarray | list[float]) -> list[int]:
     return [int(max(-32767, min(32767, round(float(v) * 32767)))) for v in q]
 
 
-def _scene(model: mujoco.MjModel) -> dict[str, Any]:
+def _scene(model: mujoco.MjModel, *, look: str = "lab") -> dict[str, Any]:
     bodies = []
     for bid in range(model.nbody):
         name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, bid) or f"body_{bid}"
@@ -74,6 +74,11 @@ def _scene(model: mujoco.MjModel) -> dict[str, Any]:
     for mid in range(model.nmesh):
         name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_MESH, mid)
         meshes.append({"name": name, "file": name + ".stl" if name else None})
+    visual = {
+        "table_texture": "junction_wood" if look == "junction" else None,
+        "good_bowl_hex": "#00b1bd" if look == "junction" else "#14913f",
+        "defective_bowl_hex": "#e8642c" if look == "junction" else "#bf1f1f",
+    }
     return {
         "bodies": bodies,
         "cameras": cameras,
@@ -81,6 +86,8 @@ def _scene(model: mujoco.MjModel) -> dict[str, Any]:
         "mesh_root": "assets/SO101/Simulation/SO101/assets",
         "units": "metres",
         "pose_quantization": {"position_m": 1e-4, "quaternion": 1 / 32767},
+        "look": look,
+        "visual": visual,
     }
 
 
@@ -186,6 +193,7 @@ def export(
     max_steps: int = 3600,
     inspector: Callable[[np.ndarray], Any] | None = None,
     count: int | None = None,
+    look: str = "lab",
 ) -> dict[str, Any]:
     """Run and export one real rollout through ``StationEnv.step``."""
     if tier not in TIERS:
@@ -193,7 +201,7 @@ def export(
     out.mkdir(parents=True, exist_ok=True)
     # Keep the public inspection crop at the measured 256 px contract; the
     # video writers remain compact for the page.
-    env = StationEnv(int(seed), tier=tier, count=count, render_size=256)
+    env = StationEnv(int(seed), tier=tier, count=count, render_size=256, look=look)
     recorder = Recorder(env, out)
     commit = _commit()
     inspector_status = "not configured"
@@ -263,6 +271,7 @@ def export(
             "tier": tier,
             "steps": steps,
             "commit": commit,
+            "look": look,
         }
         payload = {
             "format": "dryrun-replay-v2",
@@ -272,7 +281,7 @@ def export(
             "created_at": datetime.now(timezone.utc).isoformat(),
             "commit": commit,
             "model": "SO-101 official MJCF",
-            "scene": _scene(env.model),
+            "scene": _scene(env.model, look=look),
             "frames": recorder.frames,
             "events": recorder.events,
             "inspection_present_frames": recorder.inspection_present_frames,
@@ -324,12 +333,13 @@ def main() -> None:
     parser.add_argument("--count", type=int)
     parser.add_argument("--inspector-model", type=Path, help="run the OpenVINO inspector at each present event")
     parser.add_argument("--inspector-threads", type=int, default=1)
+    parser.add_argument("--look", choices=("lab", "junction"), default="lab")
     args = parser.parse_args()
     inspector = None
     if args.inspector_model is not None:
         from .inspector import Inspector
         inspector = Inspector(model_path=args.inspector_model, threads=args.inspector_threads)
-    print(json.dumps(export(args.seed, args.out, args.checkpoint, args.tier, args.max_steps, inspector=inspector, count=args.count), indent=2))
+    print(json.dumps(export(args.seed, args.out, args.checkpoint, args.tier, args.max_steps, inspector=inspector, count=args.count, look=args.look), indent=2))
 
 
 if __name__ == "__main__":

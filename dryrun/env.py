@@ -20,13 +20,14 @@ class StationEnv:
     """Vision/state observations at a deterministic public 30 Hz boundary."""
     def __init__(self, seed: int, tier: str | None = None, render_size: int = 64,
                  *, sentence: str | None = None, station_path: Path | None = None,
-                 count: int | None = None):
-        self.seed = int(seed); self.tier = tier or "loose"
+                 count: int | None = None, look: str = "lab"):
+        self.seed = int(seed); self.tier = tier or "loose"; self.look = str(look)
         if self.tier not in TIERS: raise ValueError(f"tier must be one of {sorted(TIERS)}")
         self.sentence = sentence or TIERS[self.tier]
         xml = (Path(station_path).read_text() if station_path is not None else
                station_xml(self.seed, self.sentence, count=count,
-                           robot_include=str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve())))
+                           robot_include=str((ROOT / "assets/SO101/Simulation/SO101/so101_dryrun.xml").resolve()),
+                           look=look))
         self.xml_path = Path("/tmp") / f"dryrun_env_{self.seed}_{self.tier}.xml"; self.xml_path.write_text(xml)
         self.model = mujoco.MjModel.from_xml_path(str(self.xml_path)); self.data = mujoco.MjData(self.model)
         self.specs = layout_bricks(self.seed, self.sentence, count=count)

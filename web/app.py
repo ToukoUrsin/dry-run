@@ -175,7 +175,11 @@ def score_payload(snap):
     # validation. Keep it out of the public score once a real post-main row
     # exists; the page must never blend it into the new benchmark.
     cps=[row for row in (snap.get("checkpoints") or []) if row.get("source_commit")]
-    if not cps: return {"status":"unavailable","message":"No benchmark checkpoint has been recorded in telemetry yet.","commit":snap.get("commit"),"checkpoints":[]}
+    if not cps:
+        # Tier benchmarks are the public score source for this release. The
+        # optional telemetry rollup may be absent on Fly; keep that honest
+        # empty state from turning into a page-wide API error.
+        return {"status":"ok","message":"No telemetry checkpoint is connected; tier benchmark is shown above.","commit":snap.get("commit"),"checkpoints":[],"diagnoses":[],"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at")}
     latest=dict(cps[-1]); latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
     latest["benchmarkable"]=bool(latest.get("source_commit"))
     message = None if latest["benchmarkable"] else "Recorded result has no source commit; validation only, not a benchmark."

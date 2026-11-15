@@ -108,6 +108,7 @@ def evaluate_seed(
     open_loop_ticks: int = 0,
     max_delta: float = 0.06,
     render_size: int = 64,
+    crop_top: bool = False,
 ):
     sys.path.insert(0, "/root/repo")
     os.environ.setdefault("MUJOCO_GL", "osmesa")
@@ -123,6 +124,7 @@ def evaluate_seed(
         device="cuda" if torch.cuda.is_available() else "cpu",
         open_loop_ticks=int(open_loop_ticks),
         max_delta=float(max_delta),
+        crop_top=bool(crop_top),
     )
     inspector = Inspector(inspector_model, threads=1)
     approach = _ApproachRecorder(int(seed), str(tier))
@@ -140,6 +142,7 @@ def evaluate_seed(
         "open_loop_ticks": int(open_loop_ticks),
         "max_delta": float(max_delta),
         "render_size": int(render_size),
+        "crop_top": bool(crop_top),
         "bricks": int(result.get("bricks", 0)),
         "successes": int(result.get("successes", 0)),
         "score": float(result.get("score", 0.0)),
@@ -179,6 +182,7 @@ def main(
     open_loop_ticks: int = 0,
     max_delta: float = 0.06,
     render_size: int = 64,
+    crop_top: bool = False,
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -197,6 +201,7 @@ def main(
                 "open_loop_ticks": int(open_loop_ticks),
                 "max_delta": float(max_delta),
                 "render_size": int(render_size),
+                "crop_top": bool(crop_top),
             },
         )
     )
@@ -213,6 +218,7 @@ def main(
         "open_loop_ticks": int(open_loop_ticks),
         "max_delta": float(max_delta),
         "render_size": int(render_size),
+        "crop_top": bool(crop_top),
         "dict_name": "dryrun-policy-rows",
         "dict_key_prefix": dict_key_prefix,
         "rows": rows,

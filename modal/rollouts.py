@@ -87,8 +87,10 @@ def _jpeg(value: Any) -> str | None:
 class EpisodeRecorder:
     """Collect cycle-scoped public observations without simulator state access."""
 
-    def __init__(self, seed: int):
+    def __init__(self, seed: int, image_size: int = 64, crop_top: bool = False):
         self.seed = int(seed)
+        self.image_size = int(image_size)
+        self.crop_top = bool(crop_top)
         self.cycles: list[dict[str, Any]] = []
         self._open: dict[str, Any] | None = None
         self._seen_events: set[tuple[Any, ...]] = set()
@@ -193,6 +195,14 @@ class EpisodeRecorder:
         if self._open is None or self._open.get("brick") is None:
             return
         obs = payload["observation"]
+        top = obs.get("top")
+        inspection = obs.get("inspection")
+        if top is not None or inspection is not None:
+            from dryrun.policy_view import crop_work_area, resize_rgb
+            if top is not None:
+                top = crop_work_area(top, self.image_size) if self.crop_top else resize_rgb(top, self.image_size)
+            if inspection is not None:
+                inspection = resize_rgb(inspection, self.image_size)
         self._open["frames"].append(
             {
                 "t": float(payload.get("t", 0.0)),
@@ -200,8 +210,8 @@ class EpisodeRecorder:
                 "state": _jsonable(obs.get("joints", [])),
                 "action": _jsonable(payload.get("action", [])),
                 "verdict": int(payload.get("verdict", 0)),
-                "top_jpeg": _jpeg(obs.get("top")),
-                "inspection_jpeg": _jpeg(obs.get("inspection")),
+                "top_jpeg": _jpeg(top),
+                "inspection_jpeg": _jpeg(inspection),
                 "events": _jsonable(payload.get("events", [])),
             }
         )
@@ -216,6 +226,8 @@ def rollout_seed(
     run_id: str = "latest",
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
     render_size: int = 64,
+    image_size: int | None = None,
+    crop_top: bool = False,
 ):
     """Run one expert seed and persist a shard before returning its summary."""
 
@@ -224,7 +236,8 @@ def rollout_seed(
     from dryrun.rollout import run
     from dryrun.inspector import Inspector
 
-    recorder = EpisodeRecorder(int(seed))
+    target_image_size = int(image_size if image_size is not None else render_size)
+    recorder = EpisodeRecorder(int(seed), image_size=target_image_size, crop_top=bool(crop_top))
     inspector = Inspector(inspector_model, threads=1)
     result = run(
         int(seed),
@@ -249,6 +262,8 @@ def rollout_seed(
         "max_steps": int(max_steps),
         "max_cycles": max_cycles,
         "render_size": int(render_size),
+        "image_size": target_image_size,
+        "crop_top": bool(crop_top),
         "result": _jsonable(result),
         "cycles": [c for c in recorder.cycles if c.get("success")],
         "cycles_seen": len(recorder.cycles),
@@ -290,6 +305,8 @@ def main(
     download: bool = False,
     inspector_model: str = "/root/repo/model/dryrun_inspector.xml",
     render_size: int = 64,
+    image_size: int | None = None,
+    crop_top: bool = False,
 ):
     values = [int(x) for x in seeds.split(",") if x.strip()]
     run_id = run_id or time.strftime("%Y%m%d-%H%M%S", time.gmtime())
@@ -304,6 +321,8 @@ def main(
                 "run_id": run_id,
                 "inspector_model": inspector_model,
                 "render_size": int(render_size),
+                "image_size": None if image_size is None else int(image_size),
+                "crop_top": bool(crop_top),
             },
         )
     )
@@ -318,6 +337,8 @@ def main(
         "max_steps": int(max_steps),
         "max_cycles": int(max_cycles) if max_cycles > 0 else None,
         "render_size": int(render_size),
+        "image_size": None if image_size is None else int(image_size),
+        "crop_top": bool(crop_top),
         "dict_name": "dryrun-demo-shards",
         "dict_key_prefix": dict_key_prefix,
         "rows": rows,

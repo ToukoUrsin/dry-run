@@ -20,6 +20,13 @@
     "combined": null,
     "definition": "stage only; Prompt 024 has no cause field"
   },
+  "constant_guess_baseline": {
+    "stage": "no_clear_grasp",
+    "n": 300,
+    "class_n": 295,
+    "accuracy": 0.983333,
+    "sentence": "295 of 300 failures (98.3333%) are no_clear_grasp; a constant no_clear_grasp guess scores 98.3333%, while Nemotron scores 43.6667%, below that baseline by 54.6666 percentage points."
+  },
   "final": {
     "status": "complete",
     "n": 300,

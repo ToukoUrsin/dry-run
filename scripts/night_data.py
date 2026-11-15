@@ -22,6 +22,27 @@ DEFAULT_INPUT = ROOT / "data" / "page" / "codex.json"
 START = datetime(2026, 11, 14, 18, 0, tzinfo=timezone.utc)
 LINES_COMMAND = "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l"
 BOUNDARY = "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`."
+AUTHORSHIP = "The supervisor (Claude, driving the Codex CLI on Touko's behalf) wrote the prompts and two reference sorters, `prompts/021-reference` and `prompts/027-reference`. Codex ported them into `dryrun/expert.py` and wrote everything else."
+REVIEW = {
+    "attempts": 4,
+    "findings": 0,
+    "status": "blocked",
+    "source_file": "/bulk3/runs/dryrun/codex-review-goal012-final.log",
+    "statement": "attempted 4 times, blocked, 0 findings",
+}
+SESSION_IDS = {
+    "main": "01a1db37-cd82-7771-9d68-113fc0bb7cfc",
+    "page": "01a1db6e-0b22-7971-ae26-5dd52eb3ed3d",
+    "inspector": "01a1db6e-0b7e-7103-9c3c-2fc35517f427",
+    "analyst": "01a1db85-8680-71e1-8c2c-cea5752bafa1",
+    "policy": "01a1db85-87b9-7760-b934-03b82b6ce199",
+}
+SUBAGENTS = {
+    "count": 3,
+    "parent": "main",
+    "paths": ["/root/astra_geometry", "/root/curriculum_astra", "/root/docs_status"],
+    "note": "These are three subagents of the main session; all commits carry one git author and lanes are assigned by touched files, not by session.",
+}
 
 SESSION_NAMES = ("main", "inspector", "page", "policy", "analyst")
 SESSION_DATA = [
@@ -29,7 +50,7 @@ SESSION_DATA = [
     {"name": "inspector", "model": "gpt-6.1-sol", "effort": "ultra", "owns": "defects and anomaly inspection"},
     {"name": "page", "model": "gpt-6.1-sol", "effort": "ultra", "owns": "viewer, telemetry, deployment"},
     {"name": "policy", "model": "gpt-6.1-sol", "effort": "ultra", "owns": "demos, ACT, policy evaluation"},
-    {"name": "analyst", "model": "gpt-6.1-sol plus Nemotron", "effort": "ultra", "owns": "Nemotron, stations, evidence docs"},
+    {"name": "analyst", "model": "gpt-6.1-sol", "effort": "ultra", "owns": "Nemotron, stations, evidence docs", "external_model": "NVIDIA Nemotron"},
 ]
 
 
@@ -186,12 +207,28 @@ def build(input_path: Path) -> dict:
     payload["commits_count_command"] = "git log --reverse --since 2026-11-14T18:00:00Z"
     payload["lines_count_command"] = LINES_COMMAND
     payload["prompts_count"] = len(prompts)
+    payload["supervisor_prompts"] = len(prompts)
+    payload["prompts_note"] = "Count is generated from prompts/*.md by scripts/night_data.py at each refresh."
     payload["prompts"] = prompts
     payload["boundary"] = BOUNDARY
+    payload["authorship"] = AUTHORSHIP
+    payload["review"] = dict(REVIEW)
+    payload["fast_mode"] = {
+        "used_on_sessions": list(SESSION_IDS),
+        "measured": False,
+        "statement": "Used on all five sessions; no with/without timing comparison was measured.",
+        "source": "prompts/010-ultra-and-five-sessions.md",
+    }
+    payload["session_ids"] = dict(SESSION_IDS)
+    payload["subagents"] = dict(SUBAGENTS)
     for session in payload.get("sessions", []):
         stats = commit_stats.get(session.get("name"))
         if stats:
             session.update(stats)
+        name = session.get("name")
+        if name in SESSION_IDS:
+            session["session_id"] = SESSION_IDS[name]
+            session["model"] = next(item["model"] for item in SESSION_DATA if item["name"] == name)
     generated_night_sessions = []
     for session in SESSION_DATA:
         generated = dict(session)
@@ -207,9 +244,14 @@ def build(input_path: Path) -> dict:
         "scores": scores(),
         "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
         "totals": {"commits": len(commits), "prompts": len(prompts), "sessions": len(SESSION_NAMES), "lines_of_code": payload["lines_of_code"], "hours": elapsed_hours},
-        "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other. Counts are derived at every refresh.",
+        "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. The only non-Codex commits are film-plan 44555a4 and 3a8ad76 plus their reverts 606c23e and 9e4bc77; all other commits carry one git author and are lane-assigned by touched files. Counts are derived at every refresh.",
         "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",
         "boundary": BOUNDARY,
+        "authorship": AUTHORSHIP,
+        "review": dict(REVIEW),
+        "fast_mode": payload["fast_mode"],
+        "session_ids": dict(SESSION_IDS),
+        "subagents": dict(SUBAGENTS),
     }
     return payload
 

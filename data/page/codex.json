@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T04:14:00Z",
-  "commit": "78cbd31",
+  "updated_utc": "2026-11-15T04:19:56Z",
+  "commit": "95ccda4",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -12,24 +12,24 @@
     "total": 34.1,
     "basis": "tmux session lifetimes at the update timestamp; this is elapsed goal-mode session time, not claimed human labor."
   },
-  "commits_total": 320,
+  "commits_total": 324,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 12086,
+  "lines_of_code": 12163,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
-  "supervisor_prompts": 33,
+  "supervisor_prompts": 51,
   "subagents_spawned": null,
   "subagents_note": "No numeric spawn counter is recorded in the repository logs; named streams and their evidence are listed in CODEX.md.",
   "sessions": [
     {
       "name": "main",
       "owns": "simulator core, seeded scenes, rollout API, measured expert, benchmark, and rendered replay",
-      "model": "gpt-6-astra + gpt-6.1-sol",
+      "model": "gpt-6-astra",
       "effort": "ultra",
       "fast_mode": true,
       "hours": 7.78,
       "hours_basis": "tmux session dryrun created 2026-11-14T18:00:08Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 164,
+      "commit_count": 166,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "5a6047d",
@@ -195,7 +195,9 @@
         "789b965",
         "1010dad",
         "1c70113",
-        "78cbd31"
+        "78cbd31",
+        "4195916",
+        "6e3592f"
       ],
       "biggest_result": "Integrated the measured reference recipe, then moved the page evidence to seeded multi-brick scenes after the one-brick loose tier was withdrawn.",
       "worst_miss": "The first expert was slow/broken and the fixed-scene loose tier was withdrawn as rigged before the measured recipe replaced it.",
@@ -204,7 +206,9 @@
         "prompts/016-loose-tier-rigged.md",
         "prompts/021-reference-expert.md",
         "status/M1.md"
-      ]
+      ],
+      "session_id": "01a1db37-cd82-7771-9d68-113fc0bb7cfc",
+      "short": "station, sorter, benchmark"
     },
     {
       "name": "inspector",
@@ -214,7 +218,7 @@
       "fast_mode": true,
       "hours": 6.79,
       "hours_basis": "tmux session dr-inspector created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 17,
+      "commit_count": 18,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "4ed77b4",
@@ -233,7 +237,8 @@
         "a34c4ca",
         "f1b20f9",
         "f92a6e3",
-        "dd0c191"
+        "dd0c191",
+        "8db74e6"
       ],
       "biggest_result": "Real present crops plus PatchCore accepted all 328 good bricks and detected all 241 defective bricks in the 569-brick held-out set.",
       "worst_miss": "The first inspector attempt was rejected for false rejects; it had to be retrained and evaluated on real good frames.",
@@ -241,7 +246,9 @@
         "status/M2.md",
         "data/page/inspector.json",
         "prompts/014-inspector-rejected.md"
-      ]
+      ],
+      "session_id": "01a1db6e-0b7e-7103-9c3c-2fc35517f427",
+      "short": "inspector, heat maps, timing"
     },
     {
       "name": "page",
@@ -251,7 +258,7 @@
       "fast_mode": true,
       "hours": 6.79,
       "hours_basis": "tmux session dr-page created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 60,
+      "commit_count": 61,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "70df899",
@@ -313,7 +320,8 @@
         "cff7a65",
         "edc5eef",
         "7a80478",
-        "5a3aed4"
+        "5a3aed4",
+        "95ccda4"
       ],
       "biggest_result": "The deployed page now shows the recorded MuJoCo SO-101 replay, synced top and inspection cameras, and a two-viewport browser smoke gate.",
       "worst_miss": "Several page passes were rejected for showing stubs or a broken first screen before the real replay and error gate were installed.",
@@ -323,7 +331,9 @@
         "prompts/023-page-must-show-the-real-robot.md",
         "prompts/034-live-page-broken.md",
         "scripts/smoke_public.py"
-      ]
+      ],
+      "session_id": "01a1db6e-0b22-7971-ae26-5dd52eb3ed3d",
+      "short": "replay, cameras, telemetry"
     },
     {
       "name": "policy",
@@ -385,12 +395,14 @@
         "prompts/026-policy-clock.md",
         "prompts/030-policy-train-for-real.md",
         "status/M4.md"
-      ]
+      ],
+      "session_id": "01a1db85-87b9-7760-b934-03b82b6ce199",
+      "short": "dataset, checkpoints, policy"
     },
     {
       "name": "analyst",
       "owns": "448 px Nemotron failure analysis, strict scoring, sentence stations, worker, and evidence docs",
-      "model": "gpt-6.1-sol + NVIDIA Nemotron",
+      "model": "gpt-6.1-sol",
       "effort": "ultra",
       "fast_mode": true,
       "hours": 6.37,
@@ -441,7 +453,9 @@
         "data/page/analyst.json",
         "data/page/stations.json",
         "status/M5.md"
-      ]
+      ],
+      "session_id": "01a1db85-8680-71e1-8c2c-cea5752bafa1",
+      "short": "Nemotron, stations, evidence"
     }
   ],
   "features": [
@@ -570,8 +584,8 @@
       "commit": "7f84b77"
     }
   ],
-  "prompts_count": 48,
-  "prompts_note": "The supervisor total is 33 at Prompt 035; the filesystem currently contains 41 prompt files, including the later prompts added during the night.",
+  "prompts_count": 51,
+  "prompts_note": "Count is generated from prompts/*.md by scripts/night_data.py at each refresh.",
   "prompts": [
     {
       "t": null,
@@ -860,19 +874,37 @@
       "file": "prompts/048-page-frozen.md",
       "title": "the page is frozen Touko films live 5a3aed4",
       "to": "page"
+    },
+    {
+      "t": "2026-11-15T04:14:00Z",
+      "file": "prompts/049-judge-findings-docs.md",
+      "title": "a fresh judge scored the entry 5 of",
+      "to": "analyst"
+    },
+    {
+      "t": "2026-11-15T04:14:00Z",
+      "file": "prompts/050-real-review-and-fast-mode.md",
+      "title": "two pieces of Codex evidence are missing Produce",
+      "to": "main"
+    },
+    {
+      "t": "2026-11-15T04:14:00Z",
+      "file": "prompts/051-page-after-filming.md",
+      "title": "fixes for one deploy after filming Build and",
+      "to": "page"
     }
   ],
   "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T04:14:00Z",
+    "end_utc": "2026-11-15T04:19:56Z",
     "sessions": [
       {
         "name": "main",
         "model": "gpt-6-astra",
         "effort": "ultra",
         "owns": "simulator, expert, benchmark, replay",
-        "commit_count": 164,
+        "commit_count": 166,
         "commits": [
           "5a6047d",
           "efb74fd",
@@ -1037,7 +1069,9 @@
           "789b965",
           "1010dad",
           "1c70113",
-          "78cbd31"
+          "78cbd31",
+          "4195916",
+          "6e3592f"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1046,7 +1080,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "defects and anomaly inspection",
-        "commit_count": 17,
+        "commit_count": 18,
         "commits": [
           "4ed77b4",
           "817de72",
@@ -1064,7 +1098,8 @@
           "a34c4ca",
           "f1b20f9",
           "f92a6e3",
-          "dd0c191"
+          "dd0c191",
+          "8db74e6"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1073,7 +1108,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "viewer, telemetry, deployment",
-        "commit_count": 60,
+        "commit_count": 61,
         "commits": [
           "70df899",
           "942566a",
@@ -1134,7 +1169,8 @@
           "cff7a65",
           "edc5eef",
           "7a80478",
-          "5a3aed4"
+          "5a3aed4",
+          "95ccda4"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1191,9 +1227,10 @@
       },
       {
         "name": "analyst",
-        "model": "gpt-6.1-sol plus Nemotron",
+        "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "Nemotron, stations, evidence docs",
+        "external_model": "NVIDIA Nemotron",
         "commit_count": 34,
         "commits": [
           "d48b31d",
@@ -3154,6 +3191,30 @@
         "sha": "78cbd31",
         "subject": "record current Tiger page audit",
         "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:14:04Z",
+        "sha": "4195916",
+        "subject": "refresh Codex night snapshot",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:15:14Z",
+        "sha": "6e3592f",
+        "subject": "record judge findings and prompt history",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:17:42Z",
+        "sha": "8db74e6",
+        "subject": "publish camera-only focus sweep evidence",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T04:18:44Z",
+        "sha": "95ccda4",
+        "subject": "page: attach evidence documents",
+        "session": "page"
       }
     ],
     "prompts": [
@@ -3444,6 +3505,24 @@
         "file": "prompts/048-page-frozen.md",
         "title": "the page is frozen Touko films live 5a3aed4",
         "to": "page"
+      },
+      {
+        "t": "2026-11-15T04:14:00Z",
+        "file": "prompts/049-judge-findings-docs.md",
+        "title": "a fresh judge scored the entry 5 of",
+        "to": "analyst"
+      },
+      {
+        "t": "2026-11-15T04:14:00Z",
+        "file": "prompts/050-real-review-and-fast-mode.md",
+        "title": "two pieces of Codex evidence are missing Produce",
+        "to": "main"
+      },
+      {
+        "t": "2026-11-15T04:14:00Z",
+        "file": "prompts/051-page-after-filming.md",
+        "title": "fixes for one deploy after filming Build and",
+        "to": "page"
       }
     ],
     "rejections": [
@@ -3530,14 +3609,88 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 320,
-      "prompts": 48,
+      "commits": 324,
+      "prompts": 51,
       "sessions": 5,
-      "lines_of_code": 12086,
-      "hours": 10.23
+      "lines_of_code": 12163,
+      "hours": 10.33
     },
-    "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other. Counts are derived at every refresh.",
+    "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. The only non-Codex commits are film-plan 44555a4 and 3a8ad76 plus their reverts 606c23e and 9e4bc77; all other commits carry one git author and are lane-assigned by touched files. Counts are derived at every refresh.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-    "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`."
+    "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
+    "authorship": "The supervisor (Claude, driving the Codex CLI on Touko's behalf) wrote the prompts and two reference sorters, `prompts/021-reference` and `prompts/027-reference`. Codex ported them into `dryrun/expert.py` and wrote everything else.",
+    "review": {
+      "attempts": 4,
+      "findings": 0,
+      "status": "blocked",
+      "source_file": "/bulk3/runs/dryrun/codex-review-goal012-final.log",
+      "statement": "attempted 4 times, blocked, 0 findings"
+    },
+    "fast_mode": {
+      "used_on_sessions": [
+        "main",
+        "page",
+        "inspector",
+        "analyst",
+        "policy"
+      ],
+      "measured": false,
+      "statement": "Used on all five sessions; no with/without timing comparison was measured.",
+      "source": "prompts/010-ultra-and-five-sessions.md"
+    },
+    "session_ids": {
+      "main": "01a1db37-cd82-7771-9d68-113fc0bb7cfc",
+      "page": "01a1db6e-0b22-7971-ae26-5dd52eb3ed3d",
+      "inspector": "01a1db6e-0b7e-7103-9c3c-2fc35517f427",
+      "analyst": "01a1db85-8680-71e1-8c2c-cea5752bafa1",
+      "policy": "01a1db85-87b9-7760-b934-03b82b6ce199"
+    },
+    "subagents": {
+      "count": 3,
+      "parent": "main",
+      "paths": [
+        "/root/astra_geometry",
+        "/root/curriculum_astra",
+        "/root/docs_status"
+      ],
+      "note": "These are three subagents of the main session; all commits carry one git author and lanes are assigned by touched files, not by session."
+    }
+  },
+  "session_ids": {
+    "main": "01a1db37-cd82-7771-9d68-113fc0bb7cfc",
+    "page": "01a1db6e-0b22-7971-ae26-5dd52eb3ed3d",
+    "inspector": "01a1db6e-0b7e-7103-9c3c-2fc35517f427",
+    "analyst": "01a1db85-8680-71e1-8c2c-cea5752bafa1",
+    "policy": "01a1db85-87b9-7760-b934-03b82b6ce199"
+  },
+  "review": {
+    "attempts": 4,
+    "findings": 0,
+    "status": "blocked",
+    "source_file": "/bulk3/runs/dryrun/codex-review-goal012-final.log",
+    "statement": "attempted 4 times, blocked, 0 findings"
+  },
+  "fast_mode": {
+    "used_on_sessions": [
+      "main",
+      "page",
+      "inspector",
+      "analyst",
+      "policy"
+    ],
+    "measured": false,
+    "statement": "Used on all five sessions; no with/without timing comparison was measured.",
+    "source": "prompts/010-ultra-and-five-sessions.md"
+  },
+  "authorship": "The supervisor (Claude, driving the Codex CLI on Touko's behalf) wrote the prompts and two reference sorters, `prompts/021-reference` and `prompts/027-reference`. Codex ported them into `dryrun/expert.py` and wrote everything else.",
+  "subagents": {
+    "count": 3,
+    "parent": "main",
+    "paths": [
+      "/root/astra_geometry",
+      "/root/curriculum_astra",
+      "/root/docs_status"
+    ],
+    "note": "These are three subagents of the main session; all commits carry one git author and lanes are assigned by touched files, not by session."
   }
 }

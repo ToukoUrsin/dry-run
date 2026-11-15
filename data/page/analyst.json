@@ -407,7 +407,19 @@
       "right": true,
       "verdict": "right",
       "source_id": "messy-1004-01",
-      "source_resolution": 448
+      "source_resolution": 448,
+      "source_kind": "analyst_448",
+      "simulator_events": [
+        {
+          "event": "ik_fail",
+          "t": 25.99999999999647,
+          "brick": 16,
+          "reason": "no_clear_grasp"
+        }
+      ],
+      "source_rows": [
+        "/bulk3/runs/dryrun/analyst_448_messy/messy-failures.jsonl"
+      ]
     },
     {
       "id": "touched_but_did_not_lift-loose-0000-00",
@@ -423,7 +435,26 @@
       "right": false,
       "verdict": "wrong",
       "source_id": "loose-0000-00",
-      "source_resolution": 32
+      "source_resolution": 32,
+      "source_kind": "nemotron_failures300",
+      "simulator_events": [
+        {
+          "failed_stage": "contact",
+          "pad_contacts": 1,
+          "peak_pad_force_N": 65.35291749725829,
+          "picked_by_contact": false,
+          "final_xyz": [
+            0.2708,
+            -0.0027,
+            0.0112
+          ],
+          "in_bowl": false,
+          "success": false
+        }
+      ],
+      "source_rows": [
+        "data/nemotron_failures300.jsonl"
+      ]
     },
     {
       "id": "lifted_then_lost-loose-0001-01",
@@ -439,7 +470,26 @@
       "right": false,
       "verdict": "wrong",
       "source_id": "loose-0001-01",
-      "source_resolution": 32
+      "source_resolution": 32,
+      "source_kind": "nemotron_failures300",
+      "simulator_events": [
+        {
+          "failed_stage": "drop",
+          "pad_contacts": 2,
+          "peak_pad_force_N": 25.824098290187216,
+          "picked_by_contact": true,
+          "final_xyz": [
+            0.1926,
+            -0.2745,
+            0.0179
+          ],
+          "in_bowl": false,
+          "success": false
+        }
+      ],
+      "source_rows": [
+        "data/nemotron_failures300.jsonl"
+      ]
     },
     {
       "id": "wrong-wrong-bowl-1000-13",
@@ -455,7 +505,58 @@
       "right": false,
       "verdict": "wrong",
       "source_id": "wrong-bowl-1000-13",
-      "source_resolution": 64
+      "source_resolution": 64,
+      "source_kind": "m4_modal_map",
+      "simulator_events": [
+        {
+          "event": "reach",
+          "t": 1.2000000000000008,
+          "brick": 13
+        },
+        {
+          "event": "grasp",
+          "t": 3.6339999999998214,
+          "brick": 13
+        },
+        {
+          "event": "lift",
+          "t": 4.633999999999712,
+          "brick": 13
+        },
+        {
+          "event": "present",
+          "t": 6.299999999999528,
+          "brick": 13,
+          "pose": "a"
+        },
+        {
+          "event": "verdict",
+          "t": 6.3339999999995245,
+          "brick": 13,
+          "verdict": "defective"
+        },
+        {
+          "event": "present",
+          "t": 7.699999999999374,
+          "brick": 13,
+          "pose": "b"
+        },
+        {
+          "event": "verdict",
+          "t": 7.73399999999937,
+          "brick": 13,
+          "verdict": "defective"
+        },
+        {
+          "event": "drop",
+          "t": 10.200000000000076,
+          "brick": 13,
+          "bowl": "defective"
+        }
+      ],
+      "source_rows": [
+        "/bulk3/runs/dryrun/m4/modal-map/current-da3b8ce-demo/current-da3b8ce-demo-20261114-1/shards/seed-1000.json"
+      ]
     }
   ],
   "next_batch": {
@@ -656,7 +757,19 @@
         "right": true,
         "verdict": "right",
         "source_id": "messy-1004-01",
-        "source_resolution": 448
+        "source_resolution": 448,
+        "source_kind": "analyst_448",
+        "simulator_events": [
+          {
+            "event": "ik_fail",
+            "t": 25.99999999999647,
+            "brick": 16,
+            "reason": "no_clear_grasp"
+          }
+        ],
+        "source_rows": [
+          "/bulk3/runs/dryrun/analyst_448_messy/messy-failures.jsonl"
+        ]
       },
       {
         "id": "touched_but_did_not_lift-loose-0000-00",
@@ -672,7 +785,26 @@
         "right": false,
         "verdict": "wrong",
         "source_id": "loose-0000-00",
-        "source_resolution": 32
+        "source_resolution": 32,
+        "source_kind": "nemotron_failures300",
+        "simulator_events": [
+          {
+            "failed_stage": "contact",
+            "pad_contacts": 1,
+            "peak_pad_force_N": 65.35291749725829,
+            "picked_by_contact": false,
+            "final_xyz": [
+              0.2708,
+              -0.0027,
+              0.0112
+            ],
+            "in_bowl": false,
+            "success": false
+          }
+        ],
+        "source_rows": [
+          "data/nemotron_failures300.jsonl"
+        ]
       },
       {
         "id": "lifted_then_lost-loose-0001-01",
@@ -688,7 +820,26 @@
         "right": false,
         "verdict": "wrong",
         "source_id": "loose-0001-01",
-        "source_resolution": 32
+        "source_resolution": 32,
+        "source_kind": "nemotron_failures300",
+        "simulator_events": [
+          {
+            "failed_stage": "drop",
+            "pad_contacts": 2,
+            "peak_pad_force_N": 25.824098290187216,
+            "picked_by_contact": true,
+            "final_xyz": [
+              0.1926,
+              -0.2745,
+              0.0179
+            ],
+            "in_bowl": false,
+            "success": false
+          }
+        ],
+        "source_rows": [
+          "data/nemotron_failures300.jsonl"
+        ]
       },
       {
         "id": "wrong-wrong-bowl-1000-13",
@@ -704,10 +855,80 @@
         "right": false,
         "verdict": "wrong",
         "source_id": "wrong-bowl-1000-13",
-        "source_resolution": 64
+        "source_resolution": 64,
+        "source_kind": "m4_modal_map",
+        "simulator_events": [
+          {
+            "event": "reach",
+            "t": 1.2000000000000008,
+            "brick": 13
+          },
+          {
+            "event": "grasp",
+            "t": 3.6339999999998214,
+            "brick": 13
+          },
+          {
+            "event": "lift",
+            "t": 4.633999999999712,
+            "brick": 13
+          },
+          {
+            "event": "present",
+            "t": 6.299999999999528,
+            "brick": 13,
+            "pose": "a"
+          },
+          {
+            "event": "verdict",
+            "t": 6.3339999999995245,
+            "brick": 13,
+            "verdict": "defective"
+          },
+          {
+            "event": "present",
+            "t": 7.699999999999374,
+            "brick": 13,
+            "pose": "b"
+          },
+          {
+            "event": "verdict",
+            "t": 7.73399999999937,
+            "brick": 13,
+            "verdict": "defective"
+          },
+          {
+            "event": "drop",
+            "t": 10.200000000000076,
+            "brick": 13,
+            "bowl": "defective"
+          }
+        ],
+        "source_rows": [
+          "/bulk3/runs/dryrun/m4/modal-map/current-da3b8ce-demo/current-da3b8ce-demo-20261114-1/shards/seed-1000.json"
+        ]
       }
     ],
-    "note": "Labels come from simulator events; images are camera-only 448 px four-panel sheets. The four stages are balanced at 21 cases each."
+    "note": "Labels come from simulator events; images are camera-only 448 px four-panel sheets. The four stages are balanced at 21 cases each.",
+    "schema": "dryrun.nemotron_balanced.score.v1",
+    "commit": "1a34bd574357d88cbde784c5812046c834a71c3f",
+    "stage_accuracy": 0.535714,
+    "frame_px": [
+      448,
+      448
+    ],
+    "sheet_px": [
+      896,
+      896
+    ],
+    "stages": [
+      "never_touched_brick",
+      "touched_but_did_not_lift",
+      "lifted_then_lost",
+      "wrong_bowl"
+    ],
+    "labels": "/bulk3/runs/dryrun/nemotron_balanced/labels.jsonl",
+    "source_note": "Simulator-derived labels from existing failure artifacts. Sheets use the fixed 448 px panel contract; source_resolution is retained in each example."
   },
   "prompt024_examples": [
     {

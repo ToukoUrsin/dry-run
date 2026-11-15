@@ -189,6 +189,25 @@ def _components(mask: np.ndarray, min_area: int) -> list[np.ndarray]:
     return out
 
 
+def _minimum_area_yaw(xy: np.ndarray) -> float:
+    """Return the world yaw of a blob's minimum-area rectangle long axis.
+
+    ``cv2.minAreaRect`` operates in image coordinates (x right, y down), so
+    the image angle is reflected when it is mapped back to the top-camera
+    world frame.  Choosing the long side keeps the 2x4 orientation stable;
+    the evaluator handles the 2x2 quarter-turn symmetry.
+    """
+    import cv2
+
+    points = np.asarray(xy, dtype=np.float32).reshape(-1, 1, 2)
+    (_, _), (width, height), angle_deg = cv2.minAreaRect(points)
+    angle = float(angle_deg)
+    if float(width) < float(height):
+        angle += 90.0
+    theta = math.radians(angle)
+    return math.atan2(-math.sin(theta), math.cos(theta))
+
+
 def bowl_mask(shape: tuple[int, int], calibration: TopCameraCalibration, *, centres_m: Iterable[Sequence[float]] = DEFAULT_BOWL_CENTRES_M, radius_m: float = DEFAULT_BOWL_RADIUS_M) -> np.ndarray:
     """Mask the two measured bowl discs in image coordinates."""
     h, w = int(shape[0]), int(shape[1]); yy, xx = np.indices((h, w), dtype=np.float32)
@@ -302,8 +321,9 @@ def detect_bricks(
             # brick.  Keep it visible to the caller but mark it unclear.
             rectangularity = float(len(xy) / max(1.0, spans_px[0] * spans_px[1]))
             status = "ok" if residual <= 4.0 and rectangularity >= .58 else "unclear"
-            # image y increases down; convert the PCA direction to world yaw.
-            yaw = math.atan2(-float(major[1]), float(major[0]))
+            # Fit the minimum-area rectangle after segmentation.  Image y
+            # increases down, so reflect its long-axis angle into world yaw.
+            yaw = _minimum_area_yaw(xy)
             if spans_mm[0] >= spans_mm[1] - 1e-6:
                 yaw = ((yaw + math.pi / 2.0) % math.pi) - math.pi / 2.0
             centre_m = world_from_pixel(centre, cal, z_m=brick_top_z_m)
@@ -330,8 +350,18 @@ def evaluate_perception(detections: Sequence[BrickDetection], ground_truth: Sequ
             matched += 1; errors.append(err)
             yaw = get("yaw_rad", get("yaw", None))
             if yaw is not None:
-                # Brick symmetry makes pi/2 and pi equivalent for evaluation.
-                delta = abs((det.yaw_rad - float(yaw) + math.pi / 2) % math.pi - math.pi / 2)
+                # A square 2x2 footprint repeats every quarter-turn; the
+                # rectangular 2x4 footprint repeats every half-turn.  Using
+                # one pi-period for both makes a correct square estimate look
+                # 90 degrees wrong and was the source of the old yaw metric.
+                size = str(get("size", ""))
+                if size not in {"2x2", "2x4"}:
+                    # Keep the evaluator useful for older truth rows that did
+                    # not carry size: infer a square only from the measured
+                    # detection footprint, never from simulator state.
+                    size = "2x2" if abs(det.size_mm[0] - det.size_mm[1]) <= 4.0 else "2x4"
+                period = math.pi / 2.0 if size == "2x2" else math.pi
+                delta = abs((det.yaw_rad - float(yaw) + period / 2.0) % period - period / 2.0)
                 yaw_errors.append(delta)
             remaining.pop(i)
     pct = matched / len(ground_truth) if ground_truth else 1.0

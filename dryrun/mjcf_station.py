@@ -371,10 +371,11 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     axes = "0.6290 -0.7774 0 0.6449 0.5218 0.5584"
     if look == "junction":
         wood_texture = _xml_escape(str((ROOT / "web/static/evidence/tiers/junction-wood.png").resolve()))
-        # The Junction webcam reads as pale grey-beige plywood.  Keep the
-        # table material deliberately neutral and use a soft, low-energy light
-        # so the real orange and teal bowl colours survive the render.
-        table_asset = f'<texture name="junction_wood" type="2d" file="{wood_texture}"/><material name="table_mat" texture="junction_wood" texrepeat="2 2" rgba="0.817 0.797 0.754 1"/>'
+        # The Junction webcam reads as one warm, weathered plywood sheet. It
+        # must cover the whole table once: repeating the 256 px tile creates a
+        # visible seam through the work area. The soft light keeps the bowl
+        # colours stable while the texture carries the warmth and grain.
+        table_asset = f'<texture name="junction_wood" type="2d" file="{wood_texture}"/><material name="table_mat" texture="junction_wood" texrepeat="1 1" rgba="1 1 1 1"/>'
         good_asset = '<material name="good_bowl" rgba="0.0 0.667 0.707 1"/>'
         bad_asset = '<material name="bad_bowl" rgba="0.84 0.3921569 0.172549 1"/>'
         visual = '<visual><headlight diffuse="0.40 0.40 0.40" ambient="0.18 0.18 0.18" specular="0.02 0.02 0.02"/><global offwidth="960" offheight="720"/></visual>'

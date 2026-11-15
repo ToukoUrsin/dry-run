@@ -229,7 +229,7 @@
       "pushes": 0,
       "commit": "bcee980",
       "expert_version": "reference",
-      "artifact_dir": "/bulk3/runs/dryrun/film/junction-replay-seed1000-fixed12",
+      "artifact_dir": "/bulk3/runs/dryrun/film/junction-replay-seed1000-warm",
       "replay": "replay.json.gz",
       "top_video": "top-view.mp4",
       "comparison_film": "/bulk3/runs/dryrun/film/real_vs_sim.mp4",

@@ -1,5 +1,5 @@
 {
-  "updated_utc": "2026-11-15T01:54:00Z",
+  "updated_utc": "2026-11-15T01:59:00Z",
   "commit": "b9d897c",
   "summary": "The pushing expert measures 99.48% on loose (380/382), 91.30% on touching (451/494), and 67.10% on pile (259/386); touching and pile use physical pushes.",
   "versions": [
@@ -25,7 +25,7 @@
         "correct": 382,
         "percent": 100.0,
         "pushes": 0,
-        "median_cycle_seconds_per_brick": 9.0,
+        "median_cycle_seconds_per_brick": 10.04,
         "failures_by_event": {
           "miss": 0,
           "slip": 0,
@@ -36,7 +36,19 @@
         "false_accepts": 0,
         "false_rejects": 0,
         "source_artifact": "/bulk3/runs/dryrun/benchmark/loose80-reference.json",
-        "source_revision_note": "64c4919 is the supervisor-verified reference label; archived row files retain their original mixed source commits."
+        "source_revision_note": "64c4919 is the supervisor-verified reference label; archived row files retain their original mixed source commits.",
+        "p90_cycle_seconds_per_brick": 10.067,
+        "event_counts": {
+          "drop": 382,
+          "grasp": 382,
+          "lift": 382,
+          "present": 764,
+          "reach": 382
+        },
+        "artifact_row_commits": [
+          "bff1e0073f0b",
+          "25be420f843b"
+        ]
       },
       "after": {
         "expert_version": "b9d897c",
@@ -71,13 +83,13 @@
       "id": "messy",
       "label": "Touching",
       "before": {
-        "expert_version": "2de1ae7",
+        "expert_version": "64c4919",
         "scenes": 70,
         "bricks": 494,
         "correct": 217,
         "percent": 43.93,
         "pushes": 0,
-        "median_cycle_seconds_per_brick": 9.0,
+        "median_cycle_seconds_per_brick": 3.624,
         "failures_by_event": {
           "miss": 1,
           "slip": 0,
@@ -88,7 +100,23 @@
         "false_accepts": 0,
         "false_rejects": 0,
         "source_artifact": "/bulk3/runs/dryrun/benchmark/messy70-50-prompt022.json",
-        "source_revision_note": "64c4919 is the supervisor-verified reference label; archived row files retain their original mixed source commits."
+        "source_revision_note": "64c4919 is the supervisor-verified reference label; archived row files retain their original mixed source commits.",
+        "p90_cycle_seconds_per_brick": 10.04,
+        "event_counts": {
+          "drop": 219,
+          "grasp": 219,
+          "ik_fail": 265,
+          "lift": 219,
+          "miss": 1,
+          "present": 438,
+          "reach": 222,
+          "unstable": 2
+        },
+        "artifact_row_commits": [
+          "da3b8ce28fea",
+          "40bef5fbc686",
+          "2de1ae706130"
+        ]
       },
       "after": {
         "expert_version": "b9d897c",
@@ -125,13 +153,13 @@
       "id": "pile",
       "label": "Pile",
       "before": {
-        "expert_version": "2de1ae7",
+        "expert_version": "64c4919",
         "scenes": 50,
         "bricks": 386,
         "correct": 31,
         "percent": 8.03,
         "pushes": 0,
-        "median_cycle_seconds_per_brick": 9.0,
+        "median_cycle_seconds_per_brick": 0.66,
         "failures_by_event": {
           "miss": 2,
           "slip": 0,
@@ -142,7 +170,21 @@
         "false_accepts": 1,
         "false_rejects": 0,
         "source_artifact": "/bulk3/runs/dryrun/benchmark/pile70-50-prompt022.json",
-        "source_revision_note": "64c4919 is the supervisor-verified reference label; archived row files retain their original mixed source commits."
+        "source_revision_note": "64c4919 is the supervisor-verified reference label; archived row files retain their original mixed source commits.",
+        "p90_cycle_seconds_per_brick": 2.65,
+        "event_counts": {
+          "drop": 32,
+          "grasp": 33,
+          "ik_fail": 347,
+          "lift": 33,
+          "miss": 2,
+          "present": 66,
+          "reach": 35,
+          "unstable": 1
+        },
+        "artifact_row_commits": [
+          "2de1ae706130"
+        ]
       },
       "after": {
         "expert_version": "b9d897c",

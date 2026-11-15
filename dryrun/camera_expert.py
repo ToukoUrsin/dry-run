@@ -28,6 +28,7 @@ HZ = 30
 GOOD_BOWL = np.array((-.0093, -.2657), dtype=float)
 BAD_BOWL = np.array((-.0093, .2657), dtype=float)
 DETECTOR_FRAME_SIZE = 720
+CAMERA_PARK_TCP = np.array((0.0, -0.30, 0.18), dtype=float)
 
 
 class CameraExpert(MeasuredExpert):
@@ -67,6 +68,11 @@ class CameraExpert(MeasuredExpert):
         # failed refresh is recoverable (the next neutral-pose look can still
         # find bricks), but it must never masquerade as an empty table.
         self._refresh_errors: list[dict[str, Any]] = []
+        # A failed camera target must not be selected again on the next look;
+        # the opaque rollout token changes every time a frame is refreshed.
+        self._failed_tokens: dict[int, tuple[Any, ...]] = {}
+        self._camera_parked = False
+        self._parking = False
         self._done = False
 
     def _fk(self, q: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -210,7 +216,18 @@ class CameraExpert(MeasuredExpert):
             return "good"
         return "defective"  # no verdict routes conservatively to the bad bowl
 
-    def _cycle(self, det: BrickDetection, token: int):
+    @staticmethod
+    def _target_key(det: BrickDetection) -> tuple[Any, ...]:
+        # Five-millimetre bins absorb frame-to-frame segmentation jitter while
+        # keeping separate loose bricks distinct.
+        return (
+            str(det.colour),
+            int(round(float(det.centre_m[0]) / .005)),
+            int(round(float(det.centre_m[1]) / .005)),
+        )
+
+    def _plan_cycle(self, det: BrickDetection):
+        """Preflight all camera-target IK before starting a motion generator."""
         x, y, _ = det.centre_m
         # Centre the brick in the 49.9 mm open gap, leaving room for camera error.
         jaw_ang = det.yaw_rad + math.pi / 2.0
@@ -222,9 +239,14 @@ class CameraExpert(MeasuredExpert):
         # millimetres/degrees.  Keep the approach and lift poses unchanged.
         qg = self._ik((x, y, .0130), jaw=jaw, q0=qh) if qh is not None else None
         ql = self._ik((x, y, .07), jaw=jaw, q0=qg) if qg is not None else None
-        if any(q is None for q in (qn, qh, qg, ql)):
-            self._emit("ik_fail", brick=token, reason="camera_estimate_unreachable")
-            return
+        qpark = self._ik(CAMERA_PARK_TCP, pitch=.6)
+        if any(q is None for q in (qn, qh, qg, ql, qpark)):
+            return None
+        return qn, qh, qg, ql, qpark
+
+    def _cycle(self, det: BrickDetection, token: int, plan):
+        x, y, _ = det.centre_m
+        qn, qh, qg, ql, qpark = plan
         self.current = SimpleNamespace(body=token, token=token, detection=det)
         self._emit("reach", brick=token)
         yield from self._move(qn, Q_OPEN, 1.0, "neutral")
@@ -268,7 +290,10 @@ class CameraExpert(MeasuredExpert):
         yield from self._move(qd, Q_OPEN, .5, "release")
         yield from self._hold(.4)
         self._emit("drop", brick=token, bowl=label)
-        yield from self._move(qn, Q_OPEN, 1.0, "neutral")
+        # Park outside the top camera's table view before the next look.  The
+        # arm mask then cannot hide the remaining bricks after a drop.
+        yield from self._move(qpark, Q_OPEN, 1.0, "camera_park")
+        self._camera_parked = True
         self.current = None
 
     def act(self, obs):
@@ -280,15 +305,42 @@ class CameraExpert(MeasuredExpert):
                 return np.asarray(next(self._motion), dtype=np.float32)
             except StopIteration:
                 self._motion = None; self.current = None; self.phase = "look"
+                if self._parking:
+                    self._parking = False
+                    self._camera_parked = True
         if self.phase == "look":
             found = [d for d in self._refresh(self._latest_obs) if d.status == "ok" and d.confidence >= .2]
             if found:
                 self._look_misses = 0
-                det = min(found, key=lambda d: d.centre_m[0] ** 2 + d.centre_m[1] ** 2)
-                self._token += 1; self._detections.append(det)
-                self._motion = self._cycle(det, self._token)
-                return np.asarray(next(self._motion), dtype=np.float32)
+                ordered = sorted(found, key=lambda d: d.centre_m[0] ** 2 + d.centre_m[1] ** 2)
+                for det in ordered:
+                    key = self._target_key(det)
+                    if key in self._failed_tokens.values():
+                        continue
+                    self._token += 1
+                    token = self._token
+                    self._detections.append(det)
+                    plan = self._plan_cycle(det)
+                    if plan is None:
+                        self._failed_tokens[token] = key
+                        self._emit("ik_fail", brick=token, reason="camera_estimate_unreachable", target_key=key)
+                        # Do not spin at 30 Hz on an unreachable target.  The
+                        # next neutral-pose look will skip this failed key.
+                        self._motion = self._hold(.2, "ik_fail")
+                        return np.asarray(next(self._motion), dtype=np.float32)
+                    self._camera_parked = False
+                    self._motion = self._cycle(det, token, plan)
+                    return np.asarray(next(self._motion), dtype=np.float32)
             self._look_misses += 1
+            # Never spend the miss budget while the arm is still over the
+            # table.  Move to the camera-safe park pose first, then look again.
+            if not self._camera_parked:
+                qpark = self._ik(CAMERA_PARK_TCP, pitch=.6)
+                if qpark is not None:
+                    self._parking = True
+                    self._motion = self._move(qpark, Q_OPEN, 1.0, "camera_park")
+                    return np.asarray(next(self._motion), dtype=np.float32)
+                self._look_misses = 0
             if self._look_misses >= self.max_look_misses:
                 self._done = True; self.phase = "done"
                 return self._cmd.copy()

@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T04:16:58Z",
+  "updated_utc": "2026-11-15T04:37:07Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -426,8 +426,8 @@
   "modes": [
     {
       "name": "cameras_only",
-      "source": "Modal camera-only stage sweep after prompt-044 yaw fix and prompt-020 focus-crop fix",
-      "commit": "419591655f7b4a625aea83fc4107fc91fe5314da",
+      "source": "Modal camera-only loop ladder: refresh-error telemetry pass",
+      "commit": "8f84ac44f5e211a2cfee902528ffbbaa87292ad7",
       "tier": "loose",
       "scenes": 20,
       "bricks_expected": 100,
@@ -446,9 +446,9 @@
       },
       "score": 0.05,
       "score_denominator": 100,
-      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
-      "status": "diagnostic_only; 20 valid rows; eight seeds reached the 2100-step cap; no transport timeout",
-      "summary": "5 of 100 loose diagnostic bricks reached the right bowl after the inspection focus-crop fix; eight seeds reached the step cap and remain reported as valid rows.",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_loop1_refresh.json",
+      "status": "diagnostic_only; refresh errors surfaced; no stage change; eight seeds reached the 2100-step cap",
+      "summary": "The refresh-error telemetry pass retained the prior 5/100 right-bowl result; seed-0 evidence identified a 960px scale threshold mismatch rather than an exception.",
       "controller": "CameraExpert (camera-only; inspector verdicts at presentation)",
       "seed_range": [
         0,
@@ -467,7 +467,7 @@
         12,
         17
       ],
-      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
+      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_loop1_refresh.json",
       "focus_fix_commit": "789b965",
       "previous_yaw_sweep": {
         "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_yaw.json",
@@ -483,6 +483,67 @@
         },
         "score": 0.020618556701030927,
         "score_denominator": 97
+      },
+      "previous_focus_sweep": {
+        "name": "cameras_only",
+        "source": "Modal camera-only stage sweep after prompt-044 yaw fix and prompt-020 focus-crop fix",
+        "commit": "419591655f7b4a625aea83fc4107fc91fe5314da",
+        "tier": "loose",
+        "scenes": 20,
+        "bricks_expected": 100,
+        "completed_scenes": 20,
+        "completed_bricks": 100,
+        "timeout_seeds": [],
+        "render_size_px": 960,
+        "stage_totals": {
+          "seen": 1120,
+          "reached": 10,
+          "gripped": 7,
+          "presented": 7,
+          "right_bowl": 5,
+          "false_accepts": 0,
+          "false_rejects": 2
+        },
+        "score": 0.05,
+        "score_denominator": 100,
+        "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
+        "status": "diagnostic_only; 20 valid rows; eight seeds reached the 2100-step cap; no transport timeout",
+        "summary": "5 of 100 loose diagnostic bricks reached the right bowl after the inspection focus-crop fix; eight seeds reached the step cap and remain reported as valid rows.",
+        "controller": "CameraExpert (camera-only; inspector verdicts at presentation)",
+        "seed_range": [
+          0,
+          19
+        ],
+        "max_steps": 2100,
+        "yaw_fix_commit": "233cc77",
+        "yaw_artifact": "/bulk3/runs/dryrun/m2_rebuild/perception_eval_200.json",
+        "max_step_seeds": [
+          0,
+          5,
+          6,
+          9,
+          10,
+          11,
+          12,
+          17
+        ],
+        "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
+        "focus_fix_commit": "789b965",
+        "previous_yaw_sweep": {
+          "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_yaw.json",
+          "commit": "2b1024a1164a2d6e0191ea39871c276e417537f1",
+          "stage_totals": {
+            "seen": 10,
+            "reached": 10,
+            "gripped": 7,
+            "presented": 7,
+            "right_bowl": 2,
+            "false_accepts": 0,
+            "false_rejects": 5
+          },
+          "score": 0.020618556701030927,
+          "score_denominator": 97
+        }
       }
     },
     {
@@ -968,7 +1029,34 @@
       12,
       17
     ],
-    "focus_sweep_interpretation": "Diagnostic only, not a benchmark: seen counts detector records (including repeated IK-fail records), while reached/gripped/presented/right_bowl count control stages; eight seeds hit the configured step cap."
+    "focus_sweep_interpretation": "Diagnostic only, not a benchmark: seen counts detector records (including repeated IK-fail records), while reached/gripped/presented/right_bowl count control stages; eight seeds hit the configured step cap.",
+    "seed0_first_observation_comparison": "/bulk3/runs/dryrun/m2_rebuild/camera_loop_seed0_evidence/comparison.json",
+    "seed0_static_frame": "/bulk3/runs/dryrun/m2_rebuild/camera_loop_seed0_evidence/static_first_top.png",
+    "seed0_loop_frame": "/bulk3/runs/dryrun/m2_rebuild/camera_loop_seed0_evidence/loop_first_top.png",
+    "seed0_first_observation_finding": "Same seeded scene and joints; 720px static has one ok detection at 33.75x35.14mm, while the 960px loop has zero ok detections because the same brick measures 34.04x35.92mm and crosses the 4mm residual threshold. No exception occurred.",
+    "grip_miss_debug": "/bulk3/runs/dryrun/m2_rebuild/camera_grip_miss_debug_053.json",
+    "grip_miss_finding": "Seeds 2, 4, and 18 are height errors: XY 1.06-1.90mm and yaw 0.04-0.40 degrees, while the camera grasp target is about 4.4mm too high versus the measured recipe.",
+    "loop1_refresh_artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_loop1_refresh.json",
+    "loop1_refresh_source_commit": "8f84ac44f5e211a2cfee902528ffbbaa87292ad7",
+    "loop1_refresh_stage_totals": {
+      "seen": 1120,
+      "reached": 10,
+      "gripped": 7,
+      "presented": 7,
+      "right_bowl": 5,
+      "false_accepts": 0,
+      "false_rejects": 2
+    },
+    "loop1_refresh_max_step_seeds": [
+      0,
+      5,
+      6,
+      9,
+      10,
+      11,
+      12,
+      17
+    ]
   },
   "yaw_provenance": {
     "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_sweep_yaw_provenance.json",
@@ -1155,5 +1243,67 @@
       }
     },
     "conclusion": "raw min-area-rectangle yaw is the correct transform; sign and 90-degree variants are rejected"
-  }
+  },
+  "camera_loop_ladder": [
+    {
+      "stage": "focus_crop_baseline",
+      "fix": "inspection focus crop",
+      "fix_commit": "789b965",
+      "source_commit": "419591655f7b4a625aea83fc4107fc91fe5314da",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
+      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
+      "stage_totals": {
+        "seen": 1120,
+        "reached": 10,
+        "gripped": 7,
+        "presented": 7,
+        "right_bowl": 5,
+        "false_accepts": 0,
+        "false_rejects": 2
+      },
+      "score": 0.05,
+      "score_denominator": 100,
+      "max_step_seeds": [
+        0,
+        5,
+        6,
+        9,
+        10,
+        11,
+        12,
+        17
+      ],
+      "status": "diagnostic_only"
+    },
+    {
+      "stage": "refresh_error_telemetry",
+      "fix": "surface camera refresh errors (no silent exception)",
+      "fix_commit": "d0851cc",
+      "source_commit": "8f84ac44f5e211a2cfee902528ffbbaa87292ad7",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_loop1_refresh.json",
+      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_loop1_refresh.json",
+      "stage_totals": {
+        "seen": 1120,
+        "reached": 10,
+        "gripped": 7,
+        "presented": 7,
+        "right_bowl": 5,
+        "false_accepts": 0,
+        "false_rejects": 2
+      },
+      "score": 0.05,
+      "score_denominator": 100,
+      "max_step_seeds": [
+        0,
+        5,
+        6,
+        9,
+        10,
+        11,
+        12,
+        17
+      ],
+      "status": "no stage change; no perception_error events in this run; scale mismatch found"
+    }
+  ]
 }

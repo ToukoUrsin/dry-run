@@ -15,7 +15,14 @@ import modal
 
 
 APP_ROOT = Path(__file__).resolve().parent
-MODEL_ROOT = Path(os.environ.get("DRYRUN_MODAL_MODEL_ROOT", "/bulk2/runs/dryrun/m2/model/openvino/weights/openvino"))
+# The real-present-frame model is the shipped M2 artifact.  Keep the local
+# source on /bulk3 because /bulk2 is full; Modal bundles these three files
+# into the image at deploy time, so the endpoint does not depend on a mounted
+# host path after deployment.
+MODEL_ROOT = Path(os.environ.get(
+    "DRYRUN_MODAL_MODEL_ROOT",
+    "/bulk3/runs/dryrun/m2_rebuild/default_model/openvino/weights/openvino",
+))
 
 image = (
     modal.Image.debian_slim(python_version="3.12")

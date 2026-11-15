@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T01:29:00Z",
+  "updated_utc": "2026-11-15T01:32:30Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -210,7 +210,14 @@
       "scenes": 1,
       "steps": 2100,
       "events": 12,
-      "status": "smoke only; 20-seed stage sweep remains open"
+      "status": "smoke only; 20-seed stage sweep remains open",
+      "bricks_in_scene": 6,
+      "reached": 3,
+      "presented_bricks": 3,
+      "present_frames": 6,
+      "right_bowl": 0,
+      "score": 0.0,
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_rollout_smoke.json"
     }
   ],
   "earlier": {

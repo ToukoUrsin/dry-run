@@ -1,15 +1,16 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T01:59:11Z",
+  "updated_utc": "2026-11-15T02:04:02Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
     "path": "/bulk3/runs/dryrun/m2_rebuild/models_real_adapt/PatchCore/openvino/weights/openvino/dryrun_inspector_real_adapt.xml",
     "family": "PatchCore wide_resnet50_2",
     "training_frames": 588,
-    "training_source": "588 good present crops from the first held-out real rollout block",
+    "training_source": "Real present frames of good bricks: 588 crops from the first held-out real rollout block.",
     "threshold": 0.49759793281555176,
-    "openvino": "OpenVINO"
+    "openvino": "OpenVINO",
+    "default_path": "/bulk3/runs/dryrun/m2_rebuild/default_model/openvino/weights/openvino/dryrun_inspector.xml"
   },
   "test": {
     "source": "real expert present frames",
@@ -94,7 +95,8 @@
       "median_ms": 216.93482525000002,
       "p95_ms": 267.27606934999994,
       "n": 30
-    }
+    },
+    "cycle_context": "At four threads, two present frames per brick take about 0.4 s on a laptop, roughly 4% of a 10 s cycle; one thread is about 0.94 s for the pair."
   },
   "examples": [
     {
@@ -207,13 +209,18 @@
     },
     {
       "name": "ground_truth_poses_plus_inspector",
-      "source": "/bulk3/runs/dryrun/m2_rebuild/real_inspector_adapt_scores.json",
-      "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
-      "bricks": 569,
-      "frames": 1138,
-      "correct_decisions": 569,
-      "score": 1.0,
-      "summary": "569 of 569 inspection decisions correct (100.0%) across 1138 present frames."
+      "source": "/bulk3/runs/dryrun/m2_rebuild/inspector_e2e_loose80.json",
+      "commit": "1bcb197f04b7f8142d4c314199e4638695bf027f",
+      "tier": "loose",
+      "scenes": 80,
+      "bricks": 382,
+      "correct": 380,
+      "verdicts": 760,
+      "pushes": 0,
+      "false_accepts": 0,
+      "false_rejects": 0,
+      "score": 0.9947643979057592,
+      "summary": "380 of 382 loose bricks reached the right bowl (99.48%), with 760 present-frame inspector decisions and zero inspector errors."
     },
     {
       "name": "cameras_only",
@@ -242,6 +249,21 @@
       "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20.json",
       "status": "complete with one explicit Modal timeout (seed 14; no stage counts invented)",
       "summary": "2 of 97 completed loose bricks reached the right bowl; seed 14 timed out and is reported separately."
+    },
+    {
+      "name": "end_to_end_touching",
+      "source": "/bulk3/runs/dryrun/m2_rebuild/inspector_e2e_touching70.json",
+      "commit": "1bcb197f04b7f8142d4c314199e4638695bf027f",
+      "tier": "touching",
+      "scenes": 70,
+      "bricks": 494,
+      "correct": 451,
+      "verdicts": 902,
+      "pushes": 149,
+      "false_accepts": 0,
+      "false_rejects": 0,
+      "score": 0.9129554655870445,
+      "summary": "451 of 494 touching bricks reached the right bowl (91.30%), with 902 present-frame inspector decisions and zero inspector errors."
     }
   ],
   "earlier": {

@@ -637,7 +637,14 @@
       "correct": 21,
       "accuracy": 0.25
     },
-    "sentence": "Nemotron got 45/84 (53.6%) on 4 balanced simulator-labeled failure stages; the largest-class baseline is 21/84 (25.0%) and chance is 1/4 (25.0%)."
+    "sentence": "Nemotron got 45/84 (53.6%) on 4 balanced simulator-labeled failure stages; the largest-class baseline is 21/84 (25.0%) and chance is 1/4 (25.0%).",
+    "valid_n": 84,
+    "chance_baseline": {
+      "kind": "uniform",
+      "accuracy": 0.25
+    },
+    "source": "balanced",
+    "score": "/bulk3/runs/dryrun/nemotron_balanced_run/score.json"
   },
   "balanced": {
     "status": "complete",

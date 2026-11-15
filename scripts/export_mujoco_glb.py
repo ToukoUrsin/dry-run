@@ -75,50 +75,19 @@ def mesh_geom(model: mujoco.MjModel, geom_id: int) -> tuple[np.ndarray, np.ndarr
     return np.empty((0, 3), dtype=np.float32), np.empty((0, 3), dtype=np.uint32)
 
 
-def simplify_mesh(vertices: np.ndarray, faces: np.ndarray, max_triangles: int = 18000) -> tuple[np.ndarray, np.ndarray]:
-    """Weld a dense visual mesh onto a deterministic grid and remove duplicates.
+def simplify_mesh(vertices: np.ndarray, faces: np.ndarray, max_triangles: int = 0) -> tuple[np.ndarray, np.ndarray]:
+    """Keep the compiled visual mesh intact.
 
-    MuJoCo's arm meshes contain many small visual facets. The viewer does not
-    need their CAD tessellation, but it does need the silhouette and all body
-    geometry. Grid welding keeps those surfaces intact while bringing the
-    compiled scene under the page's download budget without browser-side
-    geometry generation.
+    The SO-101 STL meshes are already compact and contain the silhouette and
+    printed-part detail that the browser needs. The old grid weld followed by
+    every-Nth-face sampling tore holes through those surfaces and made the arm
+    look like crumpled foil. There is no third-party quadric reducer in the
+    deployment environment, so exporting the source visual triangles is the
+    honest fallback. ``max_triangles`` remains as a compatibility argument for
+    callers of older exporter versions.
     """
-    if len(faces) <= max_triangles:
-        return vertices, faces
-    v = np.asarray(vertices, dtype=np.float32)
-    f = np.asarray(faces, dtype=np.uint32)
-    lo = v.min(axis=0); hi = v.max(axis=0); span = np.maximum(hi - lo, 1e-6)
-    # Aim for roughly one welded vertex per two triangles. Allocate grid
-    # resolution in proportion to each axis' extent.
-    target_vertices = max(256, int(max_triangles * 0.52))
-    scale = (target_vertices / float(np.prod(span))) ** (1.0 / 3.0)
-    dims = np.maximum(2, np.round(span * scale).astype(np.int32))
-    # Keep pathological skinny parts from producing a huge grid.
-    while int(np.prod(dims)) > target_vertices * 2:
-        axis = int(np.argmax(dims))
-        dims[axis] = max(2, dims[axis] - 1)
-    q = np.floor((v - lo) / span * (dims - 1)).astype(np.int64)
-    keys = q[:, 0] + q[:, 1] * int(dims[0]) + q[:, 2] * int(dims[0] * dims[1])
-    unique, inverse = np.unique(keys, return_inverse=True)
-    nv = np.zeros((len(unique), 3), dtype=np.float32)
-    np.add.at(nv, inverse, v)
-    counts = np.bincount(inverse)
-    nv /= counts[:, None]
-    nf = inverse[f]
-    keep = (nf[:, 0] != nf[:, 1]) & (nf[:, 1] != nf[:, 2]) & (nf[:, 0] != nf[:, 2])
-    nf = nf[keep]
-    if len(nf):
-        nf = np.sort(nf, axis=1)
-        _, first = np.unique(nf, axis=0, return_index=True)
-        nf = nf[np.sort(first)]
-    if len(nf) > max_triangles:
-        # Uniformly sample the welded surface as a final deterministic cap.
-        take = np.linspace(0, len(nf) - 1, max_triangles, dtype=np.int64)
-        nf = nf[take]
-    used = np.unique(nf.reshape(-1)) if len(nf) else np.empty(0, dtype=np.int64)
-    remap = np.full(len(nv), -1, dtype=np.int64); remap[used] = np.arange(len(used))
-    return nv[used], remap[nf].astype(np.uint32)
+    del max_triangles
+    return np.asarray(vertices, dtype=np.float32), np.asarray(faces, dtype=np.uint32)
 
 
 def align4(data: bytearray) -> None:
@@ -126,23 +95,75 @@ def align4(data: bytearray) -> None:
         data.append(0)
 
 
-def vertex_normals(vertices: np.ndarray, faces: np.ndarray) -> np.ndarray:
-    """Compute smooth visual normals for the exported, simplified mesh."""
-    normals = np.zeros_like(vertices, dtype=np.float32)
-    if len(faces):
-        a, b, c = vertices[faces[:, 0]], vertices[faces[:, 1]], vertices[faces[:, 2]]
-        cross = np.cross(b - a, c - a).astype(np.float32)
-        np.add.at(normals, faces[:, 0], cross)
-        np.add.at(normals, faces[:, 1], cross)
-        np.add.at(normals, faces[:, 2], cross)
-    length = np.linalg.norm(normals, axis=1, keepdims=True)
-    return normals / np.maximum(length, 1e-8)
+def split_crease_normals(vertices: np.ndarray, faces: np.ndarray, crease_degrees: float = 30.0) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Split corners at creases while preserving smooth curved surfaces.
+
+    MuJoCo's STL meshes share vertices across both flat and curved faces. A
+    single smooth normal therefore rounds printed edges. Group incident faces
+    at each vertex by a 30 degree normal crease, duplicate only the corners
+    that cross a crease, and average each smooth group's area-weighted normals.
+    """
+    v = np.asarray(vertices, dtype=np.float32)
+    f = np.asarray(faces, dtype=np.uint32)
+    if not len(f):
+        return v, f, np.zeros_like(v, dtype=np.float32)
+    a, b, c = v[f[:, 0]], v[f[:, 1]], v[f[:, 2]]
+    cross = np.cross(b - a, c - a).astype(np.float32)
+    length = np.linalg.norm(cross, axis=1, keepdims=True)
+    face_normals = cross / np.maximum(length, 1e-12)
+    cos_crease = float(np.cos(np.deg2rad(crease_degrees)))
+    incident: list[list[int]] = [[] for _ in range(len(v))]
+    for fi, tri in enumerate(f):
+        for vi in tri:
+            incident[int(vi)].append(fi)
+    groups: list[dict[int, int]] = [{} for _ in range(len(v))]
+    group_normals: list[list[np.ndarray]] = [[] for _ in range(len(v))]
+    for vi, fs in enumerate(incident):
+        if not fs:
+            continue
+        remaining = set(fs)
+        gid = 0
+        while remaining:
+            seed = remaining.pop()
+            stack = [seed]
+            members = [seed]
+            while stack:
+                cur = stack.pop()
+                joined = [other for other in remaining if float(np.dot(face_normals[cur], face_normals[other])) >= cos_crease]
+                for other in joined:
+                    remaining.remove(other)
+                    stack.append(other)
+                    members.append(other)
+            summed = np.sum(cross[members], axis=0)
+            summed /= max(float(np.linalg.norm(summed)), 1e-12)
+            group_normals[vi].append(summed.astype(np.float32))
+            for fi in members:
+                groups[vi][fi] = gid
+            gid += 1
+    out_vertices: list[np.ndarray] = []
+    out_normals: list[np.ndarray] = []
+    out_faces = np.empty_like(f)
+    corner_cache: dict[tuple[int, int], int] = {}
+    for fi, tri in enumerate(f):
+        for ci, vi_raw in enumerate(tri):
+            vi = int(vi_raw)
+            key = (vi, groups[vi].get(fi, 0))
+            oi = corner_cache.get(key)
+            if oi is None:
+                oi = len(out_vertices)
+                corner_cache[key] = oi
+                out_vertices.append(v[vi])
+                out_normals.append(group_normals[vi][key[1]] if group_normals[vi] else face_normals[fi])
+            out_faces[fi, ci] = oi
+    return np.asarray(out_vertices, dtype=np.float32), out_faces.astype(np.uint32), np.asarray(out_normals, dtype=np.float32)
 
 
 def export(model: mujoco.MjModel, out: Path) -> None:
     binary = bytearray(); views = []; accessors = []; materials = []; material_index = {}
     meshes = []; nodes = []
     skip_body = {"top_camera_mount", "inspection_camera_mount"}
+    arm_bodies = {"base", "shoulder", "upper_arm", "lower_arm", "wrist", "gripper", "moving_jaw_so101_v1"}
+    gripper_pads = {"fixed_grip_pad", "moving_grip_pad"}
 
     def material(rgba: np.ndarray, name: str) -> int:
         key = tuple(round(float(x), 4) for x in rgba)
@@ -168,6 +189,14 @@ def export(model: mujoco.MjModel, out: Path) -> None:
             start = int(model.body_geomadr[bid]); end = start + int(model.body_geomnum[bid])
             for gid in range(start, end):
                 geom_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, gid) or f"geom_{gid}"
+                # The compiled model contains visual meshes followed by
+                # collision hull copies for the arm. Export the complete
+                # visual arm, while retaining the two black pad boxes and
+                # the scene's non-arm display geometry (bricks and bowls).
+                if body_name in arm_bodies and geom_name not in gripper_pads and (
+                    int(model.geom_contype[gid]) != 0 or int(model.geom_conaffinity[gid]) != 0
+                ):
+                    continue
                 # Keep the work surface in view, but omit the station's rear
                 # collision/visual wall so the camera can frame the robot and
                 # both bowls tightly.
@@ -180,8 +209,9 @@ def export(model: mujoco.MjModel, out: Path) -> None:
                 if len(verts) == 0: continue
                 verts, faces = simplify_mesh(verts, faces)
                 verts = np.asarray([quat_rotate(model.geom_quat[gid], v) + model.geom_pos[gid] for v in verts], dtype=np.float32)
+                verts, faces, normals = split_crease_normals(verts, faces, 30.0)
                 pos_acc = accessor(verts, 5126, "VEC3", 34962)
-                norm_acc = accessor(vertex_normals(verts, faces), 5126, "VEC3", 34962)
+                norm_acc = accessor(normals, 5126, "VEC3", 34962)
                 idx_acc = accessor(faces.reshape(-1), 5125, "SCALAR", 34963)
                 mat_id = int(model.geom_matid[gid]); rgba = model.mat_rgba[mat_id] if mat_id >= 0 else np.array([.6,.6,.6,1])
                 mat_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_MATERIAL, mat_id) if mat_id >= 0 else geom_name

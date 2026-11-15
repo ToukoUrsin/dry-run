@@ -1,7 +1,7 @@
 {
-  "updated_utc": "2026-11-15T01:28:00Z",
+  "updated_utc": "2026-11-15T01:44:00Z",
   "commit": "b9d897c",
-  "summary": "The pushing expert reaches 99.48% on loose and 91.30% on touching; the pile after-run is still in progress.",
+  "summary": "The pushing expert measures 99.48% on loose (380/382) and 91.30% on touching (451/494); pile is omitted until its held-out run completes.",
   "versions": [
     {
       "name": "64c4919",
@@ -35,7 +35,8 @@
         },
         "false_accepts": 0,
         "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/loose80-reference.json"
+        "source_artifact": "/bulk3/runs/dryrun/benchmark/loose80-reference.json",
+        "source_revision_note": "64c4919 is the supervisor-verified reference label; archived row files retain their original mixed source commits."
       },
       "after": {
         "expert_version": "b9d897c",
@@ -44,7 +45,7 @@
         "correct": 380,
         "percent": 99.48,
         "pushes": 0,
-        "median_cycle_seconds_per_brick": 9.0,
+        "median_cycle_seconds_per_brick": 10.04,
         "failures_by_event": {
           "miss": 0,
           "slip": 0,
@@ -54,7 +55,16 @@
         },
         "false_accepts": 0,
         "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/v2-loose-20261115.json"
+        "source_artifact": "/bulk3/runs/dryrun/benchmark/v2-loose-tiger-20261115.json",
+        "p90_cycle_seconds_per_brick": 10.067,
+        "event_counts": {
+          "drop": 379,
+          "grasp": 380,
+          "lift": 380,
+          "present": 760,
+          "reach": 380,
+          "unstable": 1
+        }
       }
     },
     {
@@ -77,7 +87,8 @@
         },
         "false_accepts": 0,
         "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/messy70-50-prompt022.json"
+        "source_artifact": "/bulk3/runs/dryrun/benchmark/messy70-50-prompt022.json",
+        "source_revision_note": "64c4919 is the supervisor-verified reference label; archived row files retain their original mixed source commits."
       },
       "after": {
         "expert_version": "b9d897c",
@@ -86,7 +97,7 @@
         "correct": 451,
         "percent": 91.3,
         "pushes": 149,
-        "median_cycle_seconds_per_brick": 9.0,
+        "median_cycle_seconds_per_brick": 10.629,
         "failures_by_event": {
           "miss": 4,
           "slip": 0,
@@ -96,7 +107,18 @@
         },
         "false_accepts": 0,
         "false_rejects": 0,
-        "source_artifact": "/bulk3/runs/dryrun/benchmark/v2-messy-20261115.json"
+        "source_artifact": "/bulk3/runs/dryrun/benchmark/v2-messy-20261115.json",
+        "p90_cycle_seconds_per_brick": 12.125,
+        "event_counts": {
+          "drop": 451,
+          "grasp": 451,
+          "ik_fail": 43,
+          "lift": 451,
+          "miss": 4,
+          "present": 902,
+          "push": 149,
+          "reach": 455
+        }
       }
     },
     {

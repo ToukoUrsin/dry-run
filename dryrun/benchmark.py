@@ -228,7 +228,7 @@ def _write_replay(export_dir: Path, row: dict[str, Any], capture: _ReplayCapture
     row["thumbnail"] = str(thumb) if capture.thumbnail is not None else None
 
 
-def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path | None = None, controller: str = "expert", max_steps: int = 1800):
+def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path | None = None, controller: str = "expert", max_steps: int = 3600):
     # Keep the benchmark on the same public rollout boundary used by policy
     # evaluation and dataset recording.  In particular, this prevents a
     # benchmark-only scene/controller path from drifting back to the
@@ -283,7 +283,7 @@ def summarize(rows):
 
 def run(seeds=None, workdir=Path("/bulk3/runs/dryrun/benchmark"), inspector=None, tier=None,
         export_replays: Path | None = None, controller: str = "expert", workers: int = 1,
-        max_steps: int = 1800):
+        max_steps: int = 3600):
     started = time.perf_counter(); workdir.mkdir(parents=True, exist_ok=True)
     telemetry_enabled = _telemetry_configured()
     if telemetry_enabled and os.environ.get("DRYRUN_TELEMETRY_SKIP_SETUP") != "1":

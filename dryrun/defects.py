@@ -172,7 +172,10 @@ def _hide_noninspection_geometry(
     for geom_id in range(model.ngeom):
         body_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(model.geom_bodyid[geom_id])) or ""
         geom_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_id) or ""
-        keep = body_name == "table" or geom_name == "table" or geom_name in {"fixed_grip_pad", "moving_grip_pad"}
+        # The pads remain part of the physical rollout and top-camera view,
+        # but they occlude the judged face in the close inspection shot.  The
+        # same crop-side mask is used for synthetic and live present frames.
+        keep = body_name == "table" or geom_name == "table"
         if body_name.startswith("brick_") or geom_name.startswith("brick_"):
             keep = focus_name is None or body_name == focus_name
         if not keep:

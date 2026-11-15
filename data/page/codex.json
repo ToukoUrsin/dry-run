@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T05:26:10Z",
-  "commit": "36c35fe",
+  "updated_utc": "2026-11-15T05:36:00Z",
+  "commit": "bdfc194",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -11,15 +11,15 @@
     "analyst": 6.37,
     "total": 34.1,
     "basis": "wall_clock_night is elapsed UTC duration from the run start; summed_session_hours is the sum of the five recorded tmux session lifetimes.",
-    "wall_clock_night": 11.44,
+    "wall_clock_night": 11.6,
     "summed_session_hours": 34.1
   },
-  "commits_total": 405,
+  "commits_total": 411,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 13467,
+  "lines_of_code": 13488,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
-  "supervisor_prompts": 60,
+  "supervisor_prompts": 62,
   "subagents_spawned": 3,
   "subagents_note": "These are three subagents of the main session; all commits carry one git author and lanes are assigned by touched files, not by session.",
   "sessions": [
@@ -31,7 +31,7 @@
       "fast_mode": true,
       "hours": 7.78,
       "hours_basis": "tmux session dryrun created 2026-11-14T18:00:08Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 210,
+      "commit_count": 211,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "5a6047d",
@@ -243,7 +243,8 @@
         "66e9376",
         "3e39ec4",
         "21116cb",
-        "0d9ec12"
+        "0d9ec12",
+        "6c2e688"
       ],
       "biggest_result": "Integrated the measured reference recipe, then moved the page evidence to seeded multi-brick scenes after the one-brick loose tier was withdrawn.",
       "worst_miss": "The first expert was slow/broken and the fixed-scene loose tier was withdrawn as rigged before the measured recipe replaced it.",
@@ -309,7 +310,7 @@
       "fast_mode": true,
       "hours": 6.79,
       "hours_basis": "tmux session dr-page created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 71,
+      "commit_count": 74,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "70df899",
@@ -382,7 +383,10 @@
         "138c2de",
         "e016c2c",
         "6b2efb5",
-        "0616a0c"
+        "0616a0c",
+        "204e1fe",
+        "e9b5662",
+        "6685818"
       ],
       "biggest_result": "The deployed page now shows the recorded MuJoCo SO-101 replay, synced top and inspection cameras, and a two-viewport browser smoke gate.",
       "worst_miss": "Several page passes were rejected for showing stubs or a broken first screen before the real replay and error gate were installed.",
@@ -404,7 +408,7 @@
       "fast_mode": true,
       "hours": 6.37,
       "hours_basis": "tmux session dr-policy created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 50,
+      "commit_count": 51,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "8bf81de",
@@ -456,7 +460,8 @@
         "a8f551c",
         "133415a",
         "bb1904c",
-        "a325585"
+        "a325585",
+        "fc71f21"
       ],
       "biggest_result": "Produced a real LeRobot dataset and recorded ACT checkpoints with per-stage held-out evaluation and CPU/OpenVINO timing.",
       "worst_miss": "The first 64-pixel, 201-step run reached no physical rollout stage on any checkpoint; it is retained as a failed run, not a success.",
@@ -477,7 +482,7 @@
       "fast_mode": true,
       "hours": 6.37,
       "hours_basis": "tmux session dr-analyst created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 47,
+      "commit_count": 48,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "d48b31d",
@@ -526,7 +531,8 @@
         "9224521",
         "5430d79",
         "dcb42f4",
-        "c8d937c"
+        "c8d937c",
+        "bdfc194"
       ],
       "biggest_result": "Built the strict 448×448 four-field runner and kept a live 300-failure run, while the station gallery retained 32 accepted layouts and four rejection reasons.",
       "worst_miss": "The earlier 32 px Nemotron score was not visual evidence and is explicitly withdrawn from benchmark use.",
@@ -667,7 +673,7 @@
       "commit": "7f84b77"
     }
   ],
-  "prompts_count": 60,
+  "prompts_count": 62,
   "prompts_note": "Count is generated from prompts/*.md by scripts/night_data.py at each refresh.",
   "prompts": [
     {
@@ -1029,19 +1035,31 @@
       "file": "prompts/060-final-deploy-list.md",
       "title": "five fixes on local 36c35fe then the final",
       "to": "page"
+    },
+    {
+      "t": "2026-11-15T05:26:00Z",
+      "file": "prompts/061-final-docs.md",
+      "title": "last pass on the three documents by 05",
+      "to": "analyst"
+    },
+    {
+      "t": "2026-11-15T05:36:00Z",
+      "file": "prompts/062-balanced-nemotron-withdrawn.md",
+      "title": "the balanced Nemotron result is not evidence Withdraw",
+      "to": "page"
     }
   ],
   "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T05:26:10Z",
+    "end_utc": "2026-11-15T05:36:00Z",
     "sessions": [
       {
         "name": "main",
         "model": "gpt-6-astra",
         "effort": "ultra",
         "owns": "simulator, expert, benchmark, replay",
-        "commit_count": 210,
+        "commit_count": 211,
         "commits": [
           "5a6047d",
           "efb74fd",
@@ -1252,7 +1270,8 @@
           "66e9376",
           "3e39ec4",
           "21116cb",
-          "0d9ec12"
+          "0d9ec12",
+          "6c2e688"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1294,7 +1313,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "viewer, telemetry, deployment",
-        "commit_count": 71,
+        "commit_count": 74,
         "commits": [
           "70df899",
           "942566a",
@@ -1366,7 +1385,10 @@
           "138c2de",
           "e016c2c",
           "6b2efb5",
-          "0616a0c"
+          "0616a0c",
+          "204e1fe",
+          "e9b5662",
+          "6685818"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1375,7 +1397,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "demos, ACT, policy evaluation",
-        "commit_count": 50,
+        "commit_count": 51,
         "commits": [
           "8bf81de",
           "63291ad",
@@ -1426,7 +1448,8 @@
           "a8f551c",
           "133415a",
           "bb1904c",
-          "a325585"
+          "a325585",
+          "fc71f21"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1436,7 +1459,7 @@
         "effort": "ultra",
         "owns": "Nemotron, stations, evidence docs",
         "external_model": "NVIDIA Nemotron",
-        "commit_count": 47,
+        "commit_count": 48,
         "commits": [
           "d48b31d",
           "4f37d18",
@@ -1484,7 +1507,8 @@
           "9224521",
           "5430d79",
           "dcb42f4",
-          "c8d937c"
+          "c8d937c",
+          "bdfc194"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       }
@@ -3919,6 +3943,42 @@
         "sha": "36c35fe",
         "subject": "publish final camera sorter ladder row",
         "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T05:28:25Z",
+        "sha": "fc71f21",
+        "subject": "publish corrected chunk30 continuation result",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T05:29:35Z",
+        "sha": "204e1fe",
+        "subject": "ship balanced Nemotron evidence sheets",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T05:29:43Z",
+        "sha": "e9b5662",
+        "subject": "finish final page stories and mobile layout",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T05:30:22Z",
+        "sha": "6c2e688",
+        "subject": "record post-smoke public route audit",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T05:32:42Z",
+        "sha": "6685818",
+        "subject": "serve packaged failure evidence on deploy",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T05:34:24Z",
+        "sha": "bdfc194",
+        "subject": "finalize judge-facing dry run documents",
+        "session": "analyst"
       }
     ],
     "prompts": [
@@ -4281,6 +4341,18 @@
         "file": "prompts/060-final-deploy-list.md",
         "title": "five fixes on local 36c35fe then the final",
         "to": "page"
+      },
+      {
+        "t": "2026-11-15T05:26:00Z",
+        "file": "prompts/061-final-docs.md",
+        "title": "last pass on the three documents by 05",
+        "to": "analyst"
+      },
+      {
+        "t": "2026-11-15T05:36:00Z",
+        "file": "prompts/062-balanced-nemotron-withdrawn.md",
+        "title": "the balanced Nemotron result is not evidence Withdraw",
+        "to": "page"
       }
     ],
     "rejections": [
@@ -4325,6 +4397,12 @@
         "label": "live page broken",
         "prompt": "prompts/034-live-page-broken.md",
         "evidence": "The live page had a console error and lost its first screen."
+      },
+      {
+        "t": "2026-11-15T05:36:00Z",
+        "label": "balanced Nemotron test withdrawn",
+        "prompt": "prompts/062-balanced-nemotron-withdrawn.md",
+        "evidence": "63 of 84 sheets were rendered too small to judge: 42 from 32 px frames and 21 from 64 px frames; only 21 were 448 px."
       }
     ],
     "scores": [
@@ -4367,11 +4445,11 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 405,
-      "prompts": 60,
+      "commits": 411,
+      "prompts": 62,
       "sessions": 5,
-      "lines_of_code": 13467,
-      "hours": 11.44
+      "lines_of_code": 13488,
+      "hours": 11.6
     },
     "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. The only non-Codex commits are film-plan 44555a4 and 3a8ad76 plus their reverts 606c23e and 9e4bc77; all other commits carry one git author and are lane-assigned by touched files. Counts are derived at every refresh.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",

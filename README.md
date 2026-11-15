@@ -18,12 +18,14 @@ seeded multi-brick scenes.
 - The real-crop inspector accepts **328/328 good** bricks and detects **241/241 defective** bricks, with 0 false rejects and 0 false accepts.
 - The final camera-only diagnostic puts **4/100** bricks in the right bowl (39 reached, 33 gripped, 20 presented); it is not a benchmark.
 - The latest learned-policy evaluation reaches **10/20** one-brick scenes and grasps **2/20**, but sorts **0/20**, with no lifts, presentations or drops.
-- The balanced Nemotron run gets **45/84 (53.6%)** across four stages; chance and the largest-class baseline are **25%**. It gets 19/21 lifted-then-lost cases, but calls 18/21 touched-without-lift and 19/21 wrong-bowl cases lifted-then-lost.
+- The valid 448 px Nemotron diagnostic gets **131/300 (43.7%)**. Since 295/300 failures are `no_clear_grasp`, always answering `no_clear_grasp` scores **98.3%**, above Nemotron.
 - Five real Codex reviews found **28 findings** and mapped them to **10 fixes**. codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9/20; the latest policy evaluation reaches 10/20 and grasps 2/20, but still sorts 0/20.
 
 The source of each number is the corresponding `data/page/*.json` file and
-its status record. The 32 px Nemotron run is withdrawn because the brick was
-about two pixels wide; it is not benchmark or training evidence.
+its status record. The balanced four-stage test is withdrawn: 63 of its 84
+sheets were rendered too small to judge. The valid headline uses only the 448 px
+Prompt 024 sheets; the 32 px run is withdrawn because the brick was about two
+pixels wide.
 
 ## Run locally in three commands
 

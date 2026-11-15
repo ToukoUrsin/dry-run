@@ -28,7 +28,7 @@ and [data/page/codex.json](data/page/codex.json).
 - **Inspector:** on 569 held-out real bricks, 328/328 good bricks were accepted and 241/241 defective bricks were detected, with 0 false rejects and 0 false accepts.
 - **Camera-only sorter:** the final diagnostic placed 4/100 bricks in the right bowl (39 reached, 33 gripped, 20 presented); this is not a benchmark.
 - **Learned policy:** the latest evaluation reached 10/20 one-brick scenes and grasped 2/20, but sorted 0/20, with 0 lifts, presentations or drops.
-- **Balanced Nemotron:** 45/84 strict stage decisions were correct (53.6%) across 21 examples per class. Chance and the largest-class baseline are both 25%; it gets 19/21 lifted-then-lost cases but calls 18/21 touched-without-lift and 19/21 wrong-bowl cases lifted-then-lost.
+- **Nemotron diagnostic:** the valid 448 px run got 131/300 strict stage decisions correct (43.7%). Since 295/300 failures are `no_clear_grasp`, always answering `no_clear_grasp` scores 98.3%, above Nemotron; the balanced four-stage test is withdrawn because 63/84 sheets were too small to judge.
 
 Nemotron diagnoses camera evidence and proposes scenes; it is not a learned
 policy. No real-arm run has been performed. Full commands, confusion matrices,

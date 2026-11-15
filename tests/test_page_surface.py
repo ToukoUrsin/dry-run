@@ -52,4 +52,4 @@ def test_null_accuracy_is_not_coerced_to_zero():
     script = _module_text()
     assert "function finiteNumber(value)" in script
     assert "Number(d.accuracy?.combined||0)" not in script
-    assert "fmtPct(combined===null?null:combined*100)" in script
+    assert "const balancedPct=balancedWithdrawn?null" in script

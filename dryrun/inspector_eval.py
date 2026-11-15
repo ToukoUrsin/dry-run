@@ -113,8 +113,11 @@ def _score(infer, inp, path: Path) -> tuple[float, np.ndarray]:
     # that static input and read the first independent result.  This keeps the
     # per-image rows and threshold semantics unchanged while allowing the
     # evaluator to validate every exported model shape.
-    shape = [int(d) for d in inp.shape]
-    batch = max(1, int(shape[0]))
+    # Some Anomalib exports keep a dynamic input shape.  The evaluator uses
+    # the same 256px frame contract as Inspector; only a static batch needs to
+    # be repeated.
+    ps = inp.partial_shape
+    batch = int(ps[0].get_length()) if len(ps) == 4 and ps[0].is_static else 1
     x = np.repeat(frame[None], batch, axis=0)
     out = infer.infer({inp: x})
     scores = np.asarray(out["pred_score"]).reshape(-1)

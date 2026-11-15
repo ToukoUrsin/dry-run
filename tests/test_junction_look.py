@@ -36,8 +36,10 @@ def test_junction_look_changes_presentation_only() -> None:
         assert "#e8642c" not in station_xml(1001, look="lab")
         junction_xml = station_xml(1001, look="junction")
         assert "junction_wood" in junction_xml
-        assert "0.9098039 0.3921569 0.172549" in junction_xml
-        assert "0.0 0.6941176 0.7411765" in junction_xml
+        # Junction's measured palette uses a warm orange defective bowl and a
+        # cyan good bowl; the table itself is the single un-tinted wood texture.
+        assert "0.84 0.3921569 0.172549" in junction_xml
+        assert "0.0 0.667 0.707" in junction_xml
     finally:
         lab.close()
         junction.close()

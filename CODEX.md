@@ -16,7 +16,7 @@ All five sessions worked under one shared goal in parallel. The lane assignment 
 
 ## What the five-session run added
 
-A single chat would have had to serialize the simulator, inspector, page, policy and analyst work. These five sessions ran those lanes at once, with exact artifacts and handoffs at their boundaries. Seven supervisor rejections forced the following changes:
+A single chat would have had to serialize the simulator, inspector, page, policy and analyst work. These five sessions ran those lanes at once, with exact artifacts and handoffs at their boundaries. Eight supervisor rejections forced the following changes:
 
 - **First pass rejected:** a 245-line stand-in became a runnable MuJoCo scene with proof commands (`prompts/002-first-pass-rejected.md`).
 - **Zero pickups:** pad-contact trials made the grasp failure measurable (`prompts/004-review-of-seed7.md`).
@@ -25,6 +25,7 @@ A single chat would have had to serialize the simulator, inspector, page, policy
 - **Zero of fifty:** the measured grasp boundary and recipe replaced the first attempt (`prompts/019-grasp-recipe-measured.md`).
 - **Policy reached zero stages:** review found repeated-action chunks paired with the next frame; the corrected run still sorts 0/20 (`prompts/030-policy-train-for-real.md`, `data/page/policy.json`).
 - **Live page broken:** the page gained desktop and phone smoke gates and explicit recorded/offline states (`prompts/034-live-page-broken.md`).
+- **Balanced Nemotron test withdrawn:** 63 of 84 sheets were rendered too small to judge; the 448 px subset is retained only as provenance (`prompts/062-balanced-nemotron-withdrawn.md`).
 
 Five real Codex review runs found 28 findings; ten named fix commits address them. codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks; the latest policy evaluation reaches 10 of 20 and grasps 2, but sorts 0 of 20 with no lifts, presentations or drops. The review sessions and exact counts are in [status/codex-review-0415.md](status/codex-review-0415.md) and the `review` object in [data/page/codex.json](data/page/codex.json).
 
@@ -38,7 +39,7 @@ Fast mode was measured rather than assumed: 28.53 seconds without Fast versus 22
 | Expert and seeded multi-brick evidence | `status/M1.md`, `data/page/inspector.json` (`ground_truth`), and `/bulk3/runs/dryrun/benchmark/` |
 | Real-frame inspector | `data/page/inspector.json` and `status/M2.md` |
 | Learned policy | `data/page/policy.json` and `status/M4.md` |
-| Balanced Nemotron | `data/page/analyst.json`, `status/M5.md`, and `/bulk3/runs/dryrun/nemotron_balanced_run/score.json` |
+| 448 px Nemotron diagnostic | `data/page/analyst.json`, `status/M5.md`, and `/bulk3/runs/dryrun/nemotron_prompt024/score-final-merged/score.json` |
 | Page and telemetry | `scripts/smoke_public.py`, `status/M3.md`, and `status/M6.md` |
 | Review record | `status/codex-review-0415.md` and `data/page/codex.json` → `review` |
 
@@ -48,7 +49,7 @@ Fast mode was measured rather than assumed: 28.53 seconds without Fast versus 22
 - Real-crop inspector: **328/328 good** and **241/241 defective**, with 0 false rejects and 0 false accepts.
 - Camera-only diagnostic: **4/100** right-bowl placements (39 reached, 33 gripped, 20 presented); not a benchmark.
 - Latest learned-policy evaluation: **10/20 reached, 2/20 grasped, 0/20 sorted**, with no lifts, presentations or drops.
-- Balanced Nemotron: **45/84 (53.6%)** across four stages; chance and the largest-class baseline are **25%**. It gets 19/21 lifted-then-lost cases, but calls 18/21 touched-without-lift and 19/21 wrong-bowl cases lifted-then-lost.
+- 448 px Nemotron diagnostic: **131/300 (43.7%)**. Since 295/300 failures are `no_clear_grasp`, always answering `no_clear_grasp` scores **98.3%**, above Nemotron.
 
 ## Turning-point timeline
 
@@ -295,5 +296,5 @@ capture and screenshot paths remain in `status/M6.md`.
 
 - The learned policy sorts 0/20 held-out one-brick scenes; its latest evaluation reaches 10/20 and grasps 2/20, but lifts none.
 - The camera-only sorter places 4/100 diagnostic bricks in the right bowl.
-- Nemotron does not reliably separate later stages: touched-without-lift is 3/21 and wrong-bowl is 2/21, versus 19/21 for lifted-then-lost.
+- The balanced four-stage Nemotron test is withdrawn: 63 of 84 sheets were rendered too small to judge; no balanced accuracy is reported.
 - No real-arm run has been performed.

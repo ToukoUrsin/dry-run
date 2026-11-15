@@ -4,7 +4,13 @@ The main session owns station generation, the MuJoCo expert, the benchmark, demo
 
 `dryrun.mjcf_station.station_xml(seed, sentence, count=None)` returns a complete MJCF string. `layout_bricks(seed, sentence, count=None)` returns ordered `BrickSpec` labels; body `brick_N` corresponds to index `N`. A consumer must load the returned XML in MuJoCo and call `mj_forward` before reading poses.
 
-`dryrun.render.rollout(model, data, seed, writer=None, specs=None)` steps the real physics from the supplied simulator state. It returns `{seed, bricks, successes, score, events}`; each event records physical contact pickup, pad contacts, final pose, bowl membership and success. It never teleports or welds a body.
+The current public rollout boundary is `dryrun.rollout.run(seed, controller,
+inspector=None, record=None, tier=None, station_path=None)`. It steps the real
+MuJoCo physics through `StationEnv.step`, returns the episode outcome and event
+rows, and never teleports or welds a body. The legacy
+`dryrun.render.rollout(model, data, seed, writer=None, specs=None)` remains only
+as a historical renderer contract; new benchmarks and station jobs use
+`dryrun.rollout.run`.
 
 The benchmark calls the inspector at the point where a brick is held at the inspection camera. The inspector returns a bowl decision and timing; the benchmark records that decision in the event. The rollout calls the telemetry writer after each physics step or at its 30 Hz sampling boundary. If an integration is not wired, the owning status file remains open and names the missing call.
 
@@ -44,8 +50,8 @@ converts the two arrays to PNG data URIs for HTTP. The Modal endpoint returns
 this inspection result by default; adding `rollout: true` also returns the
 compressed one-brick replay and its `run_id`.
 
-The page can render the measured inspector artifacts directly from
-`/bulk2/runs/dryrun/m2/evaluation.json` (confusion, per-defect recall, held-out
+The page can render the measured inspector artifacts directly from the archived
+`/bulk3/runs/dryrun/_b2/m2/evaluation.json` (confusion, per-defect recall, held-out
 types, OpenVINO version and one/four-thread latency) and
 `/bulk3/runs/dryrun/m2/contact_sheet_real_station.png`. A present event carries
 the scalar `score`, selected `threshold` and the heat-map array; callers that
@@ -55,7 +61,8 @@ an on-demand worker or Modal endpoint.
 
 The page/API inspector contract is `schema: "dryrun.inspector.v1"` from
 `GET /api/inspector` (also `/api/inspector.json`) and
-`/bulk2/runs/dryrun/m2/inspector_page.json`. It contains `confusion` with
+the archived compatibility artifact
+`/bulk3/runs/dryrun/_b2/m2/inspector_page.json`. It contains `confusion` with
 `tp`, `tn`, `fp`, `fn` and false-accept/reject rates,
 `per_defect_recall` keyed by each generated defect type (including the two
 held-out types), `latency` keyed by OpenVINO thread count with `median_ms`,
@@ -126,13 +133,20 @@ keeps every XML and rejection reason in its JSONL record, and optionally sends
 accepted stations through the public `dryrun.rollout.run` expert API. The
 worker passes the checked XML as `station_path` together with the sentence, so
 the expert runs exactly the station that passed the load, intersection, IK and
-camera checks rather than regenerating a tier scene.
+camera checks rather than regenerating a tier scene. The current final audit
+is the 36-station result below; no expert rerun is pending.
 
 The page's `POST /api/stations` accepts a sentence of at most 300 characters
 and inserts `station_requests`; it never treats the sentence as a command.
 `dryrun.worker --once` claims one pending request, writes the station gallery
 record and expert result, and updates `worker_heartbeat`. The page reads these
 rows through `GET /api/stations` and labels the worker online or offline.
+
+The authoritative post-reference sentence audit is
+`/bulk3/runs/dryrun/stations-final-audit-2344/summary.json`: all 36 accepted
+stations passed the static checks, and 105 of 108 bricks were sorted through
+the exact checked XML via `dryrun.rollout.run` (`expert_score=0.972222`). This
+is gallery integration evidence, not a held-out tier benchmark.
 
 For the workspace views, the page consumes `diagnoses`, `stations`, and
 `worker` from the aggregate snapshot. Replay files remain under the run

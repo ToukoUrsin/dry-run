@@ -1,5 +1,5 @@
 {
-  "updated_utc": "2026-11-15T05:12:00Z",
+  "updated_utc": "2026-11-15T05:36:00Z",
   "commit": "1a34bd574357d88cbde784c5812046c834a71c3f",
   "schema_version": "prompt024-448-sheet-v1",
   "prompt": "prompts/024-analyst-needs-real-frames.md",
@@ -394,169 +394,103 @@
   },
   "examples": [
     {
-      "id": "never-messy-1004-01",
-      "image": "/evidence/failures/nemotron-balanced-never.png",
-      "sheet": "/evidence/failures/nemotron-balanced-never.png",
-      "label": "never_touched_brick",
-      "simulator_stage": "never_touched_brick",
-      "nemotron_stage": "never_touched_brick",
-      "sentence": "gripper remains separated from brick in all panels",
-      "visible_support": "gripper remains separated from brick in all panels",
-      "scene_change": "move gripper closer to brick before closing",
+      "id": "messy-1004-01",
+      "tier": "messy",
+      "image": "/static/evidence/analyst/messy-1004-01.webp",
+      "sheet": "/static/evidence/analyst/messy-1004-01.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "no_clear_grasp",
+      "sentence": "The gripper is not contacting any object in before_grasp, end_closing, presentation, or end_cycle; all objects remain in their original positions.",
+      "visible_support": "The gripper is not contacting any object in before_grasp, end_closing, presentation, or end_cycle; all objects remain in their original positions.",
+      "scene_change": "Position the gripper so it closes around a target object before end_closing.",
+      "evidence_panel": "end_closing",
+      "right": true,
+      "verdict": "right",
+      "scene_spec": {
+        "tier": "messy"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 25.99999999999647,
+        "brick": 16,
+        "reason": "no_clear_grasp"
+      },
+      "source_resolution": 448
+    },
+    {
+      "id": "messy-1004-02",
+      "tier": "messy",
+      "image": "/static/evidence/analyst/messy-1004-02.webp",
+      "sheet": "/static/evidence/analyst/messy-1004-02.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "no_clear_grasp",
+      "sentence": "The gripper is not contacting any object in before_grasp, end_closing, presentation, or end_cycle; the yellow block remains beside the green bowl in every panel.",
+      "visible_support": "The gripper is not contacting any object in before_grasp, end_closing, presentation, or end_cycle; the yellow block remains beside the green bowl in every panel.",
+      "scene_change": "Position the gripper directly over the yellow block and close it so contact and lift are visible.",
       "evidence_panel": "before_grasp",
       "right": true,
       "verdict": "right",
-      "source_id": "messy-1004-01",
-      "source_resolution": 448,
-      "source_kind": "analyst_448",
-      "simulator_events": [
-        {
-          "event": "ik_fail",
-          "t": 25.99999999999647,
-          "brick": 16,
-          "reason": "no_clear_grasp"
-        }
-      ],
-      "source_rows": [
-        "/bulk3/runs/dryrun/analyst_448_messy/messy-failures.jsonl"
-      ]
+      "scene_spec": {
+        "tier": "messy"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 25.99999999999647,
+        "brick": 13,
+        "reason": "no_clear_grasp"
+      },
+      "source_resolution": 448
     },
     {
-      "id": "touched_but_did_not_lift-loose-0000-00",
-      "image": "/evidence/failures/nemotron-balanced-touched.png",
-      "sheet": "/evidence/failures/nemotron-balanced-touched.png",
-      "label": "touched_but_did_not_lift",
-      "simulator_stage": "touched_but_did_not_lift",
-      "nemotron_stage": "lifted_then_lost",
-      "sentence": "brick is visible in end_closing but absent in end_cycle",
-      "visible_support": "brick is visible in end_closing but absent in end_cycle",
-      "scene_change": "reduce gripper speed during transfer",
+      "id": "messy-1004-03",
+      "tier": "messy",
+      "image": "/static/evidence/analyst/messy-1004-03.webp",
+      "sheet": "/static/evidence/analyst/messy-1004-03.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "no_clear_grasp",
+      "sentence": "The gripper is not contacting any object in any panel; the yellow block remains beside the green bowl throughout before_grasp, end_closing, presentation, and end_cycle.",
+      "visible_support": "The gripper is not contacting any object in any panel; the yellow block remains beside the green bowl throughout before_grasp, end_closing, presentation, and end_cycle.",
+      "scene_change": "Position the gripper so it closes around the yellow block before lifting.",
       "evidence_panel": "end_closing",
-      "right": false,
-      "verdict": "wrong",
-      "source_id": "loose-0000-00",
-      "source_resolution": 32,
-      "source_kind": "nemotron_failures300",
-      "simulator_events": [
-        {
-          "failed_stage": "contact",
-          "pad_contacts": 1,
-          "peak_pad_force_N": 65.35291749725829,
-          "picked_by_contact": false,
-          "final_xyz": [
-            0.2708,
-            -0.0027,
-            0.0112
-          ],
-          "in_bowl": false,
-          "success": false
-        }
-      ],
-      "source_rows": [
-        "data/nemotron_failures300.jsonl"
-      ]
+      "right": true,
+      "verdict": "right",
+      "scene_spec": {
+        "tier": "messy"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 25.99999999999647,
+        "brick": 12,
+        "reason": "no_clear_grasp"
+      },
+      "source_resolution": 448
     },
     {
-      "id": "lifted_then_lost-loose-0001-01",
-      "image": "/evidence/failures/nemotron-balanced-lost.png",
-      "sheet": "/evidence/failures/nemotron-balanced-lost.png",
-      "label": "lifted_then_lost",
-      "simulator_stage": "lifted_then_lost",
-      "nemotron_stage": "touched_but_did_not_lift",
-      "sentence": "brick remains on table in end_closing with gripper fingers closed around it but no vertical displacement",
-      "visible_support": "brick remains on table in end_closing with gripper fingers closed around it but no vertical displacement",
-      "scene_change": "increase gripper closing force or lower approach height to secure lift",
-      "evidence_panel": "end_closing",
+      "id": "messy-1004-00",
+      "tier": "messy",
+      "image": "/static/evidence/analyst/messy-1004-00.webp",
+      "sheet": "/static/evidence/analyst/messy-1004-00.webp",
+      "simulator_stage": "missed_grasp",
+      "nemotron_stage": "slipped",
+      "sentence": "In end_cycle the blue brick is no longer held by the gripper and is absent from the scene, while the gripper is open over the green bowl.",
+      "visible_support": "In end_cycle the blue brick is no longer held by the gripper and is absent from the scene, while the gripper is open over the green bowl.",
+      "scene_change": "The blue brick would remain securely in the gripper through end_cycle instead of disappearing.",
+      "evidence_panel": "end_cycle",
       "right": false,
       "verdict": "wrong",
-      "source_id": "loose-0001-01",
-      "source_resolution": 32,
-      "source_kind": "nemotron_failures300",
-      "simulator_events": [
-        {
-          "failed_stage": "drop",
-          "pad_contacts": 2,
-          "peak_pad_force_N": 25.824098290187216,
-          "picked_by_contact": true,
-          "final_xyz": [
-            0.1926,
-            -0.2745,
-            0.0179
-          ],
-          "in_bowl": false,
-          "success": false
-        }
-      ],
-      "source_rows": [
-        "data/nemotron_failures300.jsonl"
-      ]
-    },
-    {
-      "id": "wrong-wrong-bowl-1000-13",
-      "image": "/evidence/failures/nemotron-balanced-wrong-bowl.png",
-      "sheet": "/evidence/failures/nemotron-balanced-wrong-bowl.png",
-      "label": "wrong_bowl",
-      "simulator_stage": "wrong_bowl",
-      "nemotron_stage": "lifted_then_lost",
-      "sentence": "The yellow brick is raised vertically above the red bowl in the presentation panel, then appears on the table beside the red bowl in the end_cycle panel.",
-      "visible_support": "The yellow brick is raised vertically above the red bowl in the presentation panel, then appears on the table beside the red bowl in the end_cycle panel.",
-      "scene_change": "Reduce downward speed or increase grasp force during placement so the brick remains supported until release.",
-      "evidence_panel": "end_closing",
-      "right": false,
-      "verdict": "wrong",
-      "source_id": "wrong-bowl-1000-13",
-      "source_resolution": 64,
-      "source_kind": "m4_modal_map",
-      "simulator_events": [
-        {
-          "event": "reach",
-          "t": 1.2000000000000008,
-          "brick": 13
-        },
-        {
-          "event": "grasp",
-          "t": 3.6339999999998214,
-          "brick": 13
-        },
-        {
-          "event": "lift",
-          "t": 4.633999999999712,
-          "brick": 13
-        },
-        {
-          "event": "present",
-          "t": 6.299999999999528,
-          "brick": 13,
-          "pose": "a"
-        },
-        {
-          "event": "verdict",
-          "t": 6.3339999999995245,
-          "brick": 13,
-          "verdict": "defective"
-        },
-        {
-          "event": "present",
-          "t": 7.699999999999374,
-          "brick": 13,
-          "pose": "b"
-        },
-        {
-          "event": "verdict",
-          "t": 7.73399999999937,
-          "brick": 13,
-          "verdict": "defective"
-        },
-        {
-          "event": "drop",
-          "t": 10.200000000000076,
-          "brick": 13,
-          "bowl": "defective"
-        }
-      ],
-      "source_rows": [
-        "/bulk3/runs/dryrun/m4/modal-map/current-da3b8ce-demo/current-da3b8ce-demo-20261114-1/shards/seed-1000.json"
-      ]
+      "scene_spec": {
+        "tier": "messy"
+      },
+      "event": {
+        "event": "miss",
+        "t": 14.100000000001378,
+        "brick": 17,
+        "pad_n": [
+          0.0,
+          11.71
+        ]
+      },
+      "source_resolution": 448
     }
   ],
   "next_batch": {
@@ -628,464 +562,429 @@
     }
   ],
   "headline": {
-    "kind": "balanced_failure_stages",
-    "n": 84,
-    "accuracy": 0.535714,
+    "kind": "prompt024_448_failure_stages",
+    "n": 300,
+    "valid_n": 300,
+    "correct": 131,
+    "accuracy": 0.436667,
     "baseline": {
-      "kind": "largest_class",
-      "label": "never_touched_brick",
-      "correct": 21,
-      "accuracy": 0.25
+      "kind": "constant_guess",
+      "label": "no_clear_grasp",
+      "correct": 295,
+      "accuracy": 0.983333
     },
-    "sentence": "Nemotron got 45/84 (53.6%) on 4 balanced simulator-labeled failure stages; the largest-class baseline is 21/84 (25.0%) and chance is 1/4 (25.0%).",
-    "valid_n": 84,
-    "chance_baseline": {
-      "kind": "uniform",
-      "accuracy": 0.25
-    },
-    "source": "balanced",
-    "score": "/bulk3/runs/dryrun/nemotron_balanced_run/score.json"
+    "sentence": "Nemotron got 131/300 (43.7%) on the 448 px failure sheets; 295 of 300 failures are no_clear_grasp, so always answering no_clear_grasp scores 98.3%, above Nemotron.",
+    "source": "final",
+    "score": "/bulk3/runs/dryrun/nemotron_prompt024/score-final-merged/score.json"
   },
   "balanced": {
-    "status": "complete",
+    "status": "withdrawn",
     "prompt": "prompts/055-nemotron-balanced.md",
     "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
     "n": 84,
     "valid_n": 84,
-    "correct": 45,
-    "accuracy": 0.535714,
-    "counts": {
-      "never_touched_brick": 21,
-      "touched_but_did_not_lift": 21,
-      "lifted_then_lost": 21,
-      "wrong_bowl": 21
+    "withdrawal_reason": "Withdrawn: 63 of 84 picture sheets were rendered too small to judge (42 sheets from 32 px frames and 21 from 64 px frames; only 21 sheets were from 448 px frames). The 32 px sheets are near black and repeat the previously withdrawn two-pixel brick flaw.",
+    "source_resolutions": {
+      "448": 21,
+      "32": 42,
+      "64": 21
     },
-    "baseline": {
-      "kind": "largest_class",
-      "label": "never_touched_brick",
-      "correct": 21,
-      "accuracy": 0.25
+    "valid_fact_448": {
+      "n": 21,
+      "named_right": 21,
+      "statement": "At 448 px, Nemotron named all 21 never-touched failures right; this is a retained fact, not an accuracy claim."
     },
-    "chance_baseline": {
-      "kind": "uniform",
-      "correct_expected": 21.0,
-      "accuracy": 0.25
-    },
-    "sentence": "Nemotron got 45/84 (53.6%) on 4 balanced simulator-labeled failure stages; the largest-class baseline is 21/84 (25.0%) and chance is 1/4 (25.0%).",
-    "per_stage": {
-      "never_touched_brick": {
-        "n": 21,
+    "withdrawn_result": {
+      "status": "complete",
+      "prompt": "prompts/055-nemotron-balanced.md",
+      "model": "nvidia/nemotron-3.5-super-vl-120b-a12b",
+      "n": 84,
+      "valid_n": 84,
+      "correct": 45,
+      "accuracy": 0.535714,
+      "counts": {
+        "never_touched_brick": 21,
+        "touched_but_did_not_lift": 21,
+        "lifted_then_lost": 21,
+        "wrong_bowl": 21
+      },
+      "baseline": {
+        "kind": "largest_class",
+        "label": "never_touched_brick",
         "correct": 21,
-        "accuracy": 1.0,
-        "predicted": {
+        "accuracy": 0.25
+      },
+      "chance_baseline": {
+        "kind": "uniform",
+        "correct_expected": 21.0,
+        "accuracy": 0.25
+      },
+      "sentence": "Nemotron got 45/84 (53.6%) on 4 balanced simulator-labeled failure stages; the largest-class baseline is 21/84 (25.0%) and chance is 1/4 (25.0%).",
+      "per_stage": {
+        "never_touched_brick": {
+          "n": 21,
+          "correct": 21,
+          "accuracy": 1.0,
+          "predicted": {
+            "never_touched_brick": 21,
+            "touched_but_did_not_lift": 0,
+            "lifted_then_lost": 0,
+            "wrong_bowl": 0
+          }
+        },
+        "touched_but_did_not_lift": {
+          "n": 21,
+          "correct": 3,
+          "accuracy": 0.142857,
+          "predicted": {
+            "never_touched_brick": 0,
+            "touched_but_did_not_lift": 3,
+            "lifted_then_lost": 18,
+            "wrong_bowl": 0
+          }
+        },
+        "lifted_then_lost": {
+          "n": 21,
+          "correct": 19,
+          "accuracy": 0.904762,
+          "predicted": {
+            "never_touched_brick": 0,
+            "touched_but_did_not_lift": 2,
+            "lifted_then_lost": 19,
+            "wrong_bowl": 0
+          }
+        },
+        "wrong_bowl": {
+          "n": 21,
+          "correct": 2,
+          "accuracy": 0.095238,
+          "predicted": {
+            "never_touched_brick": 0,
+            "touched_but_did_not_lift": 0,
+            "lifted_then_lost": 19,
+            "wrong_bowl": 2
+          }
+        }
+      },
+      "confusion": {
+        "never_touched_brick": {
           "never_touched_brick": 21,
           "touched_but_did_not_lift": 0,
           "lifted_then_lost": 0,
           "wrong_bowl": 0
-        }
-      },
-      "touched_but_did_not_lift": {
-        "n": 21,
-        "correct": 3,
-        "accuracy": 0.142857,
-        "predicted": {
+        },
+        "touched_but_did_not_lift": {
           "never_touched_brick": 0,
           "touched_but_did_not_lift": 3,
           "lifted_then_lost": 18,
           "wrong_bowl": 0
-        }
-      },
-      "lifted_then_lost": {
-        "n": 21,
-        "correct": 19,
-        "accuracy": 0.904762,
-        "predicted": {
+        },
+        "lifted_then_lost": {
           "never_touched_brick": 0,
           "touched_but_did_not_lift": 2,
           "lifted_then_lost": 19,
           "wrong_bowl": 0
-        }
-      },
-      "wrong_bowl": {
-        "n": 21,
-        "correct": 2,
-        "accuracy": 0.095238,
-        "predicted": {
+        },
+        "wrong_bowl": {
           "never_touched_brick": 0,
           "touched_but_did_not_lift": 0,
           "lifted_then_lost": 19,
           "wrong_bowl": 2
         }
-      }
-    },
-    "confusion": {
-      "never_touched_brick": {
-        "never_touched_brick": 21,
-        "touched_but_did_not_lift": 0,
-        "lifted_then_lost": 0,
-        "wrong_bowl": 0
       },
-      "touched_but_did_not_lift": {
-        "never_touched_brick": 0,
-        "touched_but_did_not_lift": 3,
-        "lifted_then_lost": 18,
-        "wrong_bowl": 0
-      },
-      "lifted_then_lost": {
-        "never_touched_brick": 0,
-        "touched_but_did_not_lift": 2,
-        "lifted_then_lost": 19,
-        "wrong_bowl": 0
-      },
-      "wrong_bowl": {
-        "never_touched_brick": 0,
-        "touched_but_did_not_lift": 0,
-        "lifted_then_lost": 19,
-        "wrong_bowl": 2
-      }
-    },
-    "input": "/bulk3/runs/dryrun/nemotron_balanced/input.jsonl",
-    "predictions": "/bulk3/runs/dryrun/nemotron_balanced_run/results.jsonl",
-    "score": "/bulk3/runs/dryrun/nemotron_balanced_run/score.json",
-    "manifest": "/bulk3/runs/dryrun/nemotron_balanced/manifest.json",
-    "run_commit": "1a34bd574357d88cbde784c5812046c834a71c3f",
-    "examples": [
-      {
-        "id": "never-messy-1004-01",
-        "image": "/evidence/failures/nemotron-balanced-never.png",
-        "sheet": "/evidence/failures/nemotron-balanced-never.png",
-        "label": "never_touched_brick",
-        "simulator_stage": "never_touched_brick",
-        "nemotron_stage": "never_touched_brick",
-        "sentence": "gripper remains separated from brick in all panels",
-        "visible_support": "gripper remains separated from brick in all panels",
-        "scene_change": "move gripper closer to brick before closing",
-        "evidence_panel": "before_grasp",
-        "right": true,
-        "verdict": "right",
-        "source_id": "messy-1004-01",
-        "source_resolution": 448,
-        "source_kind": "analyst_448",
-        "simulator_events": [
-          {
-            "event": "ik_fail",
-            "t": 25.99999999999647,
-            "brick": 16,
-            "reason": "no_clear_grasp"
-          }
-        ],
-        "source_rows": [
-          "/bulk3/runs/dryrun/analyst_448_messy/messy-failures.jsonl"
-        ]
-      },
-      {
-        "id": "touched_but_did_not_lift-loose-0000-00",
-        "image": "/evidence/failures/nemotron-balanced-touched.png",
-        "sheet": "/evidence/failures/nemotron-balanced-touched.png",
-        "label": "touched_but_did_not_lift",
-        "simulator_stage": "touched_but_did_not_lift",
-        "nemotron_stage": "lifted_then_lost",
-        "sentence": "brick is visible in end_closing but absent in end_cycle",
-        "visible_support": "brick is visible in end_closing but absent in end_cycle",
-        "scene_change": "reduce gripper speed during transfer",
-        "evidence_panel": "end_closing",
-        "right": false,
-        "verdict": "wrong",
-        "source_id": "loose-0000-00",
-        "source_resolution": 32,
-        "source_kind": "nemotron_failures300",
-        "simulator_events": [
-          {
-            "failed_stage": "contact",
-            "pad_contacts": 1,
-            "peak_pad_force_N": 65.35291749725829,
-            "picked_by_contact": false,
-            "final_xyz": [
-              0.2708,
-              -0.0027,
-              0.0112
-            ],
-            "in_bowl": false,
-            "success": false
-          }
-        ],
-        "source_rows": [
-          "data/nemotron_failures300.jsonl"
-        ]
-      },
-      {
-        "id": "lifted_then_lost-loose-0001-01",
-        "image": "/evidence/failures/nemotron-balanced-lost.png",
-        "sheet": "/evidence/failures/nemotron-balanced-lost.png",
-        "label": "lifted_then_lost",
-        "simulator_stage": "lifted_then_lost",
-        "nemotron_stage": "touched_but_did_not_lift",
-        "sentence": "brick remains on table in end_closing with gripper fingers closed around it but no vertical displacement",
-        "visible_support": "brick remains on table in end_closing with gripper fingers closed around it but no vertical displacement",
-        "scene_change": "increase gripper closing force or lower approach height to secure lift",
-        "evidence_panel": "end_closing",
-        "right": false,
-        "verdict": "wrong",
-        "source_id": "loose-0001-01",
-        "source_resolution": 32,
-        "source_kind": "nemotron_failures300",
-        "simulator_events": [
-          {
-            "failed_stage": "drop",
-            "pad_contacts": 2,
-            "peak_pad_force_N": 25.824098290187216,
-            "picked_by_contact": true,
-            "final_xyz": [
-              0.1926,
-              -0.2745,
-              0.0179
-            ],
-            "in_bowl": false,
-            "success": false
-          }
-        ],
-        "source_rows": [
-          "data/nemotron_failures300.jsonl"
-        ]
-      },
-      {
-        "id": "wrong-wrong-bowl-1000-13",
-        "image": "/evidence/failures/nemotron-balanced-wrong-bowl.png",
-        "sheet": "/evidence/failures/nemotron-balanced-wrong-bowl.png",
-        "label": "wrong_bowl",
-        "simulator_stage": "wrong_bowl",
-        "nemotron_stage": "lifted_then_lost",
-        "sentence": "The yellow brick is raised vertically above the red bowl in the presentation panel, then appears on the table beside the red bowl in the end_cycle panel.",
-        "visible_support": "The yellow brick is raised vertically above the red bowl in the presentation panel, then appears on the table beside the red bowl in the end_cycle panel.",
-        "scene_change": "Reduce downward speed or increase grasp force during placement so the brick remains supported until release.",
-        "evidence_panel": "end_closing",
-        "right": false,
-        "verdict": "wrong",
-        "source_id": "wrong-bowl-1000-13",
-        "source_resolution": 64,
-        "source_kind": "m4_modal_map",
-        "simulator_events": [
-          {
-            "event": "reach",
-            "t": 1.2000000000000008,
-            "brick": 13
-          },
-          {
-            "event": "grasp",
-            "t": 3.6339999999998214,
-            "brick": 13
-          },
-          {
-            "event": "lift",
-            "t": 4.633999999999712,
-            "brick": 13
-          },
-          {
-            "event": "present",
-            "t": 6.299999999999528,
-            "brick": 13,
-            "pose": "a"
-          },
-          {
-            "event": "verdict",
-            "t": 6.3339999999995245,
-            "brick": 13,
-            "verdict": "defective"
-          },
-          {
-            "event": "present",
-            "t": 7.699999999999374,
-            "brick": 13,
-            "pose": "b"
-          },
-          {
-            "event": "verdict",
-            "t": 7.73399999999937,
-            "brick": 13,
-            "verdict": "defective"
-          },
-          {
-            "event": "drop",
-            "t": 10.200000000000076,
-            "brick": 13,
-            "bowl": "defective"
-          }
-        ],
-        "source_rows": [
-          "/bulk3/runs/dryrun/m4/modal-map/current-da3b8ce-demo/current-da3b8ce-demo-20261114-1/shards/seed-1000.json"
-        ]
-      }
-    ],
-    "note": "Labels come from simulator events; images are camera-only 448 px four-panel sheets. The four stages are balanced at 21 cases each.",
-    "schema": "dryrun.nemotron_balanced.score.v1",
-    "commit": "1a34bd574357d88cbde784c5812046c834a71c3f",
-    "stage_accuracy": 0.535714,
-    "frame_px": [
-      448,
-      448
-    ],
-    "sheet_px": [
-      896,
-      896
-    ],
-    "stages": [
-      "never_touched_brick",
-      "touched_but_did_not_lift",
-      "lifted_then_lost",
-      "wrong_bowl"
-    ],
-    "labels": "/bulk3/runs/dryrun/nemotron_balanced/labels.jsonl",
-    "source_note": "Simulator-derived labels from existing failure artifacts. Sheets use the fixed 448 px panel contract; source_resolution is retained in each example."
+      "input": "/bulk3/runs/dryrun/nemotron_balanced/input.jsonl",
+      "predictions": "/bulk3/runs/dryrun/nemotron_balanced_run/results.jsonl",
+      "score": "/bulk3/runs/dryrun/nemotron_balanced_run/score.json",
+      "manifest": "/bulk3/runs/dryrun/nemotron_balanced/manifest.json",
+      "run_commit": "1a34bd574357d88cbde784c5812046c834a71c3f",
+      "examples": [
+        {
+          "id": "never-messy-1004-01",
+          "image": "/evidence/failures/nemotron-balanced-never.png",
+          "sheet": "/evidence/failures/nemotron-balanced-never.png",
+          "label": "never_touched_brick",
+          "simulator_stage": "never_touched_brick",
+          "nemotron_stage": "never_touched_brick",
+          "sentence": "gripper remains separated from brick in all panels",
+          "visible_support": "gripper remains separated from brick in all panels",
+          "scene_change": "move gripper closer to brick before closing",
+          "evidence_panel": "before_grasp",
+          "right": true,
+          "verdict": "right",
+          "source_id": "messy-1004-01",
+          "source_resolution": 448,
+          "source_kind": "analyst_448",
+          "simulator_events": [
+            {
+              "event": "ik_fail",
+              "t": 25.99999999999647,
+              "brick": 16,
+              "reason": "no_clear_grasp"
+            }
+          ],
+          "source_rows": [
+            "/bulk3/runs/dryrun/analyst_448_messy/messy-failures.jsonl"
+          ]
+        },
+        {
+          "id": "touched_but_did_not_lift-loose-0000-00",
+          "image": "/evidence/failures/nemotron-balanced-touched.png",
+          "sheet": "/evidence/failures/nemotron-balanced-touched.png",
+          "label": "touched_but_did_not_lift",
+          "simulator_stage": "touched_but_did_not_lift",
+          "nemotron_stage": "lifted_then_lost",
+          "sentence": "brick is visible in end_closing but absent in end_cycle",
+          "visible_support": "brick is visible in end_closing but absent in end_cycle",
+          "scene_change": "reduce gripper speed during transfer",
+          "evidence_panel": "end_closing",
+          "right": false,
+          "verdict": "wrong",
+          "source_id": "loose-0000-00",
+          "source_resolution": 32,
+          "source_kind": "nemotron_failures300",
+          "simulator_events": [
+            {
+              "failed_stage": "contact",
+              "pad_contacts": 1,
+              "peak_pad_force_N": 65.35291749725829,
+              "picked_by_contact": false,
+              "final_xyz": [
+                0.2708,
+                -0.0027,
+                0.0112
+              ],
+              "in_bowl": false,
+              "success": false
+            }
+          ],
+          "source_rows": [
+            "data/nemotron_failures300.jsonl"
+          ]
+        },
+        {
+          "id": "lifted_then_lost-loose-0001-01",
+          "image": "/evidence/failures/nemotron-balanced-lost.png",
+          "sheet": "/evidence/failures/nemotron-balanced-lost.png",
+          "label": "lifted_then_lost",
+          "simulator_stage": "lifted_then_lost",
+          "nemotron_stage": "touched_but_did_not_lift",
+          "sentence": "brick remains on table in end_closing with gripper fingers closed around it but no vertical displacement",
+          "visible_support": "brick remains on table in end_closing with gripper fingers closed around it but no vertical displacement",
+          "scene_change": "increase gripper closing force or lower approach height to secure lift",
+          "evidence_panel": "end_closing",
+          "right": false,
+          "verdict": "wrong",
+          "source_id": "loose-0001-01",
+          "source_resolution": 32,
+          "source_kind": "nemotron_failures300",
+          "simulator_events": [
+            {
+              "failed_stage": "drop",
+              "pad_contacts": 2,
+              "peak_pad_force_N": 25.824098290187216,
+              "picked_by_contact": true,
+              "final_xyz": [
+                0.1926,
+                -0.2745,
+                0.0179
+              ],
+              "in_bowl": false,
+              "success": false
+            }
+          ],
+          "source_rows": [
+            "data/nemotron_failures300.jsonl"
+          ]
+        },
+        {
+          "id": "wrong-wrong-bowl-1000-13",
+          "image": "/evidence/failures/nemotron-balanced-wrong-bowl.png",
+          "sheet": "/evidence/failures/nemotron-balanced-wrong-bowl.png",
+          "label": "wrong_bowl",
+          "simulator_stage": "wrong_bowl",
+          "nemotron_stage": "lifted_then_lost",
+          "sentence": "The yellow brick is raised vertically above the red bowl in the presentation panel, then appears on the table beside the red bowl in the end_cycle panel.",
+          "visible_support": "The yellow brick is raised vertically above the red bowl in the presentation panel, then appears on the table beside the red bowl in the end_cycle panel.",
+          "scene_change": "Reduce downward speed or increase grasp force during placement so the brick remains supported until release.",
+          "evidence_panel": "end_closing",
+          "right": false,
+          "verdict": "wrong",
+          "source_id": "wrong-bowl-1000-13",
+          "source_resolution": 64,
+          "source_kind": "m4_modal_map",
+          "simulator_events": [
+            {
+              "event": "reach",
+              "t": 1.2000000000000008,
+              "brick": 13
+            },
+            {
+              "event": "grasp",
+              "t": 3.6339999999998214,
+              "brick": 13
+            },
+            {
+              "event": "lift",
+              "t": 4.633999999999712,
+              "brick": 13
+            },
+            {
+              "event": "present",
+              "t": 6.299999999999528,
+              "brick": 13,
+              "pose": "a"
+            },
+            {
+              "event": "verdict",
+              "t": 6.3339999999995245,
+              "brick": 13,
+              "verdict": "defective"
+            },
+            {
+              "event": "present",
+              "t": 7.699999999999374,
+              "brick": 13,
+              "pose": "b"
+            },
+            {
+              "event": "verdict",
+              "t": 7.73399999999937,
+              "brick": 13,
+              "verdict": "defective"
+            },
+            {
+              "event": "drop",
+              "t": 10.200000000000076,
+              "brick": 13,
+              "bowl": "defective"
+            }
+          ],
+          "source_rows": [
+            "/bulk3/runs/dryrun/m4/modal-map/current-da3b8ce-demo/current-da3b8ce-demo-20261114-1/shards/seed-1000.json"
+          ]
+        }
+      ],
+      "note": "Labels come from simulator events; images are camera-only 448 px four-panel sheets. The four stages are balanced at 21 cases each.",
+      "schema": "dryrun.nemotron_balanced.score.v1",
+      "commit": "1a34bd574357d88cbde784c5812046c834a71c3f",
+      "stage_accuracy": 0.535714,
+      "frame_px": [
+        448,
+        448
+      ],
+      "sheet_px": [
+        896,
+        896
+      ],
+      "stages": [
+        "never_touched_brick",
+        "touched_but_did_not_lift",
+        "lifted_then_lost",
+        "wrong_bowl"
+      ],
+      "labels": "/bulk3/runs/dryrun/nemotron_balanced/labels.jsonl",
+      "source_note": "Simulator-derived labels from existing failure artifacts. Sheets use the fixed 448 px panel contract; source_resolution is retained in each example."
+    }
   },
   "prompt024_examples": [
     {
-      "id": "never-messy-1004-01",
-      "image": "/bulk3/runs/dryrun/nemotron_balanced/sheets/never-messy-1004-01.png",
-      "sheet": "/bulk3/runs/dryrun/nemotron_balanced/sheets/never-messy-1004-01.png",
-      "simulator_stage": "never_touched_brick",
-      "nemotron_stage": "never_touched_brick",
-      "sentence": "gripper remains separated from brick in all panels",
-      "visible_support": "gripper remains separated from brick in all panels",
-      "scene_change": "move gripper closer to brick before closing",
+      "id": "messy-1004-01",
+      "tier": "messy",
+      "image": "/static/evidence/analyst/messy-1004-01.webp",
+      "sheet": "/static/evidence/analyst/messy-1004-01.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "no_clear_grasp",
+      "sentence": "The gripper is not contacting any object in before_grasp, end_closing, presentation, or end_cycle; all objects remain in their original positions.",
+      "visible_support": "The gripper is not contacting any object in before_grasp, end_closing, presentation, or end_cycle; all objects remain in their original positions.",
+      "scene_change": "Position the gripper so it closes around a target object before end_closing.",
+      "evidence_panel": "end_closing",
+      "right": true,
+      "verdict": "right",
+      "scene_spec": {
+        "tier": "messy"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 25.99999999999647,
+        "brick": 16,
+        "reason": "no_clear_grasp"
+      },
+      "source_resolution": 448
+    },
+    {
+      "id": "messy-1004-02",
+      "tier": "messy",
+      "image": "/static/evidence/analyst/messy-1004-02.webp",
+      "sheet": "/static/evidence/analyst/messy-1004-02.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "no_clear_grasp",
+      "sentence": "The gripper is not contacting any object in before_grasp, end_closing, presentation, or end_cycle; the yellow block remains beside the green bowl in every panel.",
+      "visible_support": "The gripper is not contacting any object in before_grasp, end_closing, presentation, or end_cycle; the yellow block remains beside the green bowl in every panel.",
+      "scene_change": "Position the gripper directly over the yellow block and close it so contact and lift are visible.",
       "evidence_panel": "before_grasp",
       "right": true,
       "verdict": "right",
-      "source_kind": "analyst_448",
-      "source_id": "messy-1004-01",
-      "source_resolution": 448,
-      "simulator_events": [
-        {
-          "event": "ik_fail",
-          "t": 25.99999999999647,
-          "brick": 16,
-          "reason": "no_clear_grasp"
-        }
-      ]
+      "scene_spec": {
+        "tier": "messy"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 25.99999999999647,
+        "brick": 13,
+        "reason": "no_clear_grasp"
+      },
+      "source_resolution": 448
     },
     {
-      "id": "touched_but_did_not_lift-loose-0000-00",
-      "image": "/bulk3/runs/dryrun/nemotron_balanced/sheets/touched_but_did_not_lift-loose-0000-00.png",
-      "sheet": "/bulk3/runs/dryrun/nemotron_balanced/sheets/touched_but_did_not_lift-loose-0000-00.png",
-      "simulator_stage": "touched_but_did_not_lift",
-      "nemotron_stage": "lifted_then_lost",
-      "sentence": "brick is visible in end_closing but absent in end_cycle",
-      "visible_support": "brick is visible in end_closing but absent in end_cycle",
-      "scene_change": "reduce gripper speed during transfer",
+      "id": "messy-1004-03",
+      "tier": "messy",
+      "image": "/static/evidence/analyst/messy-1004-03.webp",
+      "sheet": "/static/evidence/analyst/messy-1004-03.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "no_clear_grasp",
+      "sentence": "The gripper is not contacting any object in any panel; the yellow block remains beside the green bowl throughout before_grasp, end_closing, presentation, and end_cycle.",
+      "visible_support": "The gripper is not contacting any object in any panel; the yellow block remains beside the green bowl throughout before_grasp, end_closing, presentation, and end_cycle.",
+      "scene_change": "Position the gripper so it closes around the yellow block before lifting.",
       "evidence_panel": "end_closing",
-      "right": false,
-      "verdict": "wrong",
-      "source_kind": "nemotron_failures300",
-      "source_id": "loose-0000-00",
-      "source_resolution": 32,
-      "simulator_events": [
-        {
-          "failed_stage": "contact",
-          "pad_contacts": 1,
-          "peak_pad_force_N": 65.35291749725829,
-          "picked_by_contact": false,
-          "final_xyz": [
-            0.2708,
-            -0.0027,
-            0.0112
-          ],
-          "in_bowl": false,
-          "success": false
-        }
-      ]
+      "right": true,
+      "verdict": "right",
+      "scene_spec": {
+        "tier": "messy"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 25.99999999999647,
+        "brick": 12,
+        "reason": "no_clear_grasp"
+      },
+      "source_resolution": 448
     },
     {
-      "id": "lifted_then_lost-loose-0001-01",
-      "image": "/bulk3/runs/dryrun/nemotron_balanced/sheets/lifted_then_lost-loose-0001-01.png",
-      "sheet": "/bulk3/runs/dryrun/nemotron_balanced/sheets/lifted_then_lost-loose-0001-01.png",
-      "simulator_stage": "lifted_then_lost",
-      "nemotron_stage": "touched_but_did_not_lift",
-      "sentence": "brick remains on table in end_closing with gripper fingers closed around it but no vertical displacement",
-      "visible_support": "brick remains on table in end_closing with gripper fingers closed around it but no vertical displacement",
-      "scene_change": "increase gripper closing force or lower approach height to secure lift",
-      "evidence_panel": "end_closing",
+      "id": "messy-1004-00",
+      "tier": "messy",
+      "image": "/static/evidence/analyst/messy-1004-00.webp",
+      "sheet": "/static/evidence/analyst/messy-1004-00.webp",
+      "simulator_stage": "missed_grasp",
+      "nemotron_stage": "slipped",
+      "sentence": "In end_cycle the blue brick is no longer held by the gripper and is absent from the scene, while the gripper is open over the green bowl.",
+      "visible_support": "In end_cycle the blue brick is no longer held by the gripper and is absent from the scene, while the gripper is open over the green bowl.",
+      "scene_change": "The blue brick would remain securely in the gripper through end_cycle instead of disappearing.",
+      "evidence_panel": "end_cycle",
       "right": false,
       "verdict": "wrong",
-      "source_kind": "nemotron_failures300",
-      "source_id": "loose-0001-01",
-      "source_resolution": 32,
-      "simulator_events": [
-        {
-          "failed_stage": "drop",
-          "pad_contacts": 2,
-          "peak_pad_force_N": 25.824098290187216,
-          "picked_by_contact": true,
-          "final_xyz": [
-            0.1926,
-            -0.2745,
-            0.0179
-          ],
-          "in_bowl": false,
-          "success": false
-        }
-      ]
-    },
-    {
-      "id": "wrong-wrong-bowl-1000-13",
-      "image": "/bulk3/runs/dryrun/nemotron_balanced/sheets/wrong-wrong-bowl-1000-13.png",
-      "sheet": "/bulk3/runs/dryrun/nemotron_balanced/sheets/wrong-wrong-bowl-1000-13.png",
-      "simulator_stage": "wrong_bowl",
-      "nemotron_stage": "lifted_then_lost",
-      "sentence": "The yellow brick is raised vertically above the red bowl in the presentation panel, then appears on the table beside the red bowl in the end_cycle panel.",
-      "visible_support": "The yellow brick is raised vertically above the red bowl in the presentation panel, then appears on the table beside the red bowl in the end_cycle panel.",
-      "scene_change": "Reduce downward speed or increase grasp force during placement so the brick remains supported until release.",
-      "evidence_panel": "end_closing",
-      "right": false,
-      "verdict": "wrong",
-      "source_kind": "m4_modal_map",
-      "source_id": "wrong-bowl-1000-13",
-      "source_resolution": 64,
-      "simulator_events": [
-        {
-          "event": "reach",
-          "t": 1.2000000000000008,
-          "brick": 13
-        },
-        {
-          "event": "grasp",
-          "t": 3.6339999999998214,
-          "brick": 13
-        },
-        {
-          "event": "lift",
-          "t": 4.633999999999712,
-          "brick": 13
-        },
-        {
-          "event": "present",
-          "t": 6.299999999999528,
-          "brick": 13,
-          "pose": "a"
-        },
-        {
-          "event": "verdict",
-          "t": 6.3339999999995245,
-          "brick": 13,
-          "verdict": "defective"
-        },
-        {
-          "event": "present",
-          "t": 7.699999999999374,
-          "brick": 13,
-          "pose": "b"
-        },
-        {
-          "event": "verdict",
-          "t": 7.73399999999937,
-          "brick": 13,
-          "verdict": "defective"
-        },
-        {
-          "event": "drop",
-          "t": 10.200000000000076,
-          "brick": 13,
-          "bowl": "defective"
-        }
-      ]
+      "scene_spec": {
+        "tier": "messy"
+      },
+      "event": {
+        "event": "miss",
+        "t": 14.100000000001378,
+        "brick": 17,
+        "pad_n": [
+          0.0,
+          11.71
+        ]
+      },
+      "source_resolution": 448
     }
   ]
 }

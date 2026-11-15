@@ -1,0 +1,11 @@
+# Supervisor to page, Sun 15.11.2026 05:25 UTC: five fixes on local 36c35fe, then the final deploy at 05:40
+
+I looked at local 8891 (1440×900). The review tile and the documents are right. Before the final deploy, in this order; skip what does not fit in the time, but deploy at 05:40 whatever happens:
+
+1. **Nemotron**: the number is the balanced 53.6 % but the sentence under it is still the old 300-failure one, which says the opposite. Under the number: "45 of 84 failures named right across four kinds; chance is 25 %." Then the per-stage row from `analyst.json` → `balanced` in plain words (never touched 21 of 21 · touched, not lifted 3 of 21 · lifted then lost 19 of 21 · wrong bowl 2 of 21). The 300-failure result goes below, small: "On the station's own failures, 295 of 300 are one kind, so that test cannot tell: 43.7 %."
+2. **Learned policy**: the screen still says "0 of 400" and "21,588 steps" as if nothing happened. Headline from `policy.json` → `summary`, shortened to one sentence a visitor reads: what the review found (each action chunk was one action repeated, paired with the next frame), what changed after the fix (reaches N of 20 one-brick scenes, from the JSON), and that it still sorts 0. The 0 of 400 run stays below as the earlier result.
+3. **Cameras only**, third tile: "Final horizon-3600 diagnostic: totals remained 4 of 100 in the right bowl; stage counts and the intrinsic tick cap are published" is not a sentence for a visitor. Show the last ladder row as five numbers: seen · reached 39 · gripped 33 · presented 20 · right bowl 4 of 100 (from `inspector.json` → `camera_loop_ladder`, last valid row), and one line: "It finds and grips bricks from the picture; most are lost between the grip and the bowl."
+4. **Codex screen**: the prompt diamonds are now large, overlap each other and stick out above their track: back to small marks inside the track. The four tiles wrap 3 + 1: make it two rows of two or four equal columns. The review tile says the same sentence twice: keep the longer one.
+5. Phone width: check 1–4 at 390×844.
+
+**05:40 UTC: deploy**, then on live: health commit, the three documents, one prompt diamond, no console errors at both sizes, first screen and tier videos play. Write the deployed commit as your last line. After that no more deploys.

@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T03:09:19Z",
-  "commit": "f400307",
+  "updated_utc": "2026-11-15T03:13:32Z",
+  "commit": "965b186",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -12,7 +12,7 @@
     "total": 34.1,
     "basis": "tmux session lifetimes at the update timestamp; this is elapsed goal-mode session time, not claimed human labor."
   },
-  "commits_total": 268,
+  "commits_total": 273,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
   "lines_of_code": 11663,
@@ -354,7 +354,7 @@
       "fast_mode": true,
       "hours": 6.37,
       "hours_basis": "tmux session dr-analyst created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 23,
+      "commit_count": 28,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "d48b31d",
@@ -379,7 +379,12 @@
         "84ae4c9",
         "241ee52",
         "34dd828",
-        "a1cf710"
+        "a1cf710",
+        "dc95823",
+        "5a460c3",
+        "f101957",
+        "e4ebbbf",
+        "965b186"
       ],
       "biggest_result": "Built the strict 448×448 four-field runner and kept a live 300-failure run, while the station gallery retained 32 accepted layouts and four rejection reasons.",
       "worst_miss": "The earlier 32 px Nemotron score was not visual evidence and is explicitly withdrawn from benchmark use.",
@@ -795,7 +800,7 @@
   "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T03:09:19Z",
+    "end_utc": "2026-11-15T03:13:32Z",
     "sessions": [
       {
         "name": "main",
@@ -1083,7 +1088,7 @@
         "model": "gpt-6.1-sol plus Nemotron",
         "effort": "ultra",
         "owns": "Nemotron, stations, evidence docs",
-        "commit_count": 23,
+        "commit_count": 28,
         "commits": [
           "d48b31d",
           "4f37d18",
@@ -1107,7 +1112,12 @@
           "84ae4c9",
           "241ee52",
           "34dd828",
-          "a1cf710"
+          "a1cf710",
+          "dc95823",
+          "5a460c3",
+          "f101957",
+          "e4ebbbf",
+          "965b186"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       }
@@ -2720,6 +2730,36 @@
         "sha": "f400307",
         "subject": "publish cropped policy 60k checkpoint",
         "session": "policy"
+      },
+      {
+        "t": "2026-11-15T03:09:23Z",
+        "sha": "dc95823",
+        "subject": "derive Codex night attribution from git history",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T03:11:02Z",
+        "sha": "5a460c3",
+        "subject": "document Codex evidence and rejection trail",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T03:11:47Z",
+        "sha": "f101957",
+        "subject": "write concise evidence-first submission",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T03:12:01Z",
+        "sha": "e4ebbbf",
+        "subject": "publish Nemotron examples and stage table",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T03:12:47Z",
+        "sha": "965b186",
+        "subject": "clarify README evidence sources and benchmark command",
+        "session": "analyst"
       }
     ],
     "prompts": [
@@ -3078,11 +3118,11 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 268,
+      "commits": 273,
       "prompts": 45,
       "sessions": 5,
       "lines_of_code": 11663,
-      "hours": 9.16
+      "hours": 9.23
     },
     "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other. Counts are derived at every refresh.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",

@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T02:04:02Z",
+  "updated_utc": "2026-11-15T02:06:08Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -280,5 +280,248 @@
     "yaw_p95_deg": 88.1553551565232,
     "target_position_p95_mm": 4.0,
     "status": "open: current colour segmentation misses touching/occluded blobs"
+  },
+  "mark_sweep": {
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/mark_sweep_real.json",
+    "model": "/bulk3/runs/dryrun/m2_rebuild/models_real_adapt/PatchCore/openvino/weights/openvino/dryrun_inspector_real_adapt.xml",
+    "source_frames": 40,
+    "n_per_step": 40,
+    "sizes_mm": [
+      0.5,
+      1.0,
+      2.0,
+      4.0,
+      8.0
+    ],
+    "contrasts": [
+      0.25,
+      1.0
+    ],
+    "contrast_description": {
+      "0.25": "faint (25% blend toward black)",
+      "1.0": "black"
+    },
+    "rows": [
+      {
+        "kind": "dot",
+        "size_mm": 0.5,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.40035492181777954,
+        "score_p95": 0.4382469817996025
+      },
+      {
+        "kind": "dot",
+        "size_mm": 0.5,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.40034857392311096,
+        "score_p95": 0.4382522881031036
+      },
+      {
+        "kind": "dot",
+        "size_mm": 1.0,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.4005211591720581,
+        "score_p95": 0.438759545981884
+      },
+      {
+        "kind": "dot",
+        "size_mm": 1.0,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.40020976960659027,
+        "score_p95": 0.4428126603364944
+      },
+      {
+        "kind": "dot",
+        "size_mm": 2.0,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.39913080632686615,
+        "score_p95": 0.4413300290703773
+      },
+      {
+        "kind": "dot",
+        "size_mm": 2.0,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 13,
+        "recall": 0.325,
+        "score_median": 0.4652046710252762,
+        "score_p95": 0.5784043818712234
+      },
+      {
+        "kind": "dot",
+        "size_mm": 4.0,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.4008210301399231,
+        "score_p95": 0.44173935204744336
+      },
+      {
+        "kind": "dot",
+        "size_mm": 4.0,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 40,
+        "recall": 1.0,
+        "score_median": 0.6349914968013763,
+        "score_p95": 0.7711677700281143
+      },
+      {
+        "kind": "dot",
+        "size_mm": 8.0,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 9,
+        "recall": 0.225,
+        "score_median": 0.4242129325866699,
+        "score_p95": 0.5252084612846374
+      },
+      {
+        "kind": "dot",
+        "size_mm": 8.0,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 40,
+        "recall": 1.0,
+        "score_median": 0.8741872608661652,
+        "score_p95": 0.9758899301290511
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 0.5,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.4000038355588913,
+        "score_p95": 0.44259216338396073
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 0.5,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.397427573800087,
+        "score_p95": 0.4409696593880653
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 1.0,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.4001197814941406,
+        "score_p95": 0.4427870810031891
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 1.0,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.40136973559856415,
+        "score_p95": 0.4404770180583
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 2.0,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 0,
+        "recall": 0.0,
+        "score_median": 0.4035344123840332,
+        "score_p95": 0.44081004410982133
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 2.0,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 32,
+        "recall": 0.8,
+        "score_median": 0.5773235857486725,
+        "score_p95": 0.7084552943706511
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 4.0,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 2,
+        "recall": 0.05,
+        "score_median": 0.42542843520641327,
+        "score_p95": 0.4978486120700835
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 4.0,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 40,
+        "recall": 1.0,
+        "score_median": 0.785463958978653,
+        "score_p95": 0.8983441948890686
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 8.0,
+        "contrast": 0.25,
+        "n": 40,
+        "detected": 32,
+        "recall": 0.8,
+        "score_median": 0.593324601650238,
+        "score_p95": 0.750285455584526
+      },
+      {
+        "kind": "scribble",
+        "size_mm": 8.0,
+        "contrast": 1.0,
+        "n": 40,
+        "detected": 40,
+        "recall": 1.0,
+        "score_median": 0.8267070055007935,
+        "score_p95": 0.9296655416488646
+      }
+    ],
+    "complete": true,
+    "notes": "Synthetic dot and scribble overlays on 40 held-out real good crops per size/contrast; mark diameter/length uses 4 px per mm and the real brick remains visible. This is a sensitivity probe, not the seeded rollout benchmark.",
+    "visibility_accounting": {
+      "n": 100,
+      "underside": 50,
+      "pad_covered_face": 50,
+      "camera_visible": 0,
+      "method": "Geometry accounting for 100 deliberately unobservable placements (50 underside, 50 under the grasp pad); these are outside the top-face present crop and are excluded from recall."
+    },
+    "summary": "On 40 real good crops per step, faint dots were missed through 4 mm and faint scribbles reached 80% at 8 mm; black marks reached 100% at 4 mm for both shapes."
+  },
+  "speed": {
+    "model": "real-adapt PatchCore wide_resnet50_2",
+    "latency_ms_per_frame": {
+      "1_thread": 471.75459324999997,
+      "4_threads": 216.93482525000002
+    },
+    "two_frames_per_brick_ms_at_4_threads": 433.87,
+    "cycle_context": "At four threads, two present frames per brick take about 0.4 s on a laptop, roughly 4% of a 10 s cycle; one thread is about 0.94 s for the pair.",
+    "faster_candidate": "No faster ResNet-18 PatchCore or PaDiM candidate was eligible: available probes were synthetic/eval-v2 and did not retain zero errors on the 569-brick real set."
   }
 }

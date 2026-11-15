@@ -20,7 +20,7 @@ def _record(record, payload):
     elif callable(record): record(payload)
     else: raise TypeError("record must be callable or expose record(payload)")
 
-def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, tier: str | None = None, max_steps: int = 3600, max_cycles: int | None = None, count: int | None = None, render_size: int = 64, sentence: str | None = None, station_path: str | None = None):
+def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, tier: str | None = None, max_steps: int = 3600, max_cycles: int | None = None, count: int | None = None, render_size: int = 64, sentence: str | None = None, station_path: str | None = None, look: str = "lab"):
     """Run one scene through the public :class:`StationEnv` boundary.
 
     Expert, learned-policy, and demonstration runs deliberately share the
@@ -32,14 +32,14 @@ def run(seed: int, controller: Any = "expert", inspector=None, record=None, *, t
     # StationEnv accepts the optional checked sentence/path on newer builds;
     # retain a small compatibility fallback for callers using an older local
     # environment while the rollout API migrates.
-    kwargs = {"tier": tier, "render_size": render_size}
+    kwargs = {"tier": tier, "render_size": render_size, "look": look}
     if sentence is not None: kwargs["sentence"] = sentence
     if station_path is not None: kwargs["station_path"] = station_path
     if count is not None: kwargs["count"] = count
     try:
         env = StationEnv(int(seed), **kwargs)
     except TypeError:
-        env = StationEnv(int(seed), tier=tier, render_size=render_size)
+        env = StationEnv(int(seed), tier=tier, render_size=render_size, look=look)
     obs = env.reset()
     _record(record, {"type": "cycle_start", "brick": None, "task": f"sort {tier}"})
     verdict = 0; steps = 0; seen: set[tuple[Any, ...]] = set(); cycles = 0

@@ -1,8 +1,8 @@
 {
   "schema": "dryrun.page.policy.v1",
-  "updated_utc": "2026-11-15T04:43:00Z",
-  "commit": "8f84ac4",
-  "summary": "Cropped-top-view ACT training is running on 710 episodes (213,147 frames) at 224 px; at 90,000/100,000 steps it still reaches no physical stage; the 20-seed median closest approach is 29.026 mm (minimum 17.445 mm).",
+  "updated_utc": "2026-11-15T05:04:00Z",
+  "commit": "724cb34",
+  "summary": "Review fix retrained overfit-20 with real same-episode 30-action chunks and one-frame post-step alignment; final closed loop reached 9/20 and grasped 1/20 but sorted 0/20 after the 36-tick prefix, so the 600-demo retrain is gated.",
   "dataset": {
     "episodes": 767,
     "frames": 230263,
@@ -372,7 +372,8 @@
         "open_loop_ticks": 0,
         "max_delta": 0.06,
         "render_size": 64
-      }
+      },
+      "notes": "pre-review historical run; do not use as post-fix benchmark"
     },
     {
       "name": "act-crop224-long-20261115-1",
@@ -650,7 +651,73 @@
         "max_delta": 0.06,
         "render_size": 320,
         "crop_top": true
-      }
+      },
+      "notes": "pre-review historical run; do not use as post-fix benchmark"
+    },
+    {
+      "name": "act-chunk30-overfit-final-20261115-1",
+      "dataset": "/bulk3/runs/dryrun/m4/onebrick-overfit-replay-dataset/onebrick-overfit-20-dataset-20261115-1",
+      "episodes": 20,
+      "frames": 6020,
+      "gpu": "T4",
+      "steps": 4750,
+      "seconds": 799.2561120986938,
+      "chunk_size": 30,
+      "n_action_steps": 1,
+      "action_window": "same-episode t+1..t+30",
+      "action_is_pad": true,
+      "post_step_alignment": "shifted one frame within each episode",
+      "checkpoint": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/act-final.pt",
+      "training": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/training.json",
+      "source_commit": "724cb34",
+      "evaluation": [
+        {
+          "name": "final-prefix36",
+          "seeds": "10000-10019",
+          "successes": "0/20",
+          "stages": {
+            "reached": 9,
+            "grasped": 1,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "closest_approach_mm": {
+            "min": 25.045,
+            "median": 57.04
+          },
+          "max_steps": 330,
+          "prefix_expert_ticks": 36,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "demo_jpeg": true,
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/eval/chunk30-overfit-final-prefix36-20261115-1/manifest.json"
+        },
+        {
+          "name": "final-tick0",
+          "seeds": "10000-10019",
+          "successes": "0/20",
+          "stages": {
+            "reached": 9,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "closest_approach_mm": {
+            "min": 24.343,
+            "median": 47.813
+          },
+          "max_steps": 330,
+          "prefix_expert_ticks": 0,
+          "open_loop_ticks": 30,
+          "max_delta": 0.06,
+          "demo_jpeg": true,
+          "manifest": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/eval/chunk30-overfit-final-tick0-20261115-1/manifest.json"
+        }
+      ]
     }
   ],
   "openvino": {
@@ -748,38 +815,31 @@
       }
     },
     "six_hundred_training": {
-      "status": "running on Modal GPU",
+      "status": "stopped before review fix; do not benchmark",
+      "reason": "old run used repeated-action chunks and was stopped per prompt 057",
       "dataset": "/runs/onebrick-fixed-600-dataset-20261115-1",
       "episodes": 600,
       "frames": 180600,
-      "slow_run_output": "/runs/onebrick-fixed-600-act-20261115-1",
-      "fast_run_output": "/runs/onebrick-fixed-600-act-fast-20261115-1",
-      "commands": [
-        "modal run modal/train_policy.py --dataset /runs/onebrick-fixed-600-dataset-20261115-1 --out-dir /runs/onebrick-fixed-600-act-20261115-1 --epochs 3 --batch-size 64",
-        "modal run modal/train_policy.py --dataset /runs/onebrick-fixed-600-dataset-20261115-1 --out-dir /runs/onebrick-fixed-600-act-fast-20261115-1 --epochs 1 --batch-size 128"
-      ],
       "merge_manifest": "/bulk3/runs/dryrun/m4/modal-map/onebrick-fixed-600/onebrick-fixed-600-20261115-1/manifest.json",
-      "fast_step500_eval": {
-        "checkpoint": "/runs/onebrick-fixed-600-act-fast-20261115-1/act-step-000500.pt",
-        "manifest": "/bulk3/runs/dryrun/m4/modal-map/onebrick-fixed-600/eval/onebrick-fixed-600-fast-step500-eval-prefix36-20261115-1/manifest.json",
-        "seeds": "10000-10019",
+      "old_intermediate_eval": {
         "successes": "0/20",
-        "stages": {
-          "reached": 0,
-          "grasped": 0,
-          "lifted": 0,
-          "presented": 0,
-          "dropped": 0,
-          "right_bowl": 0
-        },
-        "closest_approach_mm": {
-          "min": 31.416,
-          "median": 40.962
-        },
-        "max_steps": 330,
-        "prefix_expert_ticks": 36,
-        "demo_jpeg": true
-      }
+        "manifest": "/bulk3/runs/dryrun/m4/modal-map/onebrick-fixed-600/eval/onebrick-fixed-600-fast-step500-eval-prefix36-20261115-1/manifest.json"
+      },
+      "next_gate": "retrain only if corrected overfit sorts its own 20 scenes"
+    },
+    "review_fix": {
+      "sentence": "The review found repeated single-action chunks and post-step observations paired with pre-step actions; training now uses real same-episode 30-action windows with episode padding and a one-frame shift, and the final overfit result is 0/20 sorted (9/20 reached, 1/20 grasped) after the 36-tick prefix.",
+      "commit": "724cb34",
+      "source_files": [
+        "dryrun/train_policy.py",
+        "modal/train_policy.py",
+        "modal/continue_train.py",
+        "modal/train_shards.py",
+        "dryrun/policy_benchmark.py"
+      ],
+      "inspection_resize_clamp": "fixed independently for both camera tensors and OpenVINO",
+      "final_checkpoint": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/act-final.pt",
+      "final_action_mae_artifact": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/action-mae-final.json"
     }
   },
   "modal_billing": {

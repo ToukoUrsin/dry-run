@@ -90,6 +90,13 @@ and training provenance, real present-frame confusion, held-out recall rows,
 `not_visible` accounting, CPU latency when measured, eight compressed examples,
 and the `modes` rows for ground-truth, ground-truth-pose plus inspector, and
 camera-only runs. The page must omit a section whose JSON file is absent.
+End-to-end mode rows may add `tier`, `scenes`, `bricks`, `correct`, `verdicts`,
+`pushes`, `false_accepts`, `false_rejects`, `score`, and a stranger-facing
+`summary`; a camera-only sweep records `stage_totals`, `timeout_seeds`, and
+its artifact path. The optional `mark_sweep` projection has `sizes_mm`,
+`contrasts`, 40-frame rows with `kind`, `size_mm`, `contrast`, `recall`, and
+the separate geometry-only `visibility_accounting`. `speed` records measured
+one/four-thread frame latency and the two-frame cycle context.
 
 ## Replay export format
 

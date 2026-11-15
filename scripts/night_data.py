@@ -26,10 +26,22 @@ AUTHORSHIP = "The supervisor (Claude, driving the Codex CLI on Touko's behalf) w
 REVIEW = {
     "attempts": 5,
     "historical_blocked_attempts": 4,
-    "findings": 0,
-    "status": "completed_no_findings",
+    "findings": 28,
+    "fixed": 10,
+    "fixed_commits": [
+        "2ccc9a6", "31e2ce0", "5d7c557", "724cb34", "86bcfc7",
+        "4b6252d", "205bca6", "eb81e98", "c846434", "6471dbe",
+    ],
+    "status": "completed_with_findings_and_fixes",
     "source_file": "status/codex-review-0415.md",
-    "statement": "Four earlier attempts were blocked; the fresh review completed with 0 actionable findings.",
+    "runs": [
+        {"name": "fresh review", "session_id": "01a1dd6a-74f3-7be2-b5de-008b0a2789ec", "findings": 0},
+        {"name": "benchmark/seeds", "session_id": "01a1dd71-53f5-7721-943f-b47972b1ebaf", "findings": 4},
+        {"name": "camera-only sorter", "session_id": "01a1dd75-2738-77b1-9ace-7dd62881a43d", "findings": 10},
+        {"name": "learned-policy loop", "session_id": "01a1dd75-1f15-7d70-a814-44da7b471dbf", "findings": 6},
+        {"name": "Tiger/web", "session_id": "01a1dd74-09d4-7913-8260-ad233e0760bf", "findings": 8},
+    ],
+    "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks.",
 }
 SESSION_IDS = {
     "main": "01a1db37-cd82-7771-9d68-113fc0bb7cfc",

@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T04:29:04Z",
-  "commit": "0b9a7ac",
+  "updated_utc": "2026-11-15T05:09:52Z",
+  "commit": "a325585",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -11,15 +11,15 @@
     "analyst": 6.37,
     "total": 34.1,
     "basis": "wall_clock_night is elapsed UTC duration from the run start; summed_session_hours is the sum of the five recorded tmux session lifetimes.",
-    "wall_clock_night": 10.48,
+    "wall_clock_night": 11.16,
     "summed_session_hours": 34.1
   },
-  "commits_total": 343,
+  "commits_total": 385,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 12347,
+  "lines_of_code": 13003,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
-  "supervisor_prompts": 54,
+  "supervisor_prompts": 59,
   "subagents_spawned": 3,
   "subagents_note": "These are three subagents of the main session; all commits carry one git author and lanes are assigned by touched files, not by session.",
   "sessions": [
@@ -31,7 +31,7 @@
       "fast_mode": true,
       "hours": 7.78,
       "hours_basis": "tmux session dryrun created 2026-11-14T18:00:08Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 173,
+      "commit_count": 201,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "5a6047d",
@@ -206,7 +206,35 @@
         "58fbeb1",
         "d0851cc",
         "c685435",
-        "edec58b"
+        "edec58b",
+        "76e1e01",
+        "8f84ac4",
+        "7994958",
+        "9df785a",
+        "304267b",
+        "2ccc9a6",
+        "2f938ed",
+        "31e2ce0",
+        "75383e0",
+        "2d1ca91",
+        "71104ed",
+        "5d7c557",
+        "7b9cc4e",
+        "4b6252d",
+        "44e2039",
+        "205bca6",
+        "86bcfc7",
+        "b8526b8",
+        "84cb11a",
+        "eb81e98",
+        "8fb2992",
+        "c846434",
+        "803f55f",
+        "69116a5",
+        "b0a704c",
+        "b10f778",
+        "6471dbe",
+        "fe799e5"
       ],
       "biggest_result": "Integrated the measured reference recipe, then moved the page evidence to seeded multi-brick scenes after the one-brick loose tier was withdrawn.",
       "worst_miss": "The first expert was slow/broken and the fixed-scene loose tier was withdrawn as rigged before the measured recipe replaced it.",
@@ -227,7 +255,7 @@
       "fast_mode": true,
       "hours": 6.79,
       "hours_basis": "tmux session dr-inspector created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 18,
+      "commit_count": 21,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "4ed77b4",
@@ -247,7 +275,10 @@
         "f1b20f9",
         "f92a6e3",
         "dd0c191",
-        "8db74e6"
+        "8db74e6",
+        "d1c8c10",
+        "e8baece",
+        "67a8bd3"
       ],
       "biggest_result": "Real present crops plus PatchCore accepted all 328 good bricks and detected all 241 defective bricks in the 569-brick held-out set.",
       "worst_miss": "The first inspector attempt was rejected for false rejects; it had to be retrained and evaluated on real good frames.",
@@ -267,7 +298,7 @@
       "fast_mode": true,
       "hours": 6.79,
       "hours_basis": "tmux session dr-page created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 67,
+      "commit_count": 69,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "70df899",
@@ -336,7 +367,9 @@
         "46d657d",
         "d11fb20",
         "c2c0b13",
-        "0b9a7ac"
+        "0b9a7ac",
+        "138c2de",
+        "e016c2c"
       ],
       "biggest_result": "The deployed page now shows the recorded MuJoCo SO-101 replay, synced top and inspection cameras, and a two-viewport browser smoke gate.",
       "worst_miss": "Several page passes were rejected for showing stubs or a broken first screen before the real replay and error gate were installed.",
@@ -358,7 +391,7 @@
       "fast_mode": true,
       "hours": 6.37,
       "hours_basis": "tmux session dr-policy created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 42,
+      "commit_count": 50,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "8bf81de",
@@ -402,7 +435,15 @@
         "42caf19",
         "e2134e7",
         "20adfa1",
-        "4fe7ad0"
+        "4fe7ad0",
+        "23a3030",
+        "e58e1be",
+        "252b256",
+        "724cb34",
+        "a8f551c",
+        "133415a",
+        "bb1904c",
+        "a325585"
       ],
       "biggest_result": "Produced a real LeRobot dataset and recorded ACT checkpoints with per-stage held-out evaluation and CPU/OpenVINO timing.",
       "worst_miss": "The first 64-pixel, 201-step run reached no physical rollout stage on any checkpoint; it is retained as a failed run, not a success.",
@@ -423,7 +464,7 @@
       "fast_mode": true,
       "hours": 6.37,
       "hours_basis": "tmux session dr-analyst created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 39,
+      "commit_count": 40,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "d48b31d",
@@ -464,7 +505,8 @@
         "cb31cc6",
         "666ab43",
         "7bf9b1a",
-        "0e5af31"
+        "0e5af31",
+        "ab97375"
       ],
       "biggest_result": "Built the strict 448×448 four-field runner and kept a live 300-failure run, while the station gallery retained 32 accepted layouts and four rejection reasons.",
       "worst_miss": "The earlier 32 px Nemotron score was not visual evidence and is explicitly withdrawn from benchmark use.",
@@ -508,9 +550,9 @@
     },
     {
       "name": "codex review",
-      "evidence": "Four earlier attempts were blocked; the fresh review completed with 0 actionable findings.",
+      "evidence": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks.",
       "link": "status/codex-review-0415.md",
-      "status": "completed_no_findings"
+      "status": "completed_with_findings_and_fixes"
     },
     {
       "name": "browser use",
@@ -605,7 +647,7 @@
       "commit": "7f84b77"
     }
   ],
-  "prompts_count": 54,
+  "prompts_count": 59,
   "prompts_note": "Count is generated from prompts/*.md by scripts/night_data.py at each refresh.",
   "prompts": [
     {
@@ -931,19 +973,49 @@
       "file": "prompts/054-policy-replay-says.md",
       "title": "I ran your replay script The loop is",
       "to": "policy"
+    },
+    {
+      "t": "2026-11-15T04:33:00Z",
+      "file": "prompts/055-nemotron-balanced.md",
+      "title": "049 is done and checked Last job give",
+      "to": "analyst"
+    },
+    {
+      "t": "2026-11-15T04:34:00Z",
+      "file": "prompts/056-page-do-not-bring-back-007.md",
+      "title": "stop Do not bring back the sections of",
+      "to": "page"
+    },
+    {
+      "t": "2026-11-15T04:43:00Z",
+      "file": "prompts/057-review-found-the-policy-bugs.md",
+      "title": "codex review found why the policy scores zero",
+      "to": "policy"
+    },
+    {
+      "t": "2026-11-15T04:43:00Z",
+      "file": "prompts/058-camera-review-handoff.md",
+      "title": "codex review of the camera sorter agrees with",
+      "to": "inspector"
+    },
+    {
+      "t": "2026-11-15T04:51:00Z",
+      "file": "prompts/059-deploy-now-then-0540.md",
+      "title": "the film is cut the freeze is over",
+      "to": "page"
     }
   ],
   "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T04:29:04Z",
+    "end_utc": "2026-11-15T05:09:52Z",
     "sessions": [
       {
         "name": "main",
         "model": "gpt-6-astra",
         "effort": "ultra",
         "owns": "simulator, expert, benchmark, replay",
-        "commit_count": 173,
+        "commit_count": 201,
         "commits": [
           "5a6047d",
           "efb74fd",
@@ -1117,7 +1189,35 @@
           "58fbeb1",
           "d0851cc",
           "c685435",
-          "edec58b"
+          "edec58b",
+          "76e1e01",
+          "8f84ac4",
+          "7994958",
+          "9df785a",
+          "304267b",
+          "2ccc9a6",
+          "2f938ed",
+          "31e2ce0",
+          "75383e0",
+          "2d1ca91",
+          "71104ed",
+          "5d7c557",
+          "7b9cc4e",
+          "4b6252d",
+          "44e2039",
+          "205bca6",
+          "86bcfc7",
+          "b8526b8",
+          "84cb11a",
+          "eb81e98",
+          "8fb2992",
+          "c846434",
+          "803f55f",
+          "69116a5",
+          "b0a704c",
+          "b10f778",
+          "6471dbe",
+          "fe799e5"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1126,7 +1226,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "defects and anomaly inspection",
-        "commit_count": 18,
+        "commit_count": 21,
         "commits": [
           "4ed77b4",
           "817de72",
@@ -1145,7 +1245,10 @@
           "f1b20f9",
           "f92a6e3",
           "dd0c191",
-          "8db74e6"
+          "8db74e6",
+          "d1c8c10",
+          "e8baece",
+          "67a8bd3"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1154,7 +1257,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "viewer, telemetry, deployment",
-        "commit_count": 67,
+        "commit_count": 69,
         "commits": [
           "70df899",
           "942566a",
@@ -1222,7 +1325,9 @@
           "46d657d",
           "d11fb20",
           "c2c0b13",
-          "0b9a7ac"
+          "0b9a7ac",
+          "138c2de",
+          "e016c2c"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1231,7 +1336,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "demos, ACT, policy evaluation",
-        "commit_count": 42,
+        "commit_count": 50,
         "commits": [
           "8bf81de",
           "63291ad",
@@ -1274,7 +1379,15 @@
           "42caf19",
           "e2134e7",
           "20adfa1",
-          "4fe7ad0"
+          "4fe7ad0",
+          "23a3030",
+          "e58e1be",
+          "252b256",
+          "724cb34",
+          "a8f551c",
+          "133415a",
+          "bb1904c",
+          "a325585"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1284,7 +1397,7 @@
         "effort": "ultra",
         "owns": "Nemotron, stations, evidence docs",
         "external_model": "NVIDIA Nemotron",
-        "commit_count": 39,
+        "commit_count": 40,
         "commits": [
           "d48b31d",
           "4f37d18",
@@ -1324,7 +1437,8 @@
           "cb31cc6",
           "666ab43",
           "7bf9b1a",
-          "0e5af31"
+          "0e5af31",
+          "ab97375"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       }
@@ -3387,6 +3501,258 @@
         "sha": "0b9a7ac",
         "subject": "page: separate Tiger headline copy",
         "session": "page"
+      },
+      {
+        "t": "2026-11-15T04:29:07Z",
+        "sha": "76e1e01",
+        "subject": "refresh Codex night snapshot",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:29:38Z",
+        "sha": "138c2de",
+        "subject": "page: calm passed inspector maps",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T04:30:59Z",
+        "sha": "23a3030",
+        "subject": "match demo image preprocessing in policy input",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T04:31:20Z",
+        "sha": "ab97375",
+        "subject": "clarify exact session model assignments",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T04:34:25Z",
+        "sha": "8f84ac4",
+        "subject": "teacher-forced comparison matches demo JPEG inputs",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:36:29Z",
+        "sha": "7994958",
+        "subject": "status: record frozen page completion audit",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:37:01Z",
+        "sha": "e58e1be",
+        "subject": "publish policy replay gate evidence",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T04:37:20Z",
+        "sha": "9df785a",
+        "subject": "status: capture frozen public smoke",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:37:23Z",
+        "sha": "d1c8c10",
+        "subject": "record camera loop refresh pass",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T04:38:27Z",
+        "sha": "304267b",
+        "subject": "normalize camera frames for detector contract",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:38:41Z",
+        "sha": "252b256",
+        "subject": "record 600 demo training launch",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T04:40:01Z",
+        "sha": "e016c2c",
+        "subject": "page: finish Codex chart and evidence labels",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T04:40:54Z",
+        "sha": "2ccc9a6",
+        "subject": "review prompt 052 and harden benchmark telemetry",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:41:11Z",
+        "sha": "2f938ed",
+        "subject": "record prompt 052 review decisions",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:42:00Z",
+        "sha": "31e2ce0",
+        "subject": "preserve benchmark API rollout horizon",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:42:06Z",
+        "sha": "75383e0",
+        "subject": "record benchmark API follow-up",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:42:57Z",
+        "sha": "2d1ca91",
+        "subject": "publish 600 demo step500 evaluation",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:43:50Z",
+        "sha": "71104ed",
+        "subject": "append raw Tiger review output",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:44:43Z",
+        "sha": "5d7c557",
+        "subject": "apply prompt 052 benchmark and Tiger fixes",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:46:14Z",
+        "sha": "7b9cc4e",
+        "subject": "point review findings to final fix commit",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:47:37Z",
+        "sha": "4b6252d",
+        "subject": "wait for fresh camera grip reading",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:51:38Z",
+        "sha": "44e2039",
+        "subject": "page: keep viewer fallback aligned with frozen screens",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:53:39Z",
+        "sha": "724cb34",
+        "subject": "fix policy temporal targets and chunk training",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T04:54:11Z",
+        "sha": "205bca6",
+        "subject": "lower camera grasp target height",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:54:39Z",
+        "sha": "86bcfc7",
+        "subject": "make rollout stages physical for learned controllers",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:55:38Z",
+        "sha": "b8526b8",
+        "subject": "mark draw defect deployment gap open",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:55:55Z",
+        "sha": "84cb11a",
+        "subject": "record frozen telemetry path disclosure gap",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:56:53Z",
+        "sha": "eb81e98",
+        "subject": "park camera and skip failed IK targets",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:57:03Z",
+        "sha": "8fb2992",
+        "subject": "record physical reach stages for learned rollouts",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:57:24Z",
+        "sha": "c846434",
+        "subject": "remove hidden-state camera crop selection",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:57:33Z",
+        "sha": "a8f551c",
+        "subject": "record physical policy stage boundary audit",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T04:58:35Z",
+        "sha": "803f55f",
+        "subject": "reset miss budget when parking camera",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:59:12Z",
+        "sha": "69116a5",
+        "subject": "repair rollout stage bookkeeping and camera focus",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T05:01:36Z",
+        "sha": "b0a704c",
+        "subject": "quarantine failed camera target regions",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T05:01:54Z",
+        "sha": "b10f778",
+        "subject": "test camera loop telemetry and frame normalization",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T05:02:58Z",
+        "sha": "133415a",
+        "subject": "publish corrected overfit policy result",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T05:03:17Z",
+        "sha": "bb1904c",
+        "subject": "add corrected final action error",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T05:04:23Z",
+        "sha": "e8baece",
+        "subject": "record camera review loop ladder",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T05:04:55Z",
+        "sha": "6471dbe",
+        "subject": "restore prompt 052 review fixes",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T05:05:13Z",
+        "sha": "67a8bd3",
+        "subject": "record camera review event diagnostics",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T05:05:24Z",
+        "sha": "fe799e5",
+        "subject": "point prompt 052 fixes to final commit",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T05:08:35Z",
+        "sha": "a325585",
+        "subject": "record post-stage-fix policy map",
+        "session": "policy"
       }
     ],
     "prompts": [
@@ -3713,6 +4079,36 @@
         "file": "prompts/054-policy-replay-says.md",
         "title": "I ran your replay script The loop is",
         "to": "policy"
+      },
+      {
+        "t": "2026-11-15T04:33:00Z",
+        "file": "prompts/055-nemotron-balanced.md",
+        "title": "049 is done and checked Last job give",
+        "to": "analyst"
+      },
+      {
+        "t": "2026-11-15T04:34:00Z",
+        "file": "prompts/056-page-do-not-bring-back-007.md",
+        "title": "stop Do not bring back the sections of",
+        "to": "page"
+      },
+      {
+        "t": "2026-11-15T04:43:00Z",
+        "file": "prompts/057-review-found-the-policy-bugs.md",
+        "title": "codex review found why the policy scores zero",
+        "to": "policy"
+      },
+      {
+        "t": "2026-11-15T04:43:00Z",
+        "file": "prompts/058-camera-review-handoff.md",
+        "title": "codex review of the camera sorter agrees with",
+        "to": "inspector"
+      },
+      {
+        "t": "2026-11-15T04:51:00Z",
+        "file": "prompts/059-deploy-now-then-0540.md",
+        "title": "the film is cut the freeze is over",
+        "to": "page"
       }
     ],
     "rejections": [
@@ -3799,11 +4195,11 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 343,
-      "prompts": 54,
+      "commits": 385,
+      "prompts": 59,
       "sessions": 5,
-      "lines_of_code": 12347,
-      "hours": 10.48
+      "lines_of_code": 13003,
+      "hours": 11.16
     },
     "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. The only non-Codex commits are film-plan 44555a4 and 3a8ad76 plus their reverts 606c23e and 9e4bc77; all other commits carry one git author and are lane-assigned by touched files. Counts are derived at every refresh.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",
@@ -3812,10 +4208,50 @@
     "review": {
       "attempts": 5,
       "historical_blocked_attempts": 4,
-      "findings": 0,
-      "status": "completed_no_findings",
+      "findings": 28,
+      "fixed": 10,
+      "fixed_commits": [
+        "2ccc9a6",
+        "31e2ce0",
+        "5d7c557",
+        "724cb34",
+        "86bcfc7",
+        "4b6252d",
+        "205bca6",
+        "eb81e98",
+        "c846434",
+        "6471dbe"
+      ],
+      "status": "completed_with_findings_and_fixes",
       "source_file": "status/codex-review-0415.md",
-      "statement": "Four earlier attempts were blocked; the fresh review completed with 0 actionable findings."
+      "runs": [
+        {
+          "name": "fresh review",
+          "session_id": "01a1dd6a-74f3-7be2-b5de-008b0a2789ec",
+          "findings": 0
+        },
+        {
+          "name": "benchmark/seeds",
+          "session_id": "01a1dd71-53f5-7721-943f-b47972b1ebaf",
+          "findings": 4
+        },
+        {
+          "name": "camera-only sorter",
+          "session_id": "01a1dd75-2738-77b1-9ace-7dd62881a43d",
+          "findings": 10
+        },
+        {
+          "name": "learned-policy loop",
+          "session_id": "01a1dd75-1f15-7d70-a814-44da7b471dbf",
+          "findings": 6
+        },
+        {
+          "name": "Tiger/web",
+          "session_id": "01a1dd74-09d4-7913-8260-ad233e0760bf",
+          "findings": 8
+        }
+      ],
+      "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks."
     },
     "fast_mode": {
       "used_on_sessions": [
@@ -3862,10 +4298,50 @@
   "review": {
     "attempts": 5,
     "historical_blocked_attempts": 4,
-    "findings": 0,
-    "status": "completed_no_findings",
+    "findings": 28,
+    "fixed": 10,
+    "fixed_commits": [
+      "2ccc9a6",
+      "31e2ce0",
+      "5d7c557",
+      "724cb34",
+      "86bcfc7",
+      "4b6252d",
+      "205bca6",
+      "eb81e98",
+      "c846434",
+      "6471dbe"
+    ],
+    "status": "completed_with_findings_and_fixes",
     "source_file": "status/codex-review-0415.md",
-    "statement": "Four earlier attempts were blocked; the fresh review completed with 0 actionable findings."
+    "runs": [
+      {
+        "name": "fresh review",
+        "session_id": "01a1dd6a-74f3-7be2-b5de-008b0a2789ec",
+        "findings": 0
+      },
+      {
+        "name": "benchmark/seeds",
+        "session_id": "01a1dd71-53f5-7721-943f-b47972b1ebaf",
+        "findings": 4
+      },
+      {
+        "name": "camera-only sorter",
+        "session_id": "01a1dd75-2738-77b1-9ace-7dd62881a43d",
+        "findings": 10
+      },
+      {
+        "name": "learned-policy loop",
+        "session_id": "01a1dd75-1f15-7d70-a814-44da7b471dbf",
+        "findings": 6
+      },
+      {
+        "name": "Tiger/web",
+        "session_id": "01a1dd74-09d4-7913-8260-ad233e0760bf",
+        "findings": 8
+      }
+    ],
+    "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks."
   },
   "fast_mode": {
     "used_on_sessions": [

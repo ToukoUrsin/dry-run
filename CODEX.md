@@ -41,6 +41,30 @@ main session.
 - **Live page broken (01:41).** Prompt 034 found a console error and a missing first screen.
   The browser repair added a smoke gate for desktop and phone views.
 
+## Turning-point timeline
+
+This is the short path through the evidence; the full session log follows. Each
+row names the file or artifact a judge can open directly.
+
+| UTC | Turning point | Commit | Open this evidence |
+| --- | --- | --- | --- |
+| 18:02 | The evidence-first simulator/page goal and five-session split were set. | `5a6047d` | `prompts/001-goal.md`, `prompts/010-ultra-and-five-sessions.md` |
+| 18:05 | The 245-line stand-in was rejected before it could become a result. | `b1b6dfd` | `prompts/002-first-pass-rejected.md` |
+| 18:48 | Seed-7 review measured the zero-pickup contact failure. | `f4d0bc7` | `prompts/004-review-of-seed7.md`, `status/M1.md` |
+| 19:00 | A bowl overlap was caught by the geometry checker. | `338c9c8` | `status/M1.md`, spatial-pass entry below |
+| 19:57 | The one-brick fixed-position loose tier was withdrawn from benchmark and training use. | `195a633` | `prompts/016-loose-tier-rigged.md`, `status/M1.md` |
+| 19:58 | The shared rollout API and event/result contract landed. | `36102bf` | `docs/interfaces.md`, `status/M1.md` |
+| 20:02 | Closed-form SO-101 IK and reach-margin gates landed. | `e8612ae` | `prompts/016-loose-tier-rigged.md`, `tests/test_closed_form_ik.py` |
+| 21:02 | The first inspector matrix was rejected before real-frame retraining. | `84c0c7c` | `prompts/014-inspector-rejected.md`, `status/M2.md` |
+| 22:15 | Four hours of the first recipe produced zero of 50; the measured grasp boundary was handed over. | `2e99a05` | `prompts/019-grasp-recipe-measured.md` |
+| 23:19 | The reference recipe was checked; the later seeded audit records its benchmark status. | `64c4919` | `status/M1.md`, `/bulk3/runs/dryrun/benchmark/loose80-reference.json` |
+| 23:40 | Real multi-brick messy and pile tiers were generated. | `2de1ae7` | `status/M1.md`, `/bulk3/runs/dryrun/benchmark/messy70-50-prompt022.json`, `/bulk3/runs/dryrun/benchmark/pile70-50-prompt022.json` |
+| 00:53 | The pushing expert was added for touching and pile scenes. | `b9d897c` | `status/M1.md`, `/bulk3/runs/dryrun/benchmark/v2-messy-tiger-20261115.json`, `/bulk3/runs/dryrun/benchmark/v2-pile-tiger-20261115.json` |
+| 01:15 | The first ACT checkpoints reached no physical stage, so no policy score is promoted. | `a118859` | `prompts/030-policy-train-for-real.md`, `status/M4.md` |
+| 01:16 | Real-frame inspector evidence was published after the rejected first attempt. | `243af10` | `prompts/014-inspector-rejected.md`, `status/M2.md` |
+| 01:18 | The 448 px analyst evidence was published. | `f537b87` | `prompts/024-analyst-needs-real-frames.md`, `status/M5.md` |
+| 01:44 | Live tier payload and camera visibility were guarded after page repair. | `7f84b77` | `prompts/034-live-page-broken.md`, `status/M6.md` |
+
 | 2026-11-14 | Real MuJoCo M1 build | main session (`gpt-6-astra`; Sol build work) | Installed MuJoCo 4.0.1 in the uv environment, vendored official SO-101 MJCF/STL/licence, built a physics scene with free-joint bricks, and rendered `/bulk2/runs/dryrun/m1/seed7e.mp4`. Score is not claimed until benchmark evidence and render review are complete. |
 | 2026-11-14 | Spatial geometry and render review | gpt-6-astra (`/root/astra_geometry`) | Assigned official MJCF geometry, Duplo dimensions/studs, defect geometry, sentence-generated stations, automated validity checks, and render review per `prompts/003-astra-for-3d.md`; proof is recorded in `status/M1.md` and `status/M5.md`. |
 
@@ -91,7 +115,7 @@ final review because it sees all shared paths.
 | Models by job | Astra for geometry/spatial checks; Sol for build, page, inspector and policy; Nemotron for visual failure analysis | `prompts/003-astra-for-3d.md`; the five-session ledger; `data/page/analyst.json`. |
 | Browser and public smoke checks | `/root/page`, gpt-6.1-sol | `scripts/smoke_public.py`; page captures and console/error output are under `/bulk3/runs/dryrun/page-shots/`. |
 | AGENTS.md and secret/telemetry boundaries | `/root` and the named streams | `AGENTS.md`; `status/M5.md` records the hsec and telemetry boundaries used. |
-| Codex review | main, `gpt-6.1-sol` | Four earlier attempts were blocked; the fresh 04:15 review completed with 0 actionable findings. `status/codex-review-0415.md` |
+| Codex review | main, `gpt-6.1-sol` | Five real review runs found 28 findings; ten named fix commits address them. The learned-policy review found repeated-action chunks paired with the next frame; after the fix it reaches 9 of 20 bricks. `status/codex-review-0415.md` |
 | Image generation | Codex desktop app, gpt-6.1-sol, codex-cli 0.169.0-alpha.11.1 | **WORKED:** built-in `image_gen` made `table-wood.png` and `defect-stickers.png` (1254x1254); proof `/bulk2/runs/dryrun/codex-features/imagegen/*.png`, `imagegen/mac-try.log`. Server cliproxy did not expose the tool and its sandbox failed (`imagegen/try1.log`), so earlier textures were code-generated. |
 | Sites | Codex desktop app, live APIs | **WORKED:** published owner-only results Site `https://dryrun-results.jarmo1.chatgpt.site` (`appgprj_6af9206a560c8191bc222fffa878783e`); corrected `/api/inspector` to `/api/page/inspector` after the stale synthetic result. Proof `sites/run.jsonl`, `run2.jsonl`, `site-index.html`, `site.png`. |
 | Documents | Codex desktop app | **WORKED with caveat:** wrote `dryrun-test-report.docx`; its stale inspector number and placeholder layout image were wrong, and LibreOffice render was killed. Real render: `docs/dryrun-test-report.pdf`, `page-1.png`; proof `docs/run.jsonl`, `run2.jsonl`. |
@@ -112,6 +136,26 @@ was rate-limited.
 2026-11-14 20:00 UTC — Main rollout API and tier benchmark (`gpt-6-astra`, ultra): published `dryrun.env.StationEnv` and `dryrun.rollout.run` with camera/state-only observations, exact 30 Hz substep accumulation, six-target actions, recorder cycle markers, inspector hook and the shared event vocabulary. Added fixed 80/70/50 loose/messy/pile benchmark partitioning and page replay/thumbnail contract in `docs/interfaces.md`. Smoke proof: `MUJOCO_GL=egl uv run python - <<'PY' ... StationEnv.reset/step ... PY` returned uint8 top/inspection frames and float32[6] joints. The loose benchmark number was withheld: the seeded multi-brick generator and closed-form reach gate were still being replaced, so no score from that run is evidence.
 
 2026-11-14 19:51 UTC — M5/Soren integration (`/root`): ran `codex review --uncommitted` before integration; Codex could not inspect because its MCP runner requested approval under `approval=never`. Manual gates `git diff --check` and `.venv/bin/python -m compileall -q dryrun web modal modal_live_defect.py` passed. Added camera-only diagnosis storage, equal curriculum hook, 36-sentence station gallery, bounded station queue/worker heartbeat, and `data/codex_log.jsonl`; proof is in `status/M5.md`.
+
+## Codex review — five real runs, 2026-11-15
+
+The review record contains five real runs with five session IDs and 28 findings:
+
+| Run | Session ID | Findings |
+| --- | --- | ---: |
+| Fresh review | `01a1dd6a-74f3-7be2-b5de-008b0a2789ec` | 0 |
+| Benchmark/seeds | `01a1dd71-53f5-7721-943f-b47972b1ebaf` | 4 |
+| Camera-only sorter | `01a1dd75-2738-77b1-9ace-7dd62881a43d` | 10 |
+| Learned-policy loop | `01a1dd75-1f15-7d70-a814-44da7b471dbf` | 6 |
+| Tiger/web | `01a1dd74-09d4-7913-8264-ad233e0760bf` | 8 |
+
+The ten fix commits named in the record are `2ccc9a6`, `31e2ce0`, `5d7c557`,
+`724cb34`, `86bcfc7`, `4b6252d`, `205bca6`, `eb81e98`, `c846434`, and
+`6471dbe`. Codex review found why the learned policy scored zero: every action
+chunk was one action repeated, paired with the next frame. After the fix it
+reaches 9 of 20 bricks. Full findings and handoffs are in
+`status/codex-review-0415.md`, with the current policy evidence in
+`data/page/policy.json`.
 
 ## Codex review — 2026-11-14
 

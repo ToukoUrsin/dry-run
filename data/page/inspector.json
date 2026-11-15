@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T03:24:17Z",
+  "updated_utc": "2026-11-15T04:16:58Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -426,31 +426,29 @@
   "modes": [
     {
       "name": "cameras_only",
-      "source": "Modal camera-only stage sweep after prompt-044 yaw fix",
-      "commit": "2b1024a1164a2d6e0191ea39871c276e417537f1",
+      "source": "Modal camera-only stage sweep after prompt-044 yaw fix and prompt-020 focus-crop fix",
+      "commit": "419591655f7b4a625aea83fc4107fc91fe5314da",
       "tier": "loose",
       "scenes": 20,
       "bricks_expected": 100,
-      "completed_scenes": 19,
-      "completed_bricks": 97,
-      "timeout_seeds": [
-        14
-      ],
+      "completed_scenes": 20,
+      "completed_bricks": 100,
+      "timeout_seeds": [],
       "render_size_px": 960,
       "stage_totals": {
-        "seen": 10,
+        "seen": 1120,
         "reached": 10,
         "gripped": 7,
         "presented": 7,
-        "right_bowl": 2,
+        "right_bowl": 5,
         "false_accepts": 0,
-        "false_rejects": 5
+        "false_rejects": 2
       },
-      "score": 0.020618556701030927,
-      "score_denominator": 97,
-      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_yaw.json",
-      "status": "complete_with_timeout; seed 14 explicitly timed out; yaw fix deployed",
-      "summary": "2 of 97 completed loose bricks reached the right bowl after the yaw fix; seed 14 timed out.",
+      "score": 0.05,
+      "score_denominator": 100,
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
+      "status": "diagnostic_only; 20 valid rows; eight seeds reached the 2100-step cap; no transport timeout",
+      "summary": "5 of 100 loose diagnostic bricks reached the right bowl after the inspection focus-crop fix; eight seeds reached the step cap and remain reported as valid rows.",
       "controller": "CameraExpert (camera-only; inspector verdicts at presentation)",
       "seed_range": [
         0,
@@ -458,7 +456,34 @@
       ],
       "max_steps": 2100,
       "yaw_fix_commit": "233cc77",
-      "yaw_artifact": "/bulk3/runs/dryrun/m2_rebuild/perception_eval_200.json"
+      "yaw_artifact": "/bulk3/runs/dryrun/m2_rebuild/perception_eval_200.json",
+      "max_step_seeds": [
+        0,
+        5,
+        6,
+        9,
+        10,
+        11,
+        12,
+        17
+      ],
+      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
+      "focus_fix_commit": "789b965",
+      "previous_yaw_sweep": {
+        "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_yaw.json",
+        "commit": "2b1024a1164a2d6e0191ea39871c276e417537f1",
+        "stage_totals": {
+          "seen": 10,
+          "reached": 10,
+          "gripped": 7,
+          "presented": 7,
+          "right_bowl": 2,
+          "false_accepts": 0,
+          "false_rejects": 5
+        },
+        "score": 0.020618556701030927,
+        "score_denominator": 97
+      }
     },
     {
       "name": "ground_truth",
@@ -782,6 +807,299 @@
     "two_frames_per_brick_ms_at_4_threads": 433.87,
     "cycle_context": "At four threads, two present frames per brick take about 0.4 s on a laptop, roughly 4% of a 10 s cycle; one thread is about 0.94 s for the pair.",
     "faster_candidate": "No faster ResNet-18 PatchCore or PaDiM candidate was eligible: available probes were synthetic/eval-v2 and did not retain zero errors on the 569-brick real set."
+  },
+  "in_loop_current_model": {
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/real_inspector_100_adapt_confusion.json",
+    "model": "/bulk3/runs/dryrun/m2_rebuild/models_real_adapt/PatchCore/openvino/weights/openvino/dryrun_inspector_real_adapt.xml",
+    "source_commit": "dd0c191",
+    "tier": "loose",
+    "rollouts": 100,
+    "scene_bricks": 492,
+    "tested_bricks": 490,
+    "paired_bricks": 490,
+    "present_frames": 980,
+    "brick_confusion": {
+      "tp": 205,
+      "tn": 285,
+      "fp": 0,
+      "fn": 0,
+      "false_accept_percent": 0.0,
+      "false_reject_percent": 0.0
+    },
+    "per_defect": {
+      "none": {
+        "n": 285,
+        "detected": 0,
+        "recall": 0.0
+      },
+      "chipped_stud": {
+        "n": 36,
+        "detected": 36,
+        "recall": 1.0
+      },
+      "discolouring": {
+        "n": 30,
+        "detected": 30,
+        "recall": 1.0
+      },
+      "dot": {
+        "n": 40,
+        "detected": 40,
+        "recall": 1.0
+      },
+      "missing_stud": {
+        "n": 31,
+        "detected": 31,
+        "recall": 1.0
+      },
+      "scribble": {
+        "n": 30,
+        "detected": 30,
+        "recall": 1.0
+      },
+      "sticker": {
+        "n": 38,
+        "detected": 38,
+        "recall": 1.0
+      }
+    },
+    "physical_misses": 2
+  },
+  "combined_v5_audit": {
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/combined_v5_evaluation_batch.json",
+    "model": "/bulk3/runs/dryrun/m2_rebuild/models_combined_v5/PatchCore/openvino/weights/openvino/dryrun_inspector_combined_v5.xml",
+    "train_good": 2188,
+    "test_frames": 2200,
+    "auroc": 0.9774875,
+    "auroc_seen": 0.97405625,
+    "auroc_held_out": 0.98435,
+    "threshold": 0.4888364374637604,
+    "confusion": {
+      "tp": 1610,
+      "tn": 395,
+      "fp": 5,
+      "fn": 190,
+      "false_accept_rate": 0.10555555555555556,
+      "false_reject_rate": 0.0125,
+      "false_positive_rate": 0.0125,
+      "false_negative_rate": 0.10555555555555556
+    },
+    "real_frames": {
+      "n": 1138,
+      "auroc": 0.9924413014877037,
+      "confusion": {
+        "tp": 469,
+        "tn": 645,
+        "fp": 11,
+        "fn": 13,
+        "false_accept_rate": 0.026970954356846474,
+        "false_reject_rate": 0.01676829268292683,
+        "false_positive_rate": 0.01676829268292683,
+        "false_negative_rate": 0.026970954356846474
+      }
+    },
+    "latency": {
+      "1": {
+        "threads": 1,
+        "median_ms": 515.9669825000001,
+        "p95_ms": 981.6883657999998,
+        "n": 100
+      },
+      "4": {
+        "threads": 4,
+        "median_ms": 148.0591935,
+        "p95_ms": 335.23958835,
+        "n": 100
+      }
+    },
+    "status": "not_shipped; synthetic false_accept_rate 10.56% exceeds 10% cap; real-adapt remains default"
+  },
+  "camera_only_diagnosis": {
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_false_reject_debug2.json",
+    "false_reject_seeds": [
+      3,
+      7,
+      8,
+      10,
+      15
+    ],
+    "finding": "CameraExpert re-looks after drops, but post-drop looks have no usable ok detections; when it does present, opaque tokens leave env._active unset and inspection crops include other bricks.",
+    "paired_comparison": "/bulk3/runs/dryrun/m2_rebuild/camera_false_reject_comparison.json",
+    "trace_seed3": "/bulk3/runs/dryrun/m2_rebuild/camera_trace_local_v2/seed-3/trace.json",
+    "termination_seed3": {
+      "steps": 1440,
+      "look_calls": [
+        {
+          "detections": 10,
+          "usable": 1
+        },
+        {
+          "detections": 10,
+          "usable": 0
+        },
+        {
+          "detections": 8,
+          "usable": 0
+        }
+      ],
+      "reason": "two consecutive look misses after first drop; not timeout"
+    },
+    "focus_fix_commit": "789b965",
+    "focus_fix_artifact": "dryrun/defects.py",
+    "focus_sweep_artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
+    "focus_sweep_source_commit": "419591655f7b4a625aea83fc4107fc91fe5314da",
+    "focus_sweep_command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_focus.json",
+    "focus_sweep_stage_totals": {
+      "seen": 1120,
+      "reached": 10,
+      "gripped": 7,
+      "presented": 7,
+      "right_bowl": 5,
+      "false_accepts": 0,
+      "false_rejects": 2
+    },
+    "focus_sweep_max_step_seeds": [
+      0,
+      5,
+      6,
+      9,
+      10,
+      11,
+      12,
+      17
+    ],
+    "focus_sweep_interpretation": "Diagnostic only, not a benchmark: seen counts detector records (including repeated IK-fail records), while reached/gripped/presented/right_bowl count control stages; eight seeds hit the configured step cap."
+  },
+  "yaw_provenance": {
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_sweep_yaw_provenance.json",
+    "sweep_source_commits": [
+      "f4a1fc44ff148b734e65ea592c7266becfc6de0f",
+      "2b1024a1164a2d6e0191ea39871c276e417537f1"
+    ],
+    "measurement_commit": "2b1024a1164a2d6e0191ea39871c276e417537f1",
+    "perception_fix_commit": "233cc77",
+    "ancestry": {
+      "f4a1fc44ff148b734e65ea592c7266becfc6de0f": true,
+      "2b1024a1164a2d6e0191ea39871c276e417537f1": true
+    },
+    "first_ok_brick": {
+      "colour": "red",
+      "centre_m": [
+        0.21357563873510937,
+        0.08465380734203777,
+        0.0224
+      ],
+      "yaw_deg": 75.06858062744142,
+      "size_mm": [
+        33.72256702048063,
+        34.7049281374718
+      ],
+      "confidence": 0.6892400692411234,
+      "status": "ok"
+    },
+    "stage_totals": {
+      "seen": 10,
+      "reached": 10,
+      "gripped": 7,
+      "presented": 7,
+      "right_bowl": 2,
+      "false_accepts": 0,
+      "false_rejects": 5
+    }
+  },
+  "model_comparison": {
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/eval/model_comparison_final.json",
+    "selected_patchcore": {
+      "test_frames": 2200,
+      "auroc": 0.9766986111111111,
+      "false_reject_rate": 0.0325,
+      "false_accept_rate": 0.08333333333333333,
+      "threshold": 0.6663667559623718
+    },
+    "padim": {
+      "test_frames": 2200,
+      "auroc": 0.7040486111111111,
+      "false_reject_rate": 0.11,
+      "false_accept_rate": 0.5705555555555556,
+      "eligible": false,
+      "reason": "Did not retain zero errors on the 569-brick real set."
+    },
+    "pixel_baseline": {
+      "test_frames": 2200,
+      "auroc": 0.5283944444444445,
+      "false_reject_rate": 0.6725,
+      "false_accept_rate": 0.26166666666666666,
+      "eligible": false
+    },
+    "efficientad": {
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/efficientad_combined_ineligibility.json",
+      "status": "ineligible_cpu_budget",
+      "train_good": 2188,
+      "teacher_probe_steps": 30,
+      "teacher_probe_seconds": 25.0,
+      "estimated_teacher_pass_minutes": 30.4
+    }
+  },
+  "distribution_check": {
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/train_rollout_distribution_200.json",
+    "train_frames": 200,
+    "rollout_good_frames": 200,
+    "classifier_cv_accuracy": {
+      "logistic": 0.49,
+      "random_forest": 0.5025
+    },
+    "interpretation": "Both held-out classifiers remain at chance, supporting the shared training/rollout crop distribution."
+  },
+  "modal_endpoint": {
+    "endpoint": "https://touko-ursin--dryrun-live-defect-live-defect.us-east.modal.run",
+    "deployment_commit": "e9a5a6b",
+    "model": "/bulk3/runs/dryrun/m2_rebuild/default_model/openvino/weights/openvino/dryrun_inspector.xml",
+    "fast_smoke": {
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/modal_draw_endpoint_smoke.json",
+      "http_status": 200,
+      "request_elapsed_s": 5.832110643386841,
+      "endpoint_latency_ms": 1488.170492,
+      "verdict": "defective",
+      "score": 0.9567197561264038,
+      "frame_shape": [
+        384,
+        384,
+        3
+      ],
+      "heatmap_shape": [
+        384,
+        384
+      ]
+    },
+    "rollout_smoke": {
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/modal_draw_rollout_smoke.json",
+      "http_status": 200,
+      "request_elapsed_s": 54.665481090545654,
+      "endpoint_latency_ms": 459.96265700000197,
+      "run_id": "custom-16dc1c138514",
+      "replay_bytes": 36101,
+      "verdict": "defective",
+      "outcome": {
+        "status": "success",
+        "bricks": 1,
+        "correct": 1,
+        "successes": 1,
+        "wrong_bowl": 0,
+        "false_accepts": 0,
+        "false_rejects": 0,
+        "drops": 0,
+        "score": 1.0,
+        "failure_reason": null,
+        "cycle_time_s": 11.234,
+        "seed": 18,
+        "tier": "loose",
+        "steps": 337,
+        "commit": "unknown",
+        "look": "lab"
+      },
+      "replay": "/tmp/dryrun-live/custom-16dc1c138514/replay.json.gz"
+    },
+    "manifest": "/bulk3/runs/dryrun/m2_rebuild/modal_endpoint_manifest.json"
   },
   "yaw_fix": {
     "commit": "233cc77",

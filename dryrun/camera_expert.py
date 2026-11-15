@@ -8,9 +8,11 @@ body.
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from types import SimpleNamespace
 from typing import Any
 
+import cv2
 import mujoco
 import numpy as np
 
@@ -25,6 +27,7 @@ Q_OPEN, Q_CLOSE = 1.0, 0.2
 HZ = 30
 GOOD_BOWL = np.array((-.0093, -.2657), dtype=float)
 BAD_BOWL = np.array((-.0093, .2657), dtype=float)
+DETECTOR_FRAME_SIZE = 720
 
 
 class CameraExpert(MeasuredExpert):
@@ -154,12 +157,34 @@ class CameraExpert(MeasuredExpert):
         image = obs.get("top") if isinstance(obs, dict) else None
         if image is None:
             return []
-        cal = self.calibration or TopCameraCalibration(width_px=int(image.shape[1]), height_px=int(image.shape[0]))
+        # The perception thresholds and residual checks were calibrated on the
+        # 720 px static-evaluation contract.  Modal rollouts render 960 px;
+        # normalize that frame before doing *any* geometry or masking so the
+        # detector receives the same pixel scale while the back-projection
+        # still uses the physical camera calibration.
+        detector_image = np.asarray(image)
+        if detector_image.shape[:2] != (DETECTOR_FRAME_SIZE, DETECTOR_FRAME_SIZE):
+            detector_image = cv2.resize(
+                detector_image,
+                (DETECTOR_FRAME_SIZE, DETECTOR_FRAME_SIZE),
+                interpolation=cv2.INTER_AREA,
+            )
+        if self.calibration is None:
+            cal = TopCameraCalibration(
+                width_px=DETECTOR_FRAME_SIZE,
+                height_px=DETECTOR_FRAME_SIZE,
+            )
+        else:
+            cal = replace(
+                self.calibration,
+                width_px=DETECTOR_FRAME_SIZE,
+                height_px=DETECTOR_FRAME_SIZE,
+            )
         try:
-            bm = bowl_mask(image.shape[:2], cal)
+            bm = bowl_mask(detector_image.shape[:2], cal)
             joints = obs.get("joints")
-            arm = arm_mask_from_kinematics(image.shape[:2], cal, self.m, joints) if joints is not None else None
-            return list(self.detector(image, cal, arm_mask=arm, bowls_mask=bm))
+            arm = arm_mask_from_kinematics(detector_image.shape[:2], cal, self.m, joints) if joints is not None else None
+            return list(self.detector(detector_image, cal, arm_mask=arm, bowls_mask=bm))
         except Exception as exc:
             # Keep the loop alive while recording the exact failure.  The old
             # bare except made calibration, joint-shape, and detector errors

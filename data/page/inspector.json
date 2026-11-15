@@ -84,6 +84,16 @@
       "median_ms": 216.93482525000002,
       "p95_ms": 267.27606934999994,
       "n": 30
+    },
+    "1_thread": {
+      "median_ms": 471.75459324999997,
+      "p95_ms": 652.9259316999998,
+      "n": 30
+    },
+    "4_threads": {
+      "median_ms": 216.93482525000002,
+      "p95_ms": 267.27606934999994,
+      "n": 30
     }
   },
   "examples": [
@@ -192,7 +202,8 @@
       "scenes": 40,
       "bricks": 205,
       "correct": 203,
-      "score": 0.9902
+      "score": 0.9902,
+      "summary": "203 of 205 bricks correct (99.0%) across 40 loose scenes."
     },
     {
       "name": "ground_truth_poses_plus_inspector",
@@ -201,7 +212,8 @@
       "bricks": 569,
       "frames": 1138,
       "correct_decisions": 569,
-      "score": 1.0
+      "score": 1.0,
+      "summary": "569 of 569 inspection decisions correct (100.0%) across 1138 present frames."
     },
     {
       "name": "cameras_only",
@@ -217,7 +229,8 @@
       "present_frames": 6,
       "right_bowl": 0,
       "score": 0.0,
-      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_rollout_smoke.json"
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_rollout_smoke.json",
+      "summary": "0 of 6 present frames sorted correctly in 1 smoke scene; the 20-seed sweep remains open."
     }
   ],
   "earlier": {

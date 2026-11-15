@@ -34,12 +34,13 @@ def train_shards(
     checkpoint_minutes: float = 15.0,
     checkpoint_every_steps: int = 2500,
     image_size: int = 64,
+    data_workers: int = 4,
 ):
     import sys
 
     sys.path.insert(0, "/root/repo")
     import torch
-    from torch.utils.data import ConcatDataset
+    from torch.utils.data import ConcatDataset, DataLoader
     from lerobot.datasets.lerobot_dataset import LeRobotDataset
     from dryrun.train_policy import act_config
 
@@ -71,28 +72,38 @@ def train_shards(
     step = 0
 
     def batch(rows):
-        top = torch.stack([row["observation.images.top"] for row in rows]).float()
-        inspection = torch.stack([row["observation.images.inspection"] for row in rows]).float()
-        state = torch.stack([row["observation.state"] for row in rows]).float()
-        verdict = torch.stack([row["inspection.verdict"] for row in rows]).float().reshape(len(rows), 1)
-        action = torch.stack([row["action"] for row in rows]).float()[:, None, :].repeat(1, cfg.chunk_size, 1)
+        # DataLoader's default collator stacks tensors in worker processes.
+        # This keeps JPEG decoding and Python indexing off the A100 loop while
+        # retaining the exact feature names used by the LeRobot dataset.
+        top = rows["observation.images.top"].float()
+        inspection = rows["observation.images.inspection"].float()
+        state = rows["observation.state"].float()
+        verdict = rows["inspection.verdict"].float().reshape(top.shape[0], 1)
+        action = rows["action"].float()[:, None, :].repeat(1, cfg.chunk_size, 1)
         return {
-            "observation.images.top": top.to(device),
-            "observation.images.inspection": inspection.to(device),
-            "observation.state": torch.cat([state, verdict], dim=1).to(device),
-            "action": action.to(device),
-            "action_is_pad": torch.zeros(len(rows), cfg.chunk_size, dtype=torch.bool, device=device),
+            "observation.images.top": top.to(device, non_blocking=True),
+            "observation.images.inspection": inspection.to(device, non_blocking=True),
+            "observation.state": torch.cat([state, verdict], dim=1).to(device, non_blocking=True),
+            "action": action.to(device, non_blocking=True),
+            "action_is_pad": torch.zeros(top.shape[0], cfg.chunk_size, dtype=torch.bool, device=device),
         }
 
+    worker_count = max(0, int(data_workers))
+    loader_kwargs = {
+        "batch_size": int(batch_size),
+        "shuffle": True,
+        "num_workers": worker_count,
+        "pin_memory": device.type == "cuda",
+        "drop_last": False,
+    }
+    if worker_count > 0:
+        loader_kwargs.update({"persistent_workers": True, "prefetch_factor": 2})
+    loader = DataLoader(dataset, **loader_kwargs)
     rows_log = []
     with log_path.open("w") as log:
         for epoch in range(int(epochs)):
-            order = torch.randperm(len(dataset)).tolist()
-            for start in range(0, len(order), int(batch_size)):
-                examples = [dataset[index] for index in order[start : start + int(batch_size)]]
-                if not examples:
-                    continue
-                loss, pieces = policy(batch(examples))
+            for rows in loader:
+                loss, pieces = policy(batch(rows))
                 optimizer.zero_grad()
                 loss.backward()
                 optimizer.step()
@@ -152,6 +163,7 @@ def train_shards(
         "gpu": "A100",
         "image_size": int(image_size),
         "checkpoint_every_steps": int(checkpoint_every_steps),
+        "data_workers": worker_count,
         "seconds": time.perf_counter() - started,
     }
     (output / "training.json").write_text(json.dumps(summary, indent=2) + "\n")
@@ -171,6 +183,7 @@ def main(
     checkpoint_minutes: float = 15.0,
     checkpoint_every_steps: int = 2500,
     image_size: int = 64,
+    data_workers: int = 4,
 ):
     indices = [int(value) for value in shard_indices.split(",") if value.strip()]
     result = train_shards.remote(
@@ -183,6 +196,7 @@ def main(
         checkpoint_minutes=checkpoint_minutes,
         checkpoint_every_steps=checkpoint_every_steps,
         image_size=int(image_size),
+        data_workers=int(data_workers),
     )
     target = Path(local_out) / run_id
     target.mkdir(parents=True, exist_ok=True)

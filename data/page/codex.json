@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T02:40:51Z",
-  "commit": "91a2cdf",
+  "updated_utc": "2026-11-15T02:43:09Z",
+  "commit": "241ee52",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -12,10 +12,10 @@
     "total": 34.1,
     "basis": "tmux session lifetimes at the update timestamp; this is elapsed goal-mode session time, not claimed human labor."
   },
-  "commits_total": 246,
+  "commits_total": 250,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 11482,
+  "lines_of_code": 11525,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
   "supervisor_prompts": 33,
   "subagents_spawned": null,
@@ -544,7 +544,7 @@
   "boundary": "The grasp recipe and two reference experts were prototyped by the supervising agent outside Codex and handed over in prompts/019, 021 and 027.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T02:40:51Z",
+    "end_utc": "2026-11-15T02:43:09Z",
     "sessions": [
       {
         "name": "main",
@@ -2053,6 +2053,30 @@
         "sha": "91a2cdf",
         "subject": "refresh Codex night snapshot",
         "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:40:54Z",
+        "sha": "86c34fe",
+        "subject": "sync current Codex night history",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:41:13Z",
+        "sha": "b9ac509",
+        "subject": "Fix first screen and timestamp Codex timeline",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T02:41:36Z",
+        "sha": "3972f20",
+        "subject": "publish cropped policy diagnostics and training stages",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T02:43:00Z",
+        "sha": "241ee52",
+        "subject": "clarify withdrawn benchmark reproduction",
+        "session": "analyst"
       }
     ],
     "prompts": [
@@ -2393,11 +2417,11 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 246,
+      "commits": 250,
       "prompts": 42,
       "sessions": 5,
-      "lines_of_code": 11482,
-      "hours": 8.68
+      "lines_of_code": 11525,
+      "hours": 8.72
     },
     "attribution": "Each commit is assigned from touched paths: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",

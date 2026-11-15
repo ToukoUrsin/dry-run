@@ -155,7 +155,13 @@ def _write_telemetry(row: dict[str, Any], capture: _ReplayCapture, *, base_times
         return "not configured"
     from . import telemetry
 
-    rollout_id = f"benchmark-{row['controller']}-{row['tier']}-{int(row['seed'])}-{row['commit'][:12]}"
+    # A deliberate full-rate rerun needs a distinct, explicit batch identity;
+    # ordinary retries keep the historical id and remain idempotent.  This
+    # prevents a real second held-out pass from being silently swallowed by
+    # the rollout-id dedupe guard.
+    batch = os.environ.get("DRYRUN_TELEMETRY_RUN_ID")
+    batch_part = f"-{batch}" if batch else ""
+    rollout_id = f"benchmark-{row['controller']}-{row['tier']}{batch_part}-{int(row['seed'])}-{row['commit'][:12]}"
     events = []
     for event in [*capture.events, *row.get("events", [])]:
         event = _jsonable(event)

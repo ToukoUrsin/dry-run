@@ -1,0 +1,113 @@
+{
+  "schema": "dryrun.page.policy.v1",
+  "updated_utc": "2026-11-15T01:14:30Z",
+  "commit": "eba9d3e23213f991241d9c6bd0aa7cf5dedb6aaa",
+  "summary": "The first ACT run used 64-pixel images and reached no physical rollout stage on 20 held-out loose scenes at any of four checkpoints.",
+  "dataset": {
+    "episodes": 774,
+    "frames": 232653,
+    "format": "LeRobot 0.7",
+    "image_size": 64,
+    "loads_in_lerobot": true,
+    "source": "/bulk3/runs/dryrun/m4/modal-map/demo-shards-v2/loose-200-da3b8ce-20261114-1/manifest.json"
+  },
+  "runs": [
+    {
+      "name": "act-shards-three-v2-20261115-1",
+      "image_size": 64,
+      "steps": 201,
+      "frames": 34223,
+      "gpu": "A10G",
+      "minutes": 1.726,
+      "epochs": 3,
+      "initial_loss": 1.0005853176116943,
+      "final_loss": 0.15821273624897003,
+      "chunk_size": 60,
+      "training_shards": [
+        0,
+        1,
+        2
+      ],
+      "checkpoints": [
+        {
+          "name": "act-shards-three-v2-eval600-cpu-20261115-1",
+          "checkpoint": "/runs/act-shards-three-v2-20261115-1/act-final.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0
+        },
+        {
+          "name": "act-step115-eval600-cpu-20261115-1",
+          "checkpoint": "/runs/act-shards-three-v2-20261115-1/act-step-000115.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0
+        },
+        {
+          "name": "act-step175-eval600-cpu-20261115-1",
+          "checkpoint": "/runs/act-shards-three-v2-20261115-1/act-step-000175.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0
+        },
+        {
+          "name": "act-step55-eval600-cpu-20261115-1",
+          "checkpoint": "/runs/act-shards-three-v2-20261115-1/act-step-000055.pt",
+          "seeds": 20,
+          "bricks": 100,
+          "stages": {
+            "reached": 0,
+            "grasped": 0,
+            "lifted": 0,
+            "presented": 0,
+            "dropped": 0,
+            "right_bowl": 0
+          },
+          "successes": 0
+        }
+      ]
+    }
+  ],
+  "openvino": {
+    "checkpoint": "/bulk3/runs/dryrun/m4/policy-fallback-20261115-1/act-final.pt",
+    "image_size": 64,
+    "chunk_size": 60,
+    "version": "2026.4.1-22982-e213a147257-releases/2026/4",
+    "threads": {
+      "1": {
+        "iterations": 20,
+        "median_ms": 125.66352396970615,
+        "p95_ms": 152.0630555052776
+      },
+      "4": {
+        "iterations": 20,
+        "median_ms": 151.08842501649633,
+        "p95_ms": 256.3925370923244
+      }
+    }
+  }
+}

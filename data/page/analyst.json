@@ -1,17 +1,457 @@
 {
-  "updated_utc": "2026-11-15T01:16:43Z",
-  "commit": "0d0b556",
-  "summary": "Nemotron analysed 300 recorded loose failures; stage accuracy was 9.0% and combined stage-plus-cause accuracy was 4.5%.",
+  "updated_utc": "2026-11-15T02:18:25Z",
+  "commit": "2de1ae7",
+  "schema_version": "prompt024-448-sheet-v1",
+  "prompt": "prompts/024-analyst-needs-real-frames.md",
+  "summary": "Nemotron judged 300 new messy and pile failures from real 448 px panels; all 300 strict responses were valid and stage accuracy against simulator events was 43.6667%.",
   "model": "NVIDIA Nemotron",
   "failures_analysed": 300,
-  "frame_px": [448, 448],
-  "accuracy": {"stage": 0.09, "cause": 0.0, "combined": 0.045},
+  "frame_px": [
+    448,
+    448
+  ],
+  "sheet_px": [
+    896,
+    896
+  ],
+  "accuracy": {
+    "stage": 0.436667,
+    "cause": null,
+    "combined": null,
+    "definition": "stage only; Prompt 024 has no cause field"
+  },
+  "final": {
+    "status": "complete",
+    "n": 300,
+    "valid_n": 300,
+    "unresolved": 0,
+    "correct": 131,
+    "stage_accuracy": 0.436667,
+    "confusion": {
+      "no_clear_grasp": {
+        "no_clear_grasp": 131,
+        "missed_grasp": 111,
+        "slipped": 1,
+        "wrong_verdict": 52,
+        "dropped_outside_bowl": 0,
+        "pushed_out_of_reach": 0,
+        "other": 0,
+        "unresolved": 0
+      },
+      "missed_grasp": {
+        "no_clear_grasp": 0,
+        "missed_grasp": 0,
+        "slipped": 1,
+        "wrong_verdict": 0,
+        "dropped_outside_bowl": 0,
+        "pushed_out_of_reach": 0,
+        "other": 0,
+        "unresolved": 0
+      },
+      "slipped": {
+        "no_clear_grasp": 0,
+        "missed_grasp": 0,
+        "slipped": 0,
+        "wrong_verdict": 0,
+        "dropped_outside_bowl": 0,
+        "pushed_out_of_reach": 0,
+        "other": 0,
+        "unresolved": 0
+      },
+      "wrong_verdict": {
+        "no_clear_grasp": 0,
+        "missed_grasp": 0,
+        "slipped": 0,
+        "wrong_verdict": 0,
+        "dropped_outside_bowl": 0,
+        "pushed_out_of_reach": 0,
+        "other": 0,
+        "unresolved": 0
+      },
+      "dropped_outside_bowl": {
+        "no_clear_grasp": 0,
+        "missed_grasp": 0,
+        "slipped": 0,
+        "wrong_verdict": 2,
+        "dropped_outside_bowl": 0,
+        "pushed_out_of_reach": 0,
+        "other": 0,
+        "unresolved": 0
+      },
+      "pushed_out_of_reach": {
+        "no_clear_grasp": 0,
+        "missed_grasp": 1,
+        "slipped": 0,
+        "wrong_verdict": 0,
+        "dropped_outside_bowl": 1,
+        "pushed_out_of_reach": 0,
+        "other": 0,
+        "unresolved": 0
+      },
+      "other": {
+        "no_clear_grasp": 0,
+        "missed_grasp": 0,
+        "slipped": 0,
+        "wrong_verdict": 0,
+        "dropped_outside_bowl": 0,
+        "pushed_out_of_reach": 0,
+        "other": 0,
+        "unresolved": 0
+      }
+    },
+    "per_stage": {
+      "no_clear_grasp": {
+        "n": 295,
+        "correct": 131,
+        "accuracy": 0.444068,
+        "predicted": {
+          "no_clear_grasp": 131,
+          "missed_grasp": 111,
+          "wrong_verdict": 52,
+          "slipped": 1
+        }
+      },
+      "missed_grasp": {
+        "n": 1,
+        "correct": 0,
+        "accuracy": 0.0,
+        "predicted": {
+          "slipped": 1
+        }
+      },
+      "slipped": {
+        "n": 0,
+        "correct": 0,
+        "accuracy": null,
+        "predicted": {}
+      },
+      "wrong_verdict": {
+        "n": 0,
+        "correct": 0,
+        "accuracy": null,
+        "predicted": {}
+      },
+      "dropped_outside_bowl": {
+        "n": 2,
+        "correct": 0,
+        "accuracy": 0.0,
+        "predicted": {
+          "wrong_verdict": 2
+        }
+      },
+      "pushed_out_of_reach": {
+        "n": 2,
+        "correct": 0,
+        "accuracy": 0.0,
+        "predicted": {
+          "dropped_outside_bowl": 1,
+          "missed_grasp": 1
+        }
+      },
+      "other": {
+        "n": 0,
+        "correct": 0,
+        "accuracy": null,
+        "predicted": {}
+      }
+    },
+    "tier_results": {
+      "messy": {
+        "n": 268,
+        "correct": 131,
+        "unresolved": 0
+      },
+      "pile": {
+        "n": 32,
+        "correct": 0,
+        "unresolved": 0
+      }
+    },
+    "input": "/bulk3/runs/dryrun/nemotron_prompt024/input.jsonl",
+    "labels": "/bulk3/runs/dryrun/nemotron_prompt024/labels.jsonl",
+    "predictions": "/bulk3/runs/dryrun/nemotron_prompt024/score-final-merged/predictions.jsonl",
+    "score": "/bulk3/runs/dryrun/nemotron_prompt024/score-final-merged/score.json",
+    "input_sha256": "32f482719caa11970504f485e29230c623c6ba7693a6dac744cb3dfdce7",
+    "simulation_source_commit": "2de1ae706130ce052fcd274f84c9680b18ac1d45",
+    "tiers": {
+      "messy": {
+        "n": 268,
+        "valid_n": 268,
+        "correct": 131,
+        "accuracy": 0.488806
+      },
+      "pile": {
+        "n": 32,
+        "valid_n": 32,
+        "correct": 0,
+        "accuracy": 0.0
+      }
+    }
+  },
+  "earlier": {
+    "status": "withdrawn",
+    "benchmark": false,
+    "training": false,
+    "frame_px": [
+      32,
+      32
+    ],
+    "failures_analysed": 300,
+    "accuracy": {
+      "stage": 0.09,
+      "cause": 0.0,
+      "combined": 0.045
+    },
+    "reason": "Withdrawn: a brick was only about two pixels wide in the 32 px frames, so the result is not evidence and must not be used as a benchmark or training signal."
+  },
+  "confusion": {
+    "no_clear_grasp": {
+      "no_clear_grasp": 131,
+      "missed_grasp": 111,
+      "slipped": 1,
+      "wrong_verdict": 52,
+      "dropped_outside_bowl": 0,
+      "pushed_out_of_reach": 0,
+      "other": 0,
+      "unresolved": 0
+    },
+    "missed_grasp": {
+      "no_clear_grasp": 0,
+      "missed_grasp": 0,
+      "slipped": 1,
+      "wrong_verdict": 0,
+      "dropped_outside_bowl": 0,
+      "pushed_out_of_reach": 0,
+      "other": 0,
+      "unresolved": 0
+    },
+    "slipped": {
+      "no_clear_grasp": 0,
+      "missed_grasp": 0,
+      "slipped": 0,
+      "wrong_verdict": 0,
+      "dropped_outside_bowl": 0,
+      "pushed_out_of_reach": 0,
+      "other": 0,
+      "unresolved": 0
+    },
+    "wrong_verdict": {
+      "no_clear_grasp": 0,
+      "missed_grasp": 0,
+      "slipped": 0,
+      "wrong_verdict": 0,
+      "dropped_outside_bowl": 0,
+      "pushed_out_of_reach": 0,
+      "other": 0,
+      "unresolved": 0
+    },
+    "dropped_outside_bowl": {
+      "no_clear_grasp": 0,
+      "missed_grasp": 0,
+      "slipped": 0,
+      "wrong_verdict": 2,
+      "dropped_outside_bowl": 0,
+      "pushed_out_of_reach": 0,
+      "other": 0,
+      "unresolved": 0
+    },
+    "pushed_out_of_reach": {
+      "no_clear_grasp": 0,
+      "missed_grasp": 1,
+      "slipped": 0,
+      "wrong_verdict": 0,
+      "dropped_outside_bowl": 1,
+      "pushed_out_of_reach": 0,
+      "other": 0,
+      "unresolved": 0
+    },
+    "other": {
+      "no_clear_grasp": 0,
+      "missed_grasp": 0,
+      "slipped": 0,
+      "wrong_verdict": 0,
+      "dropped_outside_bowl": 0,
+      "pushed_out_of_reach": 0,
+      "other": 0,
+      "unresolved": 0
+    }
+  },
+  "tier_results": {
+    "messy": {
+      "n": 268,
+      "correct": 131,
+      "unresolved": 0
+    },
+    "pile": {
+      "n": 32,
+      "correct": 0,
+      "unresolved": 0
+    }
+  },
   "examples": [
-    {"id": "pile-1000-00", "image": "/static/evidence/nemotron/pile-1000-00.webp", "simulator_stage": "no_clear_grasp"},
-    {"id": "pile-1000-01", "image": "/static/evidence/nemotron/pile-1000-01.webp", "simulator_stage": "no_clear_grasp"},
-    {"id": "pile-1000-02", "image": "/static/evidence/nemotron/pile-1000-02.webp", "simulator_stage": "no_clear_grasp"},
-    {"id": "pile-1001-00", "image": "/static/evidence/nemotron/pile-1001-00.webp", "simulator_stage": "no_clear_grasp"},
-    {"id": "pile-1001-01", "image": "/static/evidence/nemotron/pile-1001-01.webp", "simulator_stage": "no_clear_grasp"},
-    {"id": "pile-1001-02", "image": "/static/evidence/nemotron/pile-1001-02.webp", "simulator_stage": "no_clear_grasp"}
-  ]
+    {
+      "id": "pile-1000-00",
+      "tier": "pile",
+      "image": "/static/evidence/nemotron/pile-1000-00.webp",
+      "sheet": "/static/evidence/nemotron/pile-1000-00.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "wrong_verdict",
+      "sentence": "before_grasp shows a yellow brick already between the gripper jaws, while end_cycle shows the same yellow brick still held and the scene otherwise unchanged, indicating the grasp/verdict did not complete the intended sort.",
+      "visible_support": "before_grasp shows a yellow brick already between the gripper jaws, while end_cycle shows the same yellow brick still held and the scene otherwise unchanged, indicating the grasp/verdict did not complete the intended sort.",
+      "scene_change": "The yellow brick should move from the gripper into a target bowl or be released, but instead it remains grasped and the layout is unchanged.",
+      "evidence_panel": "end_cycle",
+      "right": false,
+      "verdict": "wrong",
+      "scene_spec": {
+        "tier": "pile"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 1.2000000000000008,
+        "brick": 19,
+        "reason": "no_clear_grasp"
+      }
+    },
+    {
+      "id": "pile-1000-01",
+      "tier": "pile",
+      "image": "/static/evidence/nemotron/pile-1000-01.webp",
+      "sheet": "/static/evidence/nemotron/pile-1000-01.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "wrong_verdict",
+      "sentence": "presentation panel shows multiple bricks on the table while end_cycle panel shows the robot unchanged with no brick grasped or moved",
+      "visible_support": "presentation panel shows multiple bricks on the table while end_cycle panel shows the robot unchanged with no brick grasped or moved",
+      "scene_change": "the robot should have picked up and presented a single brick instead of leaving all bricks scattered",
+      "evidence_panel": "presentation",
+      "right": false,
+      "verdict": "wrong",
+      "scene_spec": {
+        "tier": "pile"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 1.2000000000000008,
+        "brick": 17,
+        "reason": "no_clear_grasp"
+      }
+    },
+    {
+      "id": "pile-1000-02",
+      "tier": "pile",
+      "image": "/static/evidence/nemotron/pile-1000-02.webp",
+      "sheet": "/static/evidence/nemotron/pile-1000-02.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "wrong_verdict",
+      "sentence": "before_grasp shows a yellow brick already held by the gripper while end_cycle shows the same yellow brick still held and no new brick placed in either bowl",
+      "visible_support": "before_grasp shows a yellow brick already held by the gripper while end_cycle shows the same yellow brick still held and no new brick placed in either bowl",
+      "scene_change": "the gripper should release the held yellow brick into a bowl and then grasp a different brick",
+      "evidence_panel": "end_cycle",
+      "right": false,
+      "verdict": "wrong",
+      "scene_spec": {
+        "tier": "pile"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 1.2000000000000008,
+        "brick": 20,
+        "reason": "no_clear_grasp"
+      }
+    },
+    {
+      "id": "pile-1001-00",
+      "tier": "pile",
+      "image": "/static/evidence/nemotron/pile-1001-00.webp",
+      "sheet": "/static/evidence/nemotron/pile-1001-00.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "wrong_verdict",
+      "sentence": "presentation panel shows a pile of assorted bricks while end_cycle shows the robot and bowls unchanged, indicating the cycle completed without sorting the presented bricks",
+      "visible_support": "presentation panel shows a pile of assorted bricks while end_cycle shows the robot and bowls unchanged, indicating the cycle completed without sorting the presented bricks",
+      "scene_change": "remove or sort the presented brick pile before end_cycle so the scene reflects completed sorting",
+      "evidence_panel": "presentation",
+      "right": false,
+      "verdict": "wrong",
+      "scene_spec": {
+        "tier": "pile"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 1.2000000000000008,
+        "brick": 19,
+        "reason": "no_clear_grasp"
+      }
+    },
+    {
+      "id": "pile-1001-01",
+      "tier": "pile",
+      "image": "/static/evidence/nemotron/pile-1001-01.webp",
+      "sheet": "/static/evidence/nemotron/pile-1001-01.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "wrong_verdict",
+      "sentence": "presentation panel shows a pile of assorted bricks while end_cycle shows only the red and green bowls and gripper, with no target brick grasped or moved",
+      "visible_support": "presentation panel shows a pile of assorted bricks while end_cycle shows only the red and green bowls and gripper, with no target brick grasped or moved",
+      "scene_change": "the target brick should be isolated in the bowl or held by the gripper instead of remaining in a mixed pile",
+      "evidence_panel": "presentation",
+      "right": false,
+      "verdict": "wrong",
+      "scene_spec": {
+        "tier": "pile"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 1.2000000000000008,
+        "brick": 14,
+        "reason": "no_clear_grasp"
+      }
+    },
+    {
+      "id": "pile-1001-02",
+      "tier": "pile",
+      "image": "/static/evidence/nemotron/pile-1001-02.webp",
+      "sheet": "/static/evidence/nemotron/pile-1001-02.webp",
+      "simulator_stage": "no_clear_grasp",
+      "nemotron_stage": "wrong_verdict",
+      "sentence": "presentation panel shows a pile of assorted bricks while end_cycle shows only the red and green bowls and gripper, with no target brick grasped or moved",
+      "visible_support": "presentation panel shows a pile of assorted bricks while end_cycle shows only the red and green bowls and gripper, with no target brick grasped or moved",
+      "scene_change": "replace the unrelated brick pile in presentation with the actual target brick and show it being grasped",
+      "evidence_panel": "presentation",
+      "right": false,
+      "verdict": "wrong",
+      "scene_spec": {
+        "tier": "pile"
+      },
+      "event": {
+        "event": "ik_fail",
+        "t": 1.2000000000000008,
+        "brick": 18,
+        "reason": "no_clear_grasp"
+      }
+    }
+  ],
+  "next_batch": {
+    "status": "tuning_only",
+    "method": "Nemotron diagnoses are converted to generator-compatible scene parameters; the scripted measured expert is used for the equal-size comparison until a policy checkpoint is ready.",
+    "diagnoses_accepted": 300,
+    "suggested": {
+      "bricks_sorted": 9,
+      "bricks_total": 24,
+      "success_rate": 0.375
+    },
+    "random_control": {
+      "bricks_sorted": 15,
+      "bricks_total": 30,
+      "success_rate": 0.5
+    },
+    "delta": -0.125,
+    "helps": false,
+    "evidence": "/bulk3/runs/dryrun/m5/curriculum_expert_tuning_v2-20261115-size4.json",
+    "drawn_examples": [
+      "pile-1000-00",
+      "pile-1000-01",
+      "pile-1000-02",
+      "pile-1001-00",
+      "pile-1001-01",
+      "pile-1001-02"
+    ]
+  }
 }

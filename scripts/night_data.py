@@ -143,16 +143,12 @@ def rejections() -> list[dict[str, str]]:
 
 
 def scores() -> list[dict[str, object]]:
-    # These are the benchmark and recorded smoke points explicitly retained in
-    # status/M1.md and data/page/tiers.json.  The zero is a real smoke result,
-    # but is marked as such instead of being presented as held-out evidence.
+    # The one-brick loose tier was withdrawn as rigged in prompt 016.  Keep
+    # those historical scores in status/M1.md, but omit them from the page's
+    # score series so they cannot be read as benchmark evidence.
     return [
-        {"t": "2026-11-14T21:21:12Z", "tier": "loose", "sorted": 0, "bricks": 50, "commit": "2dc3b59", "kind": "smoke", "source": "status/M1.md"},
-        {"t": "2026-11-14T23:19:35Z", "tier": "loose", "sorted": 203, "bricks": 205, "commit": "64c4919", "kind": "held-out", "source": "status/M1.md"},
-        {"t": "2026-11-14T23:19:35Z", "tier": "loose", "sorted": 382, "bricks": 382, "commit": "64c4919", "kind": "held-out", "source": "status/M1.md"},
         {"t": "2026-11-14T23:40:39Z", "tier": "touching", "sorted": 217, "bricks": 494, "commit": "2de1ae7", "kind": "held-out", "source": "status/M1.md"},
         {"t": "2026-11-14T23:40:39Z", "tier": "pile", "sorted": 31, "bricks": 386, "commit": "2de1ae7", "kind": "held-out", "source": "status/M1.md"},
-        {"t": "2026-11-15T00:53:31Z", "tier": "loose", "sorted": 380, "bricks": 382, "commit": "b9d897c", "kind": "held-out", "source": "data/page/tiers.json"},
         {"t": "2026-11-15T00:53:31Z", "tier": "touching", "sorted": 451, "bricks": 494, "commit": "b9d897c", "kind": "held-out", "source": "data/page/tiers.json"},
         {"t": "2026-11-15T00:53:31Z", "tier": "pile", "sorted": 259, "bricks": 386, "commit": "b9d897c", "kind": "held-out", "source": "data/page/tiers.json"},
     ]
@@ -180,6 +176,7 @@ def build(input_path: Path) -> dict:
         "prompts": prompts,
         "rejections": rejections(),
         "scores": scores(),
+        "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
         "totals": {"commits": len(commits), "prompts": len(prompts), "sessions": len(SESSION_NAMES), "lines_of_code": payload["lines_of_code"], "hours": elapsed_hours},
         "attribution": "Each commit is assigned from touched paths: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other.",
         "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",

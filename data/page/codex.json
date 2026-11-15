@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T02:07:51Z",
-  "commit": "0fed5e4",
+  "updated_utc": "2026-11-15T02:24:11Z",
+  "commit": "15dd8ee",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -12,10 +12,10 @@
     "total": 34.1,
     "basis": "tmux session lifetimes at the update timestamp; this is elapsed goal-mode session time, not claimed human labor."
   },
-  "commits_total": 228,
+  "commits_total": 241,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 10939,
+  "lines_of_code": 11463,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
   "supervisor_prompts": 33,
   "subagents_spawned": null,
@@ -42,7 +42,7 @@
         "b9d897c",
         "0cb10d1"
       ],
-      "biggest_result": "Integrated the measured reference recipe: the repository runner reproduced 382/382 on held-out loose seeds 1000–1079; the supervisor checked 203/205 on seeds 0–39.",
+      "biggest_result": "Integrated the measured reference recipe, then moved the page evidence to seeded multi-brick scenes after the one-brick loose tier was withdrawn.",
       "worst_miss": "The first expert was slow/broken and the fixed-scene loose tier was withdrawn as rigged before the measured recipe replaced it.",
       "evidence": [
         "CODEX.md",
@@ -251,7 +251,7 @@
     },
     {
       "utc": "2026-11-14T23:19:35Z",
-      "event": "Measured reference expert reproduced the full 382/382 loose release and supervisor benchmark evidence.",
+      "event": "Measured reference recipe was checked; the one-brick loose release was later withdrawn from benchmark use.",
       "commit": "64c4919"
     },
     {
@@ -285,8 +285,8 @@
       "commit": "7f84b77"
     }
   ],
-  "prompts_count": 39,
-  "prompts_note": "The supervisor total is 33 at Prompt 035; the filesystem currently contains 35 prompt files, including 034 and 035 and three newly written untracked files.",
+  "prompts_count": 41,
+  "prompts_note": "The supervisor total is 33 at Prompt 035; the filesystem currently contains 41 prompt files, including the later prompts added during the night.",
   "prompts": [
     {
       "t": null,
@@ -521,12 +521,24 @@
       "file": "prompts/039-junction-look.md",
       "title": "a station look that matches the real Junction",
       "to": "main"
+    },
+    {
+      "t": "2026-11-15T02:10:00Z",
+      "file": "prompts/040-policy-find-the-miss.md",
+      "title": "the arm stops 56 mm short Find out",
+      "to": "policy"
+    },
+    {
+      "t": "2026-11-15T02:19:00Z",
+      "file": "prompts/041-junction-look-review.md",
+      "title": "review of the Junction look film junction replay",
+      "to": "main"
     }
   ],
   "boundary": "The grasp recipe and two reference experts were prototyped by the supervising agent outside Codex and handed over in prompts/019, 021 and 027.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T02:07:51Z",
+    "end_utc": "2026-11-15T02:24:11Z",
     "sessions": [
       {
         "name": "main",
@@ -1927,6 +1939,84 @@
         "sha": "0fed5e4",
         "subject": "record inspector follow-up measurements",
         "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:08:01Z",
+        "sha": "9ad385b",
+        "subject": "refresh inspector page timestamp",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T02:08:01Z",
+        "sha": "f3c5c7f",
+        "subject": "add Codex night evidence timeline",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T02:08:21Z",
+        "sha": "4dd4a9f",
+        "subject": "use wood texture in Junction look",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T02:09:25Z",
+        "sha": "4ccd19a",
+        "subject": "document inspector page follow-up fields",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T02:14:52Z",
+        "sha": "9d4e21c",
+        "subject": "add single-brick policy diagnostic",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T02:15:14Z",
+        "sha": "d9799c1",
+        "subject": "refresh Tiger data with completed before load",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:15:26Z",
+        "sha": "ab5dd20",
+        "subject": "record complete before Tiger load",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:15:33Z",
+        "sha": "ea3b3e5",
+        "subject": "publish varied sentence station evidence",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T02:15:59Z",
+        "sha": "379fde9",
+        "subject": "add shared cropped policy camera view",
+        "session": "policy"
+      },
+      {
+        "t": "2026-11-15T02:17:03Z",
+        "sha": "80a6822",
+        "subject": "publish touching and pile push replays",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:17:16Z",
+        "sha": "14e2c86",
+        "subject": "publish camera-first inspector modes and follow-up evidence",
+        "session": "inspector"
+      },
+      {
+        "t": "2026-11-15T02:19:28Z",
+        "sha": "3cd7afb",
+        "subject": "preserve withdrawn inspector failure evidence",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T02:19:50Z",
+        "sha": "15dd8ee",
+        "subject": "publish long-run ACT checkpoints as they land",
+        "session": "policy"
       }
     ],
     "prompts": [
@@ -2163,6 +2253,18 @@
         "file": "prompts/039-junction-look.md",
         "title": "a station look that matches the real Junction",
         "to": "main"
+      },
+      {
+        "t": "2026-11-15T02:10:00Z",
+        "file": "prompts/040-policy-find-the-miss.md",
+        "title": "the arm stops 56 mm short Find out",
+        "to": "policy"
+      },
+      {
+        "t": "2026-11-15T02:19:00Z",
+        "file": "prompts/041-junction-look-review.md",
+        "title": "review of the Junction look film junction replay",
+        "to": "main"
       }
     ],
     "rejections": [
@@ -2211,33 +2313,6 @@
     ],
     "scores": [
       {
-        "t": "2026-11-14T21:21:12Z",
-        "tier": "loose",
-        "sorted": 0,
-        "bricks": 50,
-        "commit": "2dc3b59",
-        "kind": "smoke",
-        "source": "status/M1.md"
-      },
-      {
-        "t": "2026-11-14T23:19:35Z",
-        "tier": "loose",
-        "sorted": 203,
-        "bricks": 205,
-        "commit": "64c4919",
-        "kind": "held-out",
-        "source": "status/M1.md"
-      },
-      {
-        "t": "2026-11-14T23:19:35Z",
-        "tier": "loose",
-        "sorted": 382,
-        "bricks": 382,
-        "commit": "64c4919",
-        "kind": "held-out",
-        "source": "status/M1.md"
-      },
-      {
         "t": "2026-11-14T23:40:39Z",
         "tier": "touching",
         "sorted": 217,
@@ -2254,15 +2329,6 @@
         "commit": "2de1ae7",
         "kind": "held-out",
         "source": "status/M1.md"
-      },
-      {
-        "t": "2026-11-15T00:53:31Z",
-        "tier": "loose",
-        "sorted": 380,
-        "bricks": 382,
-        "commit": "b9d897c",
-        "kind": "held-out",
-        "source": "data/page/tiers.json"
       },
       {
         "t": "2026-11-15T00:53:31Z",
@@ -2283,12 +2349,13 @@
         "source": "data/page/tiers.json"
       }
     ],
+    "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 228,
-      "prompts": 39,
+      "commits": 241,
+      "prompts": 41,
       "sessions": 5,
-      "lines_of_code": 10939,
-      "hours": 8.13
+      "lines_of_code": 11463,
+      "hours": 8.4
     },
     "attribution": "Each commit is assigned from touched paths: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",

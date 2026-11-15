@@ -101,8 +101,15 @@ def _controller_for(kind: str, checkpoint: str | Path | None, *, open_loop_ticks
     raise ValueError(f"unknown controller {kind!r}")
 
 
-def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, controller: str = "policy", max_steps: int = 3600, export_replays: Path | None = None, open_loop_ticks: int = 0, max_delta: float = 0.06, crop_top: bool = False, demo_jpeg: bool = False):
-    if seeds == 200:
+def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, controller: str = "policy", max_steps: int = 3600, export_replays: Path | None = None, open_loop_ticks: int = 0, max_delta: float = 0.06, crop_top: bool = False, demo_jpeg: bool = False, tier: str | None = None):
+    from .benchmark import TIER_COUNTS, TIER_OFFSETS
+    if tier is not None and tier not in TIER_COUNTS:
+        raise ValueError(f"unknown tier {tier!r}")
+    if tier is not None:
+        count = min(int(seeds), TIER_COUNTS[tier])
+        start = TIER_OFFSETS[tier]
+        groups = {tier: list(range(start, start + count))}
+    elif seeds == 200:
         groups = {"loose": list(range(0, 80)), "messy": list(range(80, 150)), "pile": list(range(150, 200))}
     else:
         groups = {"loose": list(range(seeds))}
@@ -113,7 +120,7 @@ def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, 
         # Import lazily to keep the policy module usable on training-only
         # installs and to share the exact benchmark replay contract.
         from dataclasses import asdict
-        from .benchmark import _ReplayCapture, _commit, _write_replay
+        from .benchmark import _ReplayCapture, _commit, _contact_count, _write_replay
         from .env import TIERS
         from .mjcf_station import layout_bricks
     all_rows = {}
@@ -151,7 +158,7 @@ def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, 
                         "bricks": result["bricks"],
                         "successes": result["successes"],
                         "score": result["score"],
-                        "picked_by_contact": sum(int(e.get("picked_by_contact", False)) for e in result.get("events", [])),
+                        "picked_by_contact": _contact_count(result.get("events", [])),
                         "verdicts": sum(1 for e in result.get("events", []) if e.get("event") == "verdict"),
                         "scene": [asdict(spec) for spec in specs],
                         "events": result.get("events", []),
@@ -165,12 +172,20 @@ def evaluate(checkpoint: str | Path | None, seeds: int = 200, workers: int = 8, 
         bricks = sum(r["bricks"] for r in rows); successes = sum(r["successes"] for r in rows)
         all_rows[tier] = {"seeds": len(rows), "bricks": bricks, "successes": successes, "score": successes / bricks if bricks else 0.0, "rows": sorted(rows, key=lambda x: x["seed"])}
     total_bricks = sum(v["bricks"] for v in all_rows.values()); total_successes = sum(v["successes"] for v in all_rows.values())
-    return {"controller": controller, "checkpoint": str(checkpoint), "held_out_seeds": seeds, "tiers": all_rows, "score": total_successes / total_bricks if total_bricks else 0.0}
+    return {
+        "controller": controller,
+        "checkpoint": str(checkpoint),
+        "held_out_seeds": seeds,
+        "tier": tier,
+        "seed_partition": {name: values for name, values in groups.items()},
+        "tiers": all_rows,
+        "score": total_successes / total_bricks if total_bricks else 0.0,
+    }
 
 
 def main():
-    ap = argparse.ArgumentParser(); ap.add_argument("--controller", choices=("policy", "openvino", "expert"), default="policy"); ap.add_argument("--checkpoint", type=Path, required=False); ap.add_argument("--seeds", type=int, default=200); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-steps", type=int, default=3600); ap.add_argument("--open-loop-ticks", type=int, default=0, help="consume this many ACT chunk actions open-loop"); ap.add_argument("--max-delta", type=float, default=0.06, help="per-tick joint target clamp in radians"); ap.add_argument("--crop-top", action="store_true", help="apply the shared work-area crop before policy resize"); ap.add_argument("--demo-jpeg", action="store_true", help="match recorder JPEG quality=78 preprocessing"); ap.add_argument("--export-replays", type=Path); ap.add_argument("--out", type=Path, default=Path("/bulk3/runs/dryrun/m4/policy-benchmark.json")); a = ap.parse_args()
-    result = evaluate(a.checkpoint, a.seeds, a.workers, a.controller, max_steps=a.max_steps, export_replays=a.export_replays, open_loop_ticks=a.open_loop_ticks, max_delta=a.max_delta, crop_top=a.crop_top, demo_jpeg=a.demo_jpeg); result["max_steps"] = a.max_steps; result["open_loop_ticks"] = a.open_loop_ticks; result["max_delta"] = a.max_delta; result["crop_top"] = a.crop_top; result["demo_jpeg"] = a.demo_jpeg; a.out.parent.mkdir(parents=True, exist_ok=True); a.out.write_text(json.dumps(result, indent=2)); print(json.dumps({k: v for k, v in result.items() if k != "tiers"}, indent=2)); print(json.dumps({k: {x: v[x] for x in ("seeds", "bricks", "successes", "score")} for k, v in result["tiers"].items()}, indent=2))
+    ap = argparse.ArgumentParser(); ap.add_argument("--controller", choices=("policy", "openvino", "expert"), default="policy"); ap.add_argument("--checkpoint", type=Path, required=False); ap.add_argument("--seeds", type=int, default=200); ap.add_argument("--tier", choices=("loose", "messy", "pile")); ap.add_argument("--workers", type=int, default=8); ap.add_argument("--max-steps", type=int, default=3600); ap.add_argument("--open-loop-ticks", type=int, default=0, help="consume this many ACT chunk actions open-loop"); ap.add_argument("--max-delta", type=float, default=0.06, help="per-tick joint target clamp in radians"); ap.add_argument("--crop-top", action="store_true", help="apply the shared work-area crop before policy resize"); ap.add_argument("--demo-jpeg", action="store_true", help="match recorder JPEG quality=78 preprocessing"); ap.add_argument("--export-replays", type=Path); ap.add_argument("--out", type=Path, default=Path("/bulk3/runs/dryrun/m4/policy-benchmark.json")); a = ap.parse_args()
+    result = evaluate(a.checkpoint, a.seeds, a.workers, a.controller, max_steps=a.max_steps, export_replays=a.export_replays, open_loop_ticks=a.open_loop_ticks, max_delta=a.max_delta, crop_top=a.crop_top, demo_jpeg=a.demo_jpeg, tier=a.tier); result["max_steps"] = a.max_steps; result["open_loop_ticks"] = a.open_loop_ticks; result["max_delta"] = a.max_delta; result["crop_top"] = a.crop_top; result["demo_jpeg"] = a.demo_jpeg; a.out.parent.mkdir(parents=True, exist_ok=True); a.out.write_text(json.dumps(result, indent=2)); print(json.dumps({k: v for k, v in result.items() if k != "tiers"}, indent=2)); print(json.dumps({k: {x: v[x] for x in ("seeds", "bricks", "successes", "score")} for k, v in result["tiers"].items()}, indent=2))
 
 
 if __name__ == "__main__": main()

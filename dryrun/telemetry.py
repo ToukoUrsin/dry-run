@@ -181,9 +181,11 @@ def finish_station_request(request_id: int, status: str, result: Mapping | None 
 def refresh(url: str | None = None) -> None:
     _require_db()
     with psycopg.connect(url or db_url(), autocommit=True) as conn:
-        conn.execute("CALL refresh_continuous_aggregate('rollout_1s', NULL, NULL)")
-        conn.execute("CALL refresh_continuous_aggregate('benchmark_checkpoint', NULL, NULL)")
-        conn.execute("CALL refresh_continuous_aggregate('benchmark_tier', NULL, NULL)")
+        # Pass schema-qualified relation names.  Tiger's connection search
+        # path is not guaranteed to include `public` when the refresh runs
+        # from a Fly machine, even though ordinary SELECTs resolve the views.
+        for view in ("rollout_1s", "benchmark_checkpoint", "benchmark_tier"):
+            conn.execute("CALL refresh_continuous_aggregate(%s, NULL, NULL)", (f"public.{view}",))
 
 def tier_snapshot(url: str | None = None) -> dict:
     """Return tier/version aggregates for the page from Tiger."""

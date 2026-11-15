@@ -134,7 +134,22 @@ def render_inspection_frame(
     try:
         _hide_noninspection_geometry(model, focus_body=focus_body)
         renderer.update_scene(data, "inspection_view")
-        return renderer.render().copy()
+        frame = renderer.render().copy()
+        if focus_body is None:
+            # Camera-only crops use the fixed presentation point.  Keep a
+            # central, simulator-independent window around that point rather
+            # than selecting a brick body from hidden state; side bricks and
+            # station hardware outside the measured crop cannot sway the
+            # inspector verdict.
+            h, w = frame.shape[:2]
+            side = int(min(h, w) * 0.68)
+            x0, y0 = (w - side) // 2, (h - side) // 2
+            background = np.median(frame, axis=(0, 1)).astype(frame.dtype)
+            cropped = np.empty_like(frame)
+            cropped[...] = background
+            cropped[y0:y0 + side, x0:x0 + side] = frame[y0:y0 + side, x0:x0 + side]
+            return cropped
+        return frame
     finally:
         model.geom_rgba[:] = old_rgba
 

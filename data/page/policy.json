@@ -839,7 +839,19 @@
       ],
       "inspection_resize_clamp": "fixed independently for both camera tensors and OpenVINO",
       "final_checkpoint": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/act-final.pt",
-      "final_action_mae_artifact": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/action-mae-final.json"
+      "final_action_mae_artifact": "/bulk3/runs/dryrun/m4/modal-map/chunk30-overfit/action-mae-final.json",
+      "final_action_mae": {
+        "all_joints": 0.3616063669710938,
+        "per_joint": [
+          0.39444978181521095,
+          0.38374049242337543,
+          0.265450086414814,
+          0.11627614651123683,
+          0.8394429590242605,
+          0.1702787356376648
+        ],
+        "frames": 6000
+      }
     }
   },
   "modal_billing": {

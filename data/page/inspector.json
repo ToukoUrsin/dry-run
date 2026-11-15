@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T04:37:07Z",
+  "updated_utc": "2026-11-15T05:04:06Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -426,8 +426,8 @@
   "modes": [
     {
       "name": "cameras_only",
-      "source": "Modal camera-only loop ladder: refresh-error telemetry pass",
-      "commit": "8f84ac44f5e211a2cfee902528ffbbaa87292ad7",
+      "source": "Modal camera-only review ladder final quarantine/crop pass",
+      "commit": "b10f77835eb03f3313b936e356e8f190a4a6ea91",
       "tier": "loose",
       "scenes": 20,
       "bricks_expected": 100,
@@ -436,19 +436,19 @@
       "timeout_seeds": [],
       "render_size_px": 960,
       "stage_totals": {
-        "seen": 1120,
-        "reached": 10,
-        "gripped": 7,
-        "presented": 7,
-        "right_bowl": 5,
+        "seen": 22,
+        "reached": 39,
+        "gripped": 33,
+        "presented": 20,
+        "right_bowl": 4,
         "false_accepts": 0,
-        "false_rejects": 2
+        "false_rejects": 5
       },
-      "score": 0.05,
+      "score": 0.04,
       "score_denominator": 100,
-      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_loop1_refresh.json",
-      "status": "diagnostic_only; refresh errors surfaced; no stage change; eight seeds reached the 2100-step cap",
-      "summary": "The refresh-error telemetry pass retained the prior 5/100 right-bowl result; seed-0 evidence identified a 960px scale threshold mismatch rather than an exception.",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_ik_quarantine.json",
+      "status": "diagnostic_only; env repair applied; 8 seeds hit max_steps; do not use as benchmark",
+      "summary": "Final quarantine/crop diagnostic: 4 of 100 reached the right bowl; raw stage counts are published, with seen/reached semantics and cap seeds recorded.",
       "controller": "CameraExpert (camera-only; inspector verdicts at presentation)",
       "seed_range": [
         0,
@@ -467,7 +467,7 @@
         12,
         17
       ],
-      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_loop1_refresh.json",
+      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --max-steps 2100 --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_ik_quarantine.json",
       "focus_fix_commit": "789b965",
       "previous_yaw_sweep": {
         "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_yaw.json",
@@ -1056,7 +1056,38 @@
       11,
       12,
       17
-    ]
+    ],
+    "review_handoff": "prompts/058-camera-review-handoff.md",
+    "rollout_repair_commit": "69116a5",
+    "stale_grip_fix_commit": "4b6252d",
+    "grasp_height_fix_commit": "205bca6",
+    "ik_park_fix_commits": [
+      "eb81e98",
+      "803f55f"
+    ],
+    "ik_quarantine_fix_commit": "b0a704c",
+    "inspection_crop_fix_commit": "c846434",
+    "review_final_artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_ik_quarantine.json",
+    "review_final_stage_totals": {
+      "seen": 22,
+      "reached": 39,
+      "gripped": 33,
+      "presented": 20,
+      "right_bowl": 4,
+      "false_accepts": 0,
+      "false_rejects": 5
+    },
+    "review_final_max_step_seeds": [
+      0,
+      5,
+      6,
+      9,
+      10,
+      11,
+      12,
+      17
+    ],
+    "review_caveat": "The stale-grip and grasp-height Modal attempts were invalidated by the rollout NameError before the main-owned env repair; no scores from those failed attempts are reported."
   },
   "yaw_provenance": {
     "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_sweep_yaw_provenance.json",
@@ -1304,6 +1335,91 @@
         17
       ],
       "status": "no stage change; no perception_error events in this run; scale mismatch found"
+    },
+    {
+      "stage": "review_stale_grip",
+      "fix": "fresh jaw observation after close/hold",
+      "fix_commit": "4b6252d",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_stale_grip.json",
+      "status": "invalid_rollout; Modal rows failed on pre-existing env.py NameError grasped (not scored)"
+    },
+    {
+      "stage": "review_grasp_height",
+      "fix": "camera grasp TCP z 0.0130m",
+      "fix_commit": "205bca6",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_height.json",
+      "status": "invalid_rollout; Modal rows failed on pre-existing env.py NameError grasped (not scored)"
+    },
+    {
+      "stage": "review_ik_park",
+      "fix": "camera-safe park plus IK target quarantine",
+      "fix_commit": "eb81e98;803f55f",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_loop2_resolution.json",
+      "source_commit": "803f55fd40378445ddf9a568e959b9df788c2343",
+      "stage_totals": {
+        "seen": 3218,
+        "reached": 8,
+        "gripped": 3,
+        "presented": 3,
+        "right_bowl": 1,
+        "false_accepts": 0,
+        "false_rejects": 2
+      },
+      "status": "diagnostic; seed 9 and 14 still showed IK-fail spin; superseded by geometric quarantine"
+    },
+    {
+      "stage": "review_ik_quarantine",
+      "fix": "quarantine same-colour failed target regions",
+      "fix_commit": "b0a704c",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_ik_quarantine.json",
+      "source_commit": "b10f77835eb03f3313b936e356e8f190a4a6ea91",
+      "stage_totals": {
+        "seen": 22,
+        "reached": 39,
+        "gripped": 33,
+        "presented": 20,
+        "right_bowl": 4,
+        "false_accepts": 0,
+        "false_rejects": 5
+      },
+      "max_step_seeds": [
+        0,
+        5,
+        6,
+        9,
+        10,
+        11,
+        12,
+        17
+      ],
+      "status": "diagnostic; valid 20 rows; no IK-fail spin in seed 14"
+    },
+    {
+      "stage": "review_inspection_crop",
+      "fix": "fixed presentation-point crop without data.xpos selection",
+      "fix_commit": "c846434",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_crop_valid.json",
+      "source_commit": "69116a56ebd8e05419c327cba5977cf535852ec5",
+      "stage_totals": {
+        "seen": 22,
+        "reached": 39,
+        "gripped": 33,
+        "presented": 20,
+        "right_bowl": 4,
+        "false_accepts": 0,
+        "false_rejects": 5
+      },
+      "max_step_seeds": [
+        0,
+        5,
+        6,
+        9,
+        10,
+        11,
+        12,
+        17
+      ],
+      "status": "diagnostic; valid 20 rows; hidden-state crop selection removed"
     }
   ]
 }

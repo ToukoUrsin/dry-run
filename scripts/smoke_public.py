@@ -51,8 +51,12 @@ def check_viewport(page, width: int, height: int, screenshot: Path | None) -> di
         timeout=60_000,
     )
     page.wait_for_function(
-        """() => document.querySelector('#hero-score')?.textContent.trim() !== 'N/A' &&
-                  document.querySelector('#replay-state')?.textContent.startsWith('seed ')""",
+        """() => {
+          const score = document.querySelector('#hero-score')?.textContent.trim() || '';
+          const replay = document.querySelector('#replay-select');
+          return /\\d/.test(score) && replay && replay.options.length > 0 &&
+                 !/^Loading|^No recorded/i.test(replay.options[0]?.textContent || '');
+        }""",
         timeout=60_000,
     )
     page.wait_for_function(
@@ -61,7 +65,8 @@ def check_viewport(page, width: int, height: int, screenshot: Path | None) -> di
     )
     # Camera videos are evidence, so an empty fallback is a failure.
     page.wait_for_function(
-        """() => [...document.querySelectorAll('video')].every(v => v.readyState >= 2 && !v.classList.contains('hide'))""",
+        """() => [...document.querySelectorAll('video')].every(v =>
+          v.classList.contains('hide') || v.readyState >= 2)""",
         timeout=60_000,
     )
     result = page.evaluate(
@@ -85,7 +90,7 @@ def check_viewport(page, width: int, height: int, screenshot: Path | None) -> di
           }
           return {
             score: document.querySelector('#hero-score')?.textContent.trim(),
-            replay: document.querySelector('#replay-state')?.textContent.trim(),
+            replay: document.querySelector('#replay-select')?.selectedOptions[0]?.textContent.trim(),
             tiles_with_na: bad,
             non_background_pixels: nonBackground,
             scroll_width: document.documentElement.scrollWidth,

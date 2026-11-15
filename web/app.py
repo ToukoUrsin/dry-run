@@ -704,9 +704,16 @@ class Handler(BaseHTTPRequestHandler):
             key = path.rsplit("/", 1)[-1]
             if not key or key in {".", ".."} or "/" in key or "\\" in key:
                 return self.send_json({"error":"invalid evidence path"}, 400)
-            candidate = EVIDENCE_DIR / key
-            if candidate.is_file() and candidate.resolve().parent == EVIDENCE_DIR.resolve():
-                return self.send_bytes(candidate.read_bytes(), "image/png")
+            # Local runs keep large sheets under /bulk3.  The deploy image
+            # carries the compact page evidence under web/static, so serve
+            # that packaged copy when the run volume is not mounted.
+            candidates = (
+                (EVIDENCE_DIR, EVIDENCE_DIR / key),
+                (STATIC_DIR / "evidence" / "failures", STATIC_DIR / "evidence" / "failures" / key),
+            )
+            for base, candidate in candidates:
+                if candidate.is_file() and candidate.resolve().parent == base.resolve():
+                    return self.send_bytes(candidate.read_bytes(), "image/png")
             return self.send_json({"status":"unavailable","message":"Failure frame is not mounted for this deployment."},404)
         if path=="/api/health": return self.send_json({"status":"ok","commit":commit(),"replay_count":len(replay_list())})
         if path in ("/","/index.html"):

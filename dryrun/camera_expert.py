@@ -60,6 +60,10 @@ class CameraExpert(MeasuredExpert):
         self._token = 0
         self._look_misses = 0
         self._detections: list[BrickDetection] = []
+        # Perception failures must remain visible in rollout telemetry.  A
+        # failed refresh is recoverable (the next neutral-pose look can still
+        # find bricks), but it must never masquerade as an empty table.
+        self._refresh_errors: list[dict[str, Any]] = []
         self._done = False
 
     def _fk(self, q: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -156,7 +160,20 @@ class CameraExpert(MeasuredExpert):
             joints = obs.get("joints")
             arm = arm_mask_from_kinematics(image.shape[:2], cal, self.m, joints) if joints is not None else None
             return list(self.detector(image, cal, arm_mask=arm, bowls_mask=bm))
-        except Exception:
+        except Exception as exc:
+            # Keep the loop alive while recording the exact failure.  The old
+            # bare except made calibration, joint-shape, and detector errors
+            # indistinguishable from a genuinely empty camera frame.
+            row = {
+                "error_type": type(exc).__name__,
+                "error": str(exc),
+                "image_shape": tuple(int(x) for x in np.asarray(image).shape),
+                "joint_shape": tuple(int(x) for x in np.asarray(obs.get("joints")).shape)
+                if isinstance(obs, dict) and obs.get("joints") is not None else None,
+                "count": len(self._refresh_errors) + 1,
+            }
+            self._refresh_errors.append(row)
+            self._emit("perception_error", **row)
             return []
 
     def _label(self, token: int) -> str:

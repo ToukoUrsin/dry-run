@@ -1,6 +1,6 @@
 {
-  "updated_utc": "2026-11-15T03:52:21.438528Z",
-  "commit": "3313a607f338",
+  "updated_utc": "2026-11-15T03:58:08.806710Z",
+  "commit": "825999c5343f",
   "summary": "Tiger Cloud contains 401 rollout outcomes and 580704 measured 30 Hz joint rows from both held-out sorters; compression is 2.176x.",
   "stats": {
     "telemetry_rows": 580704,
@@ -50,8 +50,12 @@
         "false_accepts": 0,
         "false_rejects": 0,
         "pushes": 0,
-        "cycle_time_s": 10.046410714287182,
+        "cycle_time_s": 10.04641071428718,
         "rollouts": 80,
+        "median_cycle_time_s": 10.040000000003078,
+        "p90_cycle_time_s": 10.066666666664714,
+        "pushes_per_rollout": 0.0,
+        "failures_by_event": {},
         "score": 1.0
       },
       {
@@ -62,8 +66,14 @@
         "false_accepts": 0,
         "false_rejects": 0,
         "pushes": 0,
-        "cycle_time_s": 10.009625000001458,
+        "cycle_time_s": 10.009625000001456,
         "rollouts": 80,
+        "median_cycle_time_s": 10.040000000003078,
+        "p90_cycle_time_s": 10.066666666664714,
+        "pushes_per_rollout": 0.0,
+        "failures_by_event": {
+          "unstable": 1
+        },
         "score": 0.9947643979057592
       },
       {
@@ -76,6 +86,14 @@
         "pushes": 0,
         "cycle_time_s": 4.861493310658436,
         "rollouts": 70,
+        "median_cycle_time_s": 3.623809523809199,
+        "p90_cycle_time_s": 10.040000000003078,
+        "pushes_per_rollout": 0.0,
+        "failures_by_event": {
+          "ik_fail": 265,
+          "miss": 1,
+          "unstable": 2
+        },
         "score": 0.4392712550607287
       },
       {
@@ -88,6 +106,13 @@
         "pushes": 149,
         "cycle_time_s": 10.532095238095632,
         "rollouts": 70,
+        "median_cycle_time_s": 10.628571428572572,
+        "p90_cycle_time_s": 12.125833333328504,
+        "pushes_per_rollout": 2.1285714285714286,
+        "failures_by_event": {
+          "ik_fail": 43,
+          "miss": 4
+        },
         "score": 0.9129554655870445
       },
       {
@@ -100,6 +125,14 @@
         "pushes": 0,
         "cycle_time_s": 1.1167056349206022,
         "rollouts": 50,
+        "median_cycle_time_s": 0.6600000000000206,
+        "p90_cycle_time_s": 2.649999999999891,
+        "pushes_per_rollout": 0.0,
+        "failures_by_event": {
+          "ik_fail": 347,
+          "miss": 2,
+          "unstable": 1
+        },
         "score": 0.08031088082901554
       },
       {
@@ -110,8 +143,15 @@
         "false_accepts": 1,
         "false_rejects": 0,
         "pushes": 208,
-        "cycle_time_s": 9.439898396825093,
+        "cycle_time_s": 9.43989839682509,
         "rollouts": 50,
+        "median_cycle_time_s": 9.439999999999937,
+        "p90_cycle_time_s": 11.859047619046327,
+        "pushes_per_rollout": 4.16,
+        "failures_by_event": {
+          "ik_fail": 126,
+          "miss": 7
+        },
         "score": 0.6709844559585493
       },
       {
@@ -124,8 +164,20 @@
         "pushes": 0,
         "cycle_time_s": 19.536,
         "rollouts": 1,
+        "median_cycle_time_s": 19.536,
+        "p90_cycle_time_s": 19.536,
+        "pushes_per_rollout": 0.0,
+        "failures_by_event": {},
         "score": 0.0
       }
+    ],
+    "aggregate_views": [
+      "rollout_1s",
+      "benchmark_checkpoint",
+      "benchmark_tier",
+      "benchmark_tier_stats",
+      "benchmark_failure_event",
+      "telemetry_totals"
     ],
     "source": "timescale",
     "source_command": "hsec exec DRYRUN_TIGER_DB_URL python -m dryrun.telemetry remote-stats",
@@ -135,7 +187,7 @@
     "read_from": "Tiger Cloud",
     "api_source": "timescale",
     "refresh_command": "python -m dryrun.telemetry refresh",
-    "last_snapshot": "2026-11-15T03:52:21.438528Z",
+    "last_snapshot": "2026-11-15T03:58:08.806710Z",
     "slow_timings": "not published; measured catalog calls exceeded the 300 ms feature gate"
   }
 }

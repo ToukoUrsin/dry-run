@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Small dependency-light server for the Dry Run evidence page."""
 from __future__ import annotations
-import json, os, subprocess, time, sys
+import json, os, re, subprocess, time, sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from typing import Mapping
 from urllib.parse import unquote, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,6 +34,15 @@ INSPECTOR_PAGE_CANDIDATES = (
 )
 CODEX_LOG = ROOT / "data" / "codex_log.jsonl"
 CODEX_CAST = RUNS / "_b2/codex-casts/main-001.cast"
+PROMPT024_EXAMPLES = (
+    RUNS / "nemotron_prompt024/examples.jsonl",
+    ROOT / "data" / "nemotron_prompt024_examples.jsonl",
+)
+SNAPSHOT_ARTIFACT = ROOT / "data" / "snapshot.json"
+REACH_MAP_ARTIFACT = ROOT / "data" / "reach_map_polar.json"
+EVIDENCE_DIR = Path(os.environ.get("DRYRUN_EVIDENCE_DIR", str(RUNS / "page-assets/failure-previews")))
+PAGE_DATA_DIR = ROOT / "data" / "page"
+STATIC_DIR = WEB / "static"
 
 def commit() -> str:
     value = os.environ.get("RELEASE_SHA")
@@ -47,6 +57,79 @@ def read_jsonl(path: Path):
         try: rows.append(json.loads(line))
         except json.JSONDecodeError: pass
     return rows
+
+def page_payload(name: str) -> dict | None:
+    """Read a committed page-session result at request time."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]+", name):
+        return None
+    path = PAGE_DATA_DIR / f"{name}.json"
+    if not path.is_file():
+        return None
+    try:
+        value = json.loads(path.read_text())
+        return value if isinstance(value, dict) else None
+    except (OSError, json.JSONDecodeError):
+        return None
+
+def static_content_type(path: Path) -> str:
+    return {".webp": "image/webp", ".png": "image/png", ".svg": "image/svg+xml", ".css": "text/css", ".js": "text/javascript"}.get(path.suffix.lower(), "application/octet-stream")
+
+def _read_snapshot_artifact() -> dict:
+    try:
+        return json.loads(SNAPSHOT_ARTIFACT.read_text())
+    except Exception:
+        return {}
+
+def _preview_key(diagnosis: Mapping) -> str:
+    raw = f"{diagnosis.get('rollout_id', 'failure')}__{Path(str(diagnosis.get('frame', 'frame.png'))).name}"
+    return re.sub(r"[^A-Za-z0-9_.-]", "_", raw)
+
+def _merge_artifact_sections(snap: dict) -> dict:
+    """Keep recorded local evidence visible when the cloud DB is older."""
+    artifact = _read_snapshot_artifact()
+    if not snap.get("diagnoses") and artifact.get("diagnoses"):
+        snap["diagnoses"] = [dict(row) for row in artifact["diagnoses"]]
+        snap["diagnoses_source"] = "local aggregate snapshot"
+    if not snap.get("stations") and artifact.get("stations"):
+        snap["stations"] = [dict(row) for row in artifact["stations"]]
+        snap["worker"] = artifact.get("worker")
+        snap["stations_source"] = "local aggregate snapshot"
+    if artifact.get("snapshot_at"):
+        snap.setdefault("artifact_snapshot_at", artifact["snapshot_at"])
+    for row in snap.get("diagnoses") or []:
+        row.setdefault("frame_url", "/evidence/failures/" + _preview_key(row))
+    return snap
+
+def _artifact_stations() -> dict:
+    artifact = _read_snapshot_artifact()
+    rows = artifact.get("stations") or []
+    if not rows:
+        raw = read_jsonl(ROOT / "data" / "stations36.jsonl")
+        rows = [{"request_id": i + 1, "sentence": r.get("sentence", ""),
+                 "status": "accepted" if r.get("accepted") else "rejected",
+                 "result": r.get("expert") or r.get("check"), "error": r.get("reason")}
+                for i, r in enumerate(raw)]
+    return {"stations": rows, "worker": artifact.get("worker"), "status": "ok",
+            "source": "recorded station artifact" if rows else "none"}
+
+def reach_payload() -> dict:
+    try:
+        payload = json.loads(REACH_MAP_ARTIFACT.read_text())
+        cells = payload.get("cells") or []
+        summary = {}
+        for size in sorted({str(c.get("size", "unknown")) for c in cells}):
+            subset = [c for c in cells if str(c.get("size")) == size]
+            rates = [float(c.get("pick_rate", 0)) for c in subset]
+            threshold = float(payload.get("threshold", .95))
+            summary[size] = {"cells": len(subset), "accepted_cells": sum(r >= threshold for r in rates),
+                             "mean_pick_rate": round(sum(rates) / len(rates), 4) if rates else None,
+                             "min_pick_rate": min(rates) if rates else None}
+        return {"status": "ok", "source": "measured reach artifact", "version": payload.get("version"),
+                "threshold": payload.get("threshold"), "calibration": payload.get("calibration"),
+                "summary": summary, "cells": cells,
+                "stage_success": None, "message": "The artifact measures pick and 10 mm lift; stage-by-stage success is not recorded."}
+    except Exception as exc:
+        return {"status": "unavailable", "source": "none", "message": str(exc), "summary": {}, "cells": []}
 
 def replay_provenance(payload: dict) -> str:
     """Classify replay evidence without treating placeholder commits as proof."""
@@ -116,16 +199,33 @@ def benchmark_tiers() -> dict:
     except Exception:
         return {"status": "unavailable", "tiers": [], "message": "No tier benchmark artifact is connected."}
 
+def prompt024_examples() -> dict:
+    """Return the two full-sheet examples retained for the analyst page."""
+    for path in PROMPT024_EXAMPLES:
+        if not path.exists():
+            continue
+        rows = read_jsonl(path)
+        examples = []
+        for row in rows[:2]:
+            examples.append({
+                "id": row.get("id"),
+                "tier": row.get("tier"),
+                "sheet": row.get("sheet_data_uri"),
+                "said": row.get("response", {}).get("diagnosis", row.get("response")),
+                "actual": row.get("ground_truth"),
+            })
+        return {"status": "ok", "count": len(rows), "examples": examples, "source": str(path)}
+    return {"status": "unavailable", "count": 0, "examples": [], "message": "Prompt 024 examples are not attached to this deployment."}
+
 def snapshot() -> dict:
     try:
         from dryrun.telemetry import dashboard_snapshot
         snap = dashboard_snapshot()
-        snap["commit"] = commit(); return snap
+        snap["commit"] = commit(); return _merge_artifact_sections(snap)
     except Exception as exc:
-        p=ROOT/"data"/"snapshot.json"
-        if p.exists():
+        if SNAPSHOT_ARTIFACT.exists():
             try:
-                snap=json.loads(p.read_text()); snap["commit"]=commit(); snap["source"]="local snapshot"; return snap
+                snap=json.loads(SNAPSHOT_ARTIFACT.read_text()); snap["commit"]=commit(); snap["source"]="local snapshot"; return _merge_artifact_sections(snap)
             except Exception: pass
         return {"status":"unavailable","source":"none","reason":"No telemetry aggregate is connected yet.","error":str(exc),"commit":commit(),"checkpoints":[],"rollups":[],"diagnoses":[],"raw_rows":0,"result_rows":0,"query_ms":{}}
 
@@ -195,11 +295,19 @@ def score_payload(snap):
         # Tier benchmarks are the public score source for this release. The
         # optional telemetry rollup may be absent on Fly; keep that honest
         # empty state from turning into a page-wide API error.
-        return {"status":"ok","message":"No telemetry checkpoint is connected; tier benchmark is shown above.","commit":snap.get("commit"),"checkpoints":[],"diagnoses":[],"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at")}
-    latest=dict(cps[-1]); latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
+        return {"status":"ok","message":"No telemetry checkpoint is connected; tier benchmark is shown above.","commit":snap.get("commit"),"checkpoints":[],"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at"),"snapshot_at":snap.get("snapshot_at"),"artifact_snapshot_at":snap.get("artifact_snapshot_at")}
+    latest=dict(cps[-1])
+    for key in ("bricks", "correct", "drops", "false_accepts", "false_rejects", "rollouts"):
+        if latest.get(key) is not None:
+            try: latest[key] = int(latest[key])
+            except (TypeError, ValueError): pass
+    if latest.get("cycle_time_s") is not None:
+        try: latest["cycle_time_s"] = float(latest["cycle_time_s"])
+        except (TypeError, ValueError): pass
+    latest["accuracy"]=latest["correct"]/latest["bricks"] if latest.get("bricks") else None
     latest["benchmarkable"]=bool(latest.get("source_commit"))
     message = None if latest["benchmarkable"] else "Recorded result has no source commit; validation only, not a benchmark."
-    return {"status":"ok","checkpoint":latest,"commit":snap.get("commit"),"data_commit":latest.get("source_commit"),"message":message,"checkpoints":cps,"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at")}
+    return {"status":"ok","checkpoint":latest,"commit":snap.get("commit"),"data_commit":latest.get("source_commit"),"message":message,"checkpoints":cps,"diagnoses":snap.get("diagnoses",[]),"source":snap.get("source"),"query_ms":snap.get("query_ms"),"raw_rows":snap.get("raw_rows",0),"result_rows":snap.get("result_rows",0),"compression_enabled":snap.get("compression_enabled"),"compression_ratio":snap.get("compression_ratio"),"latest_rollout_at":snap.get("latest_rollout_at"),"snapshot_at":snap.get("snapshot_at"),"artifact_snapshot_at":snap.get("artifact_snapshot_at")}
 
 
 def inspector_payload() -> dict:
@@ -280,21 +388,30 @@ class Handler(BaseHTTPRequestHandler):
     def send_json(self,obj,status=200): self.send_bytes(json.dumps(obj,separators=(",",":"),default=str).encode(),"application/json; charset=utf-8",status)
     def do_GET(self):
         parsed=urlparse(self.path); path=unquote(parsed.path)
+        if path.startswith("/api/page/"):
+            name = path.rsplit("/", 1)[-1]
+            payload = page_payload(name)
+            return self.send_json(payload or {"status": "unavailable", "message": "This page section has no committed result yet."}, 200 if payload else 404)
         if path=="/api/score": return self.send_json(score_payload(snapshot()))
         if path=="/api/benchmark-tiers": return self.send_json(benchmark_tiers())
         if path=="/api/codex": return self.send_json(codex_payload())
         if path=="/api/telemetry": return self.send_json(snapshot())
         if path=="/api/failures": return self.send_json(snapshot().get("diagnoses", []))
+        if path=="/api/prompt024": return self.send_json(prompt024_examples())
+        if path=="/api/reach": return self.send_json(reach_payload())
         if path in ("/api/inspector", "/api/inspector.json"): return self.send_json(inspector_payload())
         if path=="/api/stations":
             try:
                 from dryrun.telemetry import station_snapshot
-                return self.send_json(station_snapshot())
+                result = station_snapshot()
+                return self.send_json(result if result.get("stations") else _artifact_stations())
             except Exception as exc:
                 # The station queue is an optional analyst-session extension.
                 # Keep the rest of the evidence page healthy when an older
                 # Tiger schema has not received that migration yet.
-                return self.send_json({"stations": [], "worker": None, "status": "ok", "message": "worker offline"})
+                result = _artifact_stations()
+                result.setdefault("message", "worker offline")
+                return self.send_json(result)
         if path=="/api/rollouts": return self.send_json(replay_list())
         if path=="/api/replays": return self.send_json(replay_list())
         if path=="/api/scenes": return self.send_json(replay_list())
@@ -330,9 +447,23 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 pass
             return self.send_json({"status":"unavailable","message":"Camera video is available in the local replay export."},404)
+        if path.startswith("/evidence/failures/"):
+            key = path.rsplit("/", 1)[-1]
+            if not key or key in {".", ".."} or "/" in key or "\\" in key:
+                return self.send_json({"error":"invalid evidence path"}, 400)
+            candidate = EVIDENCE_DIR / key
+            if candidate.is_file() and candidate.resolve().parent == EVIDENCE_DIR.resolve():
+                return self.send_bytes(candidate.read_bytes(), "image/png")
+            return self.send_json({"status":"unavailable","message":"Failure frame is not mounted for this deployment."},404)
         if path=="/api/health": return self.send_json({"status":"ok","commit":commit(),"replay_count":len(replay_list())})
         if path in ("/","/index.html"):
             return self.send_bytes((WEB/"index.html").read_bytes(),"text/html; charset=utf-8")
+        if path.startswith("/static/"):
+            relative = path[len("/static/"):].lstrip("/")
+            candidate = (STATIC_DIR / relative).resolve()
+            if candidate.is_file() and STATIC_DIR.resolve() in candidate.parents:
+                return self.send_bytes(candidate.read_bytes(), static_content_type(candidate))
+            return self.send_json({"status": "unavailable", "message": "Static evidence is not attached."}, 404)
         if path=="/favicon.svg": return self.send_bytes(b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#12253d"/><path d="M8 22 16 7l8 15-8-4z" fill="#a7e34b"/></svg>',"image/svg+xml")
         if path in ("/mujoco-station.glb", "/so101.glb"):
             for candidate in VIEWER_SCENE_CANDIDATES:

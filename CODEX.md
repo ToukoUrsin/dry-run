@@ -147,7 +147,7 @@ The review record contains five real runs with five session IDs and 28 findings:
 | Benchmark/seeds | `01a1dd71-53f5-7721-943f-b47972b1ebaf` | 4 |
 | Camera-only sorter | `01a1dd75-2738-77b1-9ace-7dd62881a43d` | 10 |
 | Learned-policy loop | `01a1dd75-1f15-7d70-a814-44da7b471dbf` | 6 |
-| Tiger/web | `01a1dd74-09d4-7913-8264-ad233e0760bf` | 8 |
+| Tiger/web | `01a1dd74-09d4-7913-8260-ad233e0760bf` | 8 |
 
 The ten fix commits named in the record are `2ccc9a6`, `31e2ce0`, `5d7c557`,
 `724cb34`, `86bcfc7`, `4b6252d`, `205bca6`, `eb81e98`, `c846434`, and

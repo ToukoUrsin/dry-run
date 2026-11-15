@@ -79,6 +79,10 @@ the linked status files are the source of benchmark numbers; the page must
 show an explicit empty or snapshot state when a live database result is
 unavailable.
 
+The Codex evidence page records the four blocked historical review attempts and
+the fresh review's zero actionable findings in `status/codex-review-0415.md`; its
+one-run Fast comparison is in `status/fast-mode.md`.
+
 ## Milestone evidence
 
 | Milestone | State and proof |

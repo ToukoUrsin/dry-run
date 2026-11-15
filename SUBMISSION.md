@@ -4,7 +4,7 @@ Dry Run is an evidence-first MuJoCo reproduction of the Junction SO-101 brick-so
 
 ## Codex
 
-The Codex page records over 300 attributed commits, five sessions, the wall-clock night duration and the summed session hours; its generated exact counts are in [data/page/codex.json](data/page/codex.json). The five streams owned simulation/expert work, inspection, page/telemetry, policy, and Nemotron/stations; their exact session IDs and evidence are in [CODEX.md](CODEX.md). The authorship boundary is stated there.
+The Codex page records over 300 attributed commits, five sessions, the wall-clock night duration and the summed session hours; its generated exact counts are in [data/page/codex.json](data/page/codex.json). The five streams owned simulation/expert work, inspection, page/telemetry, policy, and Nemotron/stations; their exact session IDs and evidence are in [CODEX.md](CODEX.md). The fresh review completed with zero actionable findings after four earlier blocked attempts, and the one-run Fast comparison was 28.53 s versus 22.42 s with identical output. The authorship boundary is stated there.
 
 ## Nemotron
 

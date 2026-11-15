@@ -268,13 +268,19 @@ def detect_bricks(
         raise ValueError("image must have shape (height, width, 3) or (height, width, 4)")
     h, w = arr.shape[:2]
     cal = calibration or TopCameraCalibration(width_px=w, height_px=h)
-    reject = np.zeros((h, w), dtype=bool)
-    if arm_mask is not None:
-        reject |= np.asarray(arm_mask, dtype=bool)
+    # Bowl pixels are never bricks.  The arm is yellow, so apply its mask to
+    # yellow segmentation only; applying a conservative kinematic arm mask to
+    # every colour can hide an otherwise visible red/blue/green brick when
+    # the projected link envelope is a few pixels wide.
+    bowl_reject = np.zeros((h, w), dtype=bool)
     if bowls_mask is not None:
-        reject |= np.asarray(bowls_mask, dtype=bool)
+        bowl_reject |= np.asarray(bowls_mask, dtype=bool)
+    arm_reject = np.zeros((h, w), dtype=bool)
+    if arm_mask is not None:
+        arm_reject |= np.asarray(arm_mask, dtype=bool)
     detections: list[BrickDetection] = []
     for colour, colour_mask in _colour_masks(arr).items():
+        reject = bowl_reject | (arm_reject if colour == "yellow" else False)
         mask = colour_mask & ~reject
         for coords in _components(mask, int(min_area_px)):
             # coords are (row, col); PCA is performed in image x/y units.

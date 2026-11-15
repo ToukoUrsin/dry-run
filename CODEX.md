@@ -85,13 +85,13 @@ final review because it sees all shared paths.
 | Goal mode | `/root`, gpt-6-astra | `prompts/001-goal.md`; the objective and boundary are recorded in the goal log. |
 | Parallel sessions and delegation | all five paths above | `prompts/010-ultra-and-five-sessions.md`; the session ledger above records ownership. |
 | Ultra effort | all five streams, gpt-6.1-sol and gpt-6-astra | `prompts/010-ultra-and-five-sessions.md`; the supervisor assigned ultra effort to every stream. |
-| Fast service tier | all five streams | Used on all five sessions; no with/without timing comparison was measured. `prompts/010-ultra-and-five-sessions.md` is the evidence. |
+| Fast service tier | all five streams | Used on all five sessions; the one-run comparison was 28.53 s without Fast and 22.42 s with it, 6.11 s sooner (21.4%), with identical output. `status/fast-mode.md` is the evidence. |
 | Astra spatial reasoning | `/root/astra_geometry` and `/root/curriculum_astra`, gpt-6-astra | `prompts/003-astra-for-3d.md`; `status/M1.md`; `status/M5.md`. |
 | Nemotron visual analysis | `/root/analyst_impl`, gpt-6.1-sol plus NVIDIA Nemotron | `dryrun/nemotron.py`; `data/page/analyst.json`; `status/M5.md`. |
 | Models by job | Astra for geometry/spatial checks; Sol for build, page, inspector and policy; Nemotron for visual failure analysis | `prompts/003-astra-for-3d.md`; the five-session ledger; `data/page/analyst.json`. |
 | Browser and public smoke checks | `/root/page`, gpt-6.1-sol | `scripts/smoke_public.py`; page captures and console/error output are under `/bulk3/runs/dryrun/page-shots/`. |
 | AGENTS.md and secret/telemetry boundaries | `/root` and the named streams | `AGENTS.md`; `status/M5.md` records the hsec and telemetry boundaries used. |
-| Codex review | main, `gpt-6.1-sol` | Attempted 4 times, blocked before repository inspection, 0 findings. `/bulk3/runs/dryrun/codex-review-goal012-final.log` |
+| Codex review | main, `gpt-6.1-sol` | Four earlier attempts were blocked; the fresh 04:15 review completed with 0 actionable findings. `status/codex-review-0415.md` |
 | Image generation | Codex desktop app, gpt-6.1-sol, codex-cli 0.169.0-alpha.11.1 | **WORKED:** built-in `image_gen` made `table-wood.png` and `defect-stickers.png` (1254x1254); proof `/bulk2/runs/dryrun/codex-features/imagegen/*.png`, `imagegen/mac-try.log`. Server cliproxy did not expose the tool and its sandbox failed (`imagegen/try1.log`), so earlier textures were code-generated. |
 | Sites | Codex desktop app, live APIs | **WORKED:** published owner-only results Site `https://dryrun-results.jarmo1.chatgpt.site` (`appgprj_6af9206a560c8191bc222fffa878783e`); corrected `/api/inspector` to `/api/page/inspector` after the stale synthetic result. Proof `sites/run.jsonl`, `run2.jsonl`, `site-index.html`, `site.png`. |
 | Documents | Codex desktop app | **WORKED with caveat:** wrote `dryrun-test-report.docx`; its stale inspector number and placeholder layout image were wrong, and LibreOffice render was killed. Real render: `docs/dryrun-test-report.pdf`, `page-1.png`; proof `docs/run.jsonl`, `run2.jsonl`. |

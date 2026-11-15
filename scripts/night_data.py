@@ -24,11 +24,12 @@ LINES_COMMAND = "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l"
 BOUNDARY = "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`."
 AUTHORSHIP = "The supervisor (Claude, driving the Codex CLI on Touko's behalf) wrote the prompts and two reference sorters, `prompts/021-reference` and `prompts/027-reference`. Codex ported them into `dryrun/expert.py` and wrote everything else."
 REVIEW = {
-    "attempts": 4,
+    "attempts": 5,
+    "historical_blocked_attempts": 4,
     "findings": 0,
-    "status": "blocked",
-    "source_file": "/bulk3/runs/dryrun/codex-review-goal012-final.log",
-    "statement": "attempted 4 times, blocked, 0 findings",
+    "status": "completed_no_findings",
+    "source_file": "status/codex-review-0415.md",
+    "statement": "Four earlier attempts were blocked; the fresh review completed with 0 actionable findings.",
 }
 SESSION_IDS = {
     "main": "01a1db37-cd82-7771-9d68-113fc0bb7cfc",
@@ -218,14 +219,32 @@ def build(input_path: Path) -> dict:
     payload["review"] = dict(REVIEW)
     payload["fast_mode"] = {
         "used_on_sessions": list(SESSION_IDS),
-        "measured": False,
-        "statement": "Used on all five sessions; no with/without timing comparison was measured.",
-        "source": "prompts/010-ultra-and-five-sessions.md",
+        "measured": True,
+        "normal_wall_seconds": 28.53,
+        "fast_wall_seconds": 22.42,
+        "delta_seconds": 6.11,
+        "delta_percent": 21.4,
+        "result_identical": True,
+        "statement": "Used on all five sessions; the one-run comparison was 28.53 s without the Fast tier and 22.42 s with it, 6.11 s sooner (21.4%), with identical output.",
+        "source": "status/fast-mode.md",
     }
     payload["session_ids"] = dict(SESSION_IDS)
     payload["subagents"] = dict(SUBAGENTS)
     payload["subagents_spawned"] = SUBAGENTS["count"]
     payload["subagents_note"] = SUBAGENTS["note"]
+    for feature in payload.get("features", []):
+        if feature.get("name") == "Fast mode":
+            feature.update({
+                "evidence": payload["fast_mode"]["statement"],
+                "link": "status/fast-mode.md",
+                "timing_measured": True,
+            })
+        elif feature.get("name") == "codex review":
+            feature.update({
+                "evidence": payload["review"]["statement"],
+                "link": "status/codex-review-0415.md",
+                "status": payload["review"]["status"],
+            })
     for session in payload.get("sessions", []):
         stats = commit_stats.get(session.get("name"))
         if stats:

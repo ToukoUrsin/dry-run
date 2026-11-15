@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T04:21:58Z",
-  "commit": "e775800",
+  "updated_utc": "2026-11-15T04:22:59Z",
+  "commit": "060cdb4",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -11,13 +11,13 @@
     "analyst": 6.37,
     "total": 34.1,
     "basis": "wall_clock_night is elapsed UTC duration from the run start; summed_session_hours is the sum of the five recorded tmux session lifetimes.",
-    "wall_clock_night": 10.37,
+    "wall_clock_night": 10.38,
     "summed_session_hours": 34.1
   },
-  "commits_total": 331,
+  "commits_total": 334,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 12972,
+  "lines_of_code": 12217,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
   "supervisor_prompts": 53,
   "subagents_spawned": 3,
@@ -31,7 +31,7 @@
       "fast_mode": true,
       "hours": 7.78,
       "hours_basis": "tmux session dryrun created 2026-11-14T18:00:08Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 169,
+      "commit_count": 171,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "5a6047d",
@@ -202,7 +202,9 @@
         "6e3592f",
         "630dd3d",
         "18decae",
-        "e775800"
+        "e775800",
+        "58fbeb1",
+        "d0851cc"
       ],
       "biggest_result": "Integrated the measured reference recipe, then moved the page evidence to seeded multi-brick scenes after the one-brick loose tier was withdrawn.",
       "worst_miss": "The first expert was slow/broken and the fixed-scene loose tier was withdrawn as rigged before the measured recipe replaced it.",
@@ -263,7 +265,7 @@
       "fast_mode": true,
       "hours": 6.79,
       "hours_basis": "tmux session dr-page created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 62,
+      "commit_count": 63,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "70df899",
@@ -327,7 +329,8 @@
         "7a80478",
         "5a3aed4",
         "95ccda4",
-        "136c301"
+        "136c301",
+        "060cdb4"
       ],
       "biggest_result": "The deployed page now shows the recorded MuJoCo SO-101 replay, synced top and inspection cameras, and a two-viewport browser smoke gate.",
       "worst_miss": "Several page passes were rejected for showing stubs or a broken first screen before the real replay and error gate were installed.",
@@ -485,9 +488,9 @@
     },
     {
       "name": "Fast mode",
-      "evidence": "The tmux launch commands used service_tier=fast. No with/without timing comparison was recorded, so no timing claim is made.",
-      "link": "CODEX.md",
-      "timing_measured": false
+      "evidence": "Used on all five sessions; the one-run comparison was 28.53 s without the Fast tier and 22.42 s with it, 6.11 s sooner (21.4%), with identical output.",
+      "link": "status/fast-mode.md",
+      "timing_measured": true
     },
     {
       "name": "models by job",
@@ -496,9 +499,9 @@
     },
     {
       "name": "codex review",
-      "evidence": "Review was attempted, but the worker was blocked by approval=never when Chrome/Blender MCP requested approval; no findings were returned, so this is not a green review.",
-      "link": "CODEX.md",
-      "status": "blocked"
+      "evidence": "Four earlier attempts were blocked; the fresh review completed with 0 actionable findings.",
+      "link": "status/codex-review-0415.md",
+      "status": "completed_no_findings"
     },
     {
       "name": "browser use",
@@ -918,14 +921,14 @@
   "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T04:21:58Z",
+    "end_utc": "2026-11-15T04:22:59Z",
     "sessions": [
       {
         "name": "main",
         "model": "gpt-6-astra",
         "effort": "ultra",
         "owns": "simulator, expert, benchmark, replay",
-        "commit_count": 169,
+        "commit_count": 171,
         "commits": [
           "5a6047d",
           "efb74fd",
@@ -1095,7 +1098,9 @@
           "6e3592f",
           "630dd3d",
           "18decae",
-          "e775800"
+          "e775800",
+          "58fbeb1",
+          "d0851cc"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1132,7 +1137,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "viewer, telemetry, deployment",
-        "commit_count": 62,
+        "commit_count": 63,
         "commits": [
           "70df899",
           "942566a",
@@ -1195,7 +1200,8 @@
           "7a80478",
           "5a3aed4",
           "95ccda4",
-          "136c301"
+          "136c301",
+          "060cdb4"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -3285,6 +3291,24 @@
         "sha": "e775800",
         "subject": "record camera sorter loop prompt",
         "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:22:01Z",
+        "sha": "58fbeb1",
+        "subject": "refresh Codex snapshot after prompt history",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:22:50Z",
+        "sha": "d0851cc",
+        "subject": "surface camera refresh errors",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T04:22:51Z",
+        "sha": "060cdb4",
+        "subject": "page: make Codex chart pixel-stable",
+        "session": "page"
       }
     ],
     "prompts": [
@@ -3691,22 +3715,23 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 331,
+      "commits": 334,
       "prompts": 53,
       "sessions": 5,
-      "lines_of_code": 12972,
-      "hours": 10.37
+      "lines_of_code": 12217,
+      "hours": 10.38
     },
     "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. The only non-Codex commits are film-plan 44555a4 and 3a8ad76 plus their reverts 606c23e and 9e4bc77; all other commits carry one git author and are lane-assigned by touched files. Counts are derived at every refresh.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",
     "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
     "authorship": "The supervisor (Claude, driving the Codex CLI on Touko's behalf) wrote the prompts and two reference sorters, `prompts/021-reference` and `prompts/027-reference`. Codex ported them into `dryrun/expert.py` and wrote everything else.",
     "review": {
-      "attempts": 4,
+      "attempts": 5,
+      "historical_blocked_attempts": 4,
       "findings": 0,
-      "status": "blocked",
-      "source_file": "/bulk3/runs/dryrun/codex-review-goal012-final.log",
-      "statement": "attempted 4 times, blocked, 0 findings"
+      "status": "completed_no_findings",
+      "source_file": "status/codex-review-0415.md",
+      "statement": "Four earlier attempts were blocked; the fresh review completed with 0 actionable findings."
     },
     "fast_mode": {
       "used_on_sessions": [
@@ -3716,9 +3741,14 @@
         "analyst",
         "policy"
       ],
-      "measured": false,
-      "statement": "Used on all five sessions; no with/without timing comparison was measured.",
-      "source": "prompts/010-ultra-and-five-sessions.md"
+      "measured": true,
+      "normal_wall_seconds": 28.53,
+      "fast_wall_seconds": 22.42,
+      "delta_seconds": 6.11,
+      "delta_percent": 21.4,
+      "result_identical": true,
+      "statement": "Used on all five sessions; the one-run comparison was 28.53 s without the Fast tier and 22.42 s with it, 6.11 s sooner (21.4%), with identical output.",
+      "source": "status/fast-mode.md"
     },
     "session_ids": {
       "main": "01a1db37-cd82-7771-9d68-113fc0bb7cfc",
@@ -3746,11 +3776,12 @@
     "policy": "01a1db85-87b9-7760-b934-03b82b6ce199"
   },
   "review": {
-    "attempts": 4,
+    "attempts": 5,
+    "historical_blocked_attempts": 4,
     "findings": 0,
-    "status": "blocked",
-    "source_file": "/bulk3/runs/dryrun/codex-review-goal012-final.log",
-    "statement": "attempted 4 times, blocked, 0 findings"
+    "status": "completed_no_findings",
+    "source_file": "status/codex-review-0415.md",
+    "statement": "Four earlier attempts were blocked; the fresh review completed with 0 actionable findings."
   },
   "fast_mode": {
     "used_on_sessions": [
@@ -3760,9 +3791,14 @@
       "analyst",
       "policy"
     ],
-    "measured": false,
-    "statement": "Used on all five sessions; no with/without timing comparison was measured.",
-    "source": "prompts/010-ultra-and-five-sessions.md"
+    "measured": true,
+    "normal_wall_seconds": 28.53,
+    "fast_wall_seconds": 22.42,
+    "delta_seconds": 6.11,
+    "delta_percent": 21.4,
+    "result_identical": true,
+    "statement": "Used on all five sessions; the one-run comparison was 28.53 s without the Fast tier and 22.42 s with it, 6.11 s sooner (21.4%), with identical output.",
+    "source": "status/fast-mode.md"
   },
   "authorship": "The supervisor (Claude, driving the Codex CLI on Touko's behalf) wrote the prompts and two reference sorters, `prompts/021-reference` and `prompts/027-reference`. Codex ported them into `dryrun/expert.py` and wrote everything else.",
   "subagents": {

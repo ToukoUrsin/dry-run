@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T05:16:06Z",
-  "commit": "21116cb",
+  "updated_utc": "2026-11-15T05:26:10Z",
+  "commit": "36c35fe",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -11,15 +11,15 @@
     "analyst": 6.37,
     "total": 34.1,
     "basis": "wall_clock_night is elapsed UTC duration from the run start; summed_session_hours is the sum of the five recorded tmux session lifetimes.",
-    "wall_clock_night": 11.27,
+    "wall_clock_night": 11.44,
     "summed_session_hours": 34.1
   },
-  "commits_total": 401,
+  "commits_total": 405,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 13466,
+  "lines_of_code": 13467,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
-  "supervisor_prompts": 59,
+  "supervisor_prompts": 60,
   "subagents_spawned": 3,
   "subagents_note": "These are three subagents of the main session; all commits carry one git author and lanes are assigned by touched files, not by session.",
   "sessions": [
@@ -31,7 +31,7 @@
       "fast_mode": true,
       "hours": 7.78,
       "hours_basis": "tmux session dryrun created 2026-11-14T18:00:08Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 208,
+      "commit_count": 210,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "5a6047d",
@@ -241,7 +241,9 @@
         "0004879",
         "685c85e",
         "66e9376",
-        "3e39ec4"
+        "3e39ec4",
+        "21116cb",
+        "0d9ec12"
       ],
       "biggest_result": "Integrated the measured reference recipe, then moved the page evidence to seeded multi-brick scenes after the one-brick loose tier was withdrawn.",
       "worst_miss": "The first expert was slow/broken and the fixed-scene loose tier was withdrawn as rigged before the measured recipe replaced it.",
@@ -262,7 +264,7 @@
       "fast_mode": true,
       "hours": 6.79,
       "hours_basis": "tmux session dr-inspector created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 22,
+      "commit_count": 23,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "4ed77b4",
@@ -286,7 +288,8 @@
         "d1c8c10",
         "e8baece",
         "67a8bd3",
-        "17a80e0"
+        "17a80e0",
+        "36c35fe"
       ],
       "biggest_result": "Real present crops plus PatchCore accepted all 328 good bricks and detected all 241 defective bricks in the 569-brick held-out set.",
       "worst_miss": "The first inspector attempt was rejected for false rejects; it had to be retrained and evaluated on real good frames.",
@@ -306,7 +309,7 @@
       "fast_mode": true,
       "hours": 6.79,
       "hours_basis": "tmux session dr-page created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 70,
+      "commit_count": 71,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "70df899",
@@ -378,7 +381,8 @@
         "0b9a7ac",
         "138c2de",
         "e016c2c",
-        "6b2efb5"
+        "6b2efb5",
+        "0616a0c"
       ],
       "biggest_result": "The deployed page now shows the recorded MuJoCo SO-101 replay, synced top and inspection cameras, and a two-viewport browser smoke gate.",
       "worst_miss": "Several page passes were rejected for showing stubs or a broken first screen before the real replay and error gate were installed.",
@@ -663,7 +667,7 @@
       "commit": "7f84b77"
     }
   ],
-  "prompts_count": 59,
+  "prompts_count": 60,
   "prompts_note": "Count is generated from prompts/*.md by scripts/night_data.py at each refresh.",
   "prompts": [
     {
@@ -1019,19 +1023,25 @@
       "file": "prompts/059-deploy-now-then-0540.md",
       "title": "the film is cut the freeze is over",
       "to": "page"
+    },
+    {
+      "t": "2026-11-15T05:25:00Z",
+      "file": "prompts/060-final-deploy-list.md",
+      "title": "five fixes on local 36c35fe then the final",
+      "to": "page"
     }
   ],
   "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T05:16:06Z",
+    "end_utc": "2026-11-15T05:26:10Z",
     "sessions": [
       {
         "name": "main",
         "model": "gpt-6-astra",
         "effort": "ultra",
         "owns": "simulator, expert, benchmark, replay",
-        "commit_count": 208,
+        "commit_count": 210,
         "commits": [
           "5a6047d",
           "efb74fd",
@@ -1240,7 +1250,9 @@
           "0004879",
           "685c85e",
           "66e9376",
-          "3e39ec4"
+          "3e39ec4",
+          "21116cb",
+          "0d9ec12"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1249,7 +1261,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "defects and anomaly inspection",
-        "commit_count": 22,
+        "commit_count": 23,
         "commits": [
           "4ed77b4",
           "817de72",
@@ -1272,7 +1284,8 @@
           "d1c8c10",
           "e8baece",
           "67a8bd3",
-          "17a80e0"
+          "17a80e0",
+          "36c35fe"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -1281,7 +1294,7 @@
         "model": "gpt-6.1-sol",
         "effort": "ultra",
         "owns": "viewer, telemetry, deployment",
-        "commit_count": 70,
+        "commit_count": 71,
         "commits": [
           "70df899",
           "942566a",
@@ -1352,7 +1365,8 @@
           "0b9a7ac",
           "138c2de",
           "e016c2c",
-          "6b2efb5"
+          "6b2efb5",
+          "0616a0c"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -3881,6 +3895,30 @@
         "sha": "c8d937c",
         "subject": "complete balanced analyst headline metadata",
         "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T05:16:08Z",
+        "sha": "21116cb",
+        "subject": "restore exact codex review counts and story",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T05:16:31Z",
+        "sha": "0d9ec12",
+        "subject": "refresh codex snapshot after review update",
+        "session": "main"
+      },
+      {
+        "t": "2026-11-15T05:19:41Z",
+        "sha": "0616a0c",
+        "subject": "render codex document headings cleanly",
+        "session": "page"
+      },
+      {
+        "t": "2026-11-15T05:21:26Z",
+        "sha": "36c35fe",
+        "subject": "publish final camera sorter ladder row",
+        "session": "inspector"
       }
     ],
     "prompts": [
@@ -4237,6 +4275,12 @@
         "file": "prompts/059-deploy-now-then-0540.md",
         "title": "the film is cut the freeze is over",
         "to": "page"
+      },
+      {
+        "t": "2026-11-15T05:25:00Z",
+        "file": "prompts/060-final-deploy-list.md",
+        "title": "five fixes on local 36c35fe then the final",
+        "to": "page"
       }
     ],
     "rejections": [
@@ -4323,11 +4367,11 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 401,
-      "prompts": 59,
+      "commits": 405,
+      "prompts": 60,
       "sessions": 5,
-      "lines_of_code": 13466,
-      "hours": 11.27
+      "lines_of_code": 13467,
+      "hours": 11.44
     },
     "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. The only non-Codex commits are film-plan 44555a4 and 3a8ad76 plus their reverts 606c23e and 9e4bc77; all other commits carry one git author and are lane-assigned by touched files. Counts are derived at every refresh.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",

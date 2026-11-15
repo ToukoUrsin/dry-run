@@ -1,15 +1,8 @@
 # Codex use log
 
-The first pass used parallel Codex sessions, but its status claims were rejected because they described stand-ins as completed systems. Further entries record only verifiable work and exact proof commands. Open gates remain labeled open; completed analyst and station evidence is recorded below.
+Dry Run built an evidence-first MuJoCo simulator and page for the Junction SO-101 brick-sorting station in one night across five parallel sessions. The five streams integrated the seeded station and measured expert, real-frame inspection, page and telemetry, policy evaluation, and Nemotron failure analysis before a real arm moves; the final numbers and their producing artifacts are recorded below.
 
-## Judge card
-
-Dry Run's goal was to build an evidence-first simulator and page for the
-Junction SO-101 station before a real arm moves. The generated page records
-over 300 attributed commits, five sessions, the wall-clock duration of the
-night and 34.1 summed session hours, over 12,000 tracked code lines, and over
-50 prompt files. Exact values are generated from `git log --name-only` by
-`scripts/night_data.py`; the page snapshot is `data/page/codex.json`.
+## Five sessions
 
 | Session | Session ID | Model | Owns |
 | --- | --- | --- | --- |
@@ -19,27 +12,43 @@ night and 34.1 summed session hours, over 12,000 tracked code lines, and over
 | policy | `01a1db85-87b9-7760-b934-03b82b6ce199` | `gpt-6.1-sol` | demonstrations, ACT, policy evaluation |
 | analyst | `01a1db85-8680-71e1-8c2c-cea5752bafa1` | `gpt-6.1-sol` | Nemotron, stations, evidence docs |
 
-All commits carry one git author; the five lanes are assigned by touched
-files, not by session identity. `/root/astra_geometry`,
-`/root/curriculum_astra`, and `/root/docs_status` are three subagents of the
-main session.
+All five sessions worked under one shared goal in parallel. The lane assignment is by touched files; all commits carry one git author. The generated session totals, commit counts and prompt count are in [data/page/codex.json](data/page/codex.json).
 
-## What went wrong and how it was caught
+## What the five-session run added
 
-- **First pass rejected (18:05).** Prompt 002 records that a 245-line stub claimed milestones without a simulator.
-  Later MuJoCo checks replaced the stub with a runnable scene and evidence.
-- **Zero pickups (18:32).** The seed-7 review in Prompt 004 found no useful grasps.
-  Pad-contact trials made the failure measurable before more tuning.
-- **Inspector rejected good bricks (19:47).** Prompt 014 records the first real-frame model rejecting good parts.
-  Real-frame retraining and a held-out evaluation replaced that attempt.
-- **Loose tier rigged (19:58).** Prompt 016 found one brick at one fixed spot for every seed.
-  Its scores were withdrawn from benchmark and training use.
-- **Zero of fifty (22:10).** Prompt 019 records no successful lifts after four hours with the measured recipe.
-  The prompt supplied the measured boundary and recipe used for the replacement expert.
-- **Policy reached zero stages (01:05).** The first 201-step policy run reached no physical stage, as Prompt 030 records.
-  The run remains a failure instead of being presented as a success.
-- **Live page broken (01:41).** Prompt 034 found a console error and a missing first screen.
-  The browser repair added a smoke gate for desktop and phone views.
+A single chat would have had to serialize the simulator, inspector, page, policy and analyst work. These five sessions ran those lanes at once, with exact artifacts and handoffs at their boundaries. Seven supervisor rejections forced the following changes:
+
+- **First pass rejected:** a 245-line stand-in became a runnable MuJoCo scene with proof commands (`prompts/002-first-pass-rejected.md`).
+- **Zero pickups:** pad-contact trials made the grasp failure measurable (`prompts/004-review-of-seed7.md`).
+- **Inspector rejected good bricks:** real-frame retraining and held-out evidence replaced the first matrix (`prompts/014-inspector-rejected.md`).
+- **Loose tier rigged:** the fixed one-brick position was withdrawn from benchmark and training use (`prompts/016-loose-tier-rigged.md`).
+- **Zero of fifty:** the measured grasp boundary and recipe replaced the first attempt (`prompts/019-grasp-recipe-measured.md`).
+- **Policy reached zero stages:** review found repeated-action chunks paired with the next frame; the corrected run still sorts 0/20 (`prompts/030-policy-train-for-real.md`, `data/page/policy.json`).
+- **Live page broken:** the page gained desktop and phone smoke gates and explicit recorded/offline states (`prompts/034-live-page-broken.md`).
+
+Five real Codex review runs found 28 findings; ten named fix commits address them. codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks; the latest policy evaluation reaches 10 of 20 and grasps 2, but sorts 0 of 20 with no lifts, presentations or drops. The review sessions and exact counts are in [status/codex-review-0415.md](status/codex-review-0415.md) and the `review` object in [data/page/codex.json](data/page/codex.json).
+
+Fast mode was measured rather than assumed: 28.53 seconds without Fast versus 22.42 seconds with it, 6.11 seconds sooner (21.4%) with identical output. Three main-session subagents handled Astra geometry, curriculum checks and the documentation audit; their paths are recorded in `data/page/codex.json`.
+
+## Open each proof here
+
+| Claim | Open or run |
+| --- | --- |
+| Seeded station geometry and closed-form IK | `uv run python -m dryrun.mjcf_station check assets/station.xml` and `tests/test_closed_form_ik.py` |
+| Expert and seeded multi-brick evidence | `status/M1.md`, `data/page/inspector.json` (`ground_truth`), and `/bulk3/runs/dryrun/benchmark/` |
+| Real-frame inspector | `data/page/inspector.json` and `status/M2.md` |
+| Learned policy | `data/page/policy.json` and `status/M4.md` |
+| Balanced Nemotron | `data/page/analyst.json`, `status/M5.md`, and `/bulk3/runs/dryrun/nemotron_balanced_run/score.json` |
+| Page and telemetry | `scripts/smoke_public.py`, `status/M3.md`, and `status/M6.md` |
+| Review record | `status/codex-review-0415.md` and `data/page/codex.json` → `review` |
+
+## Final numbers
+
+- Reference expert: **203/205 bricks (99.0%)** across 40 loose scenes.
+- Real-crop inspector: **328/328 good** and **241/241 defective**, with 0 false rejects and 0 false accepts.
+- Camera-only diagnostic: **4/100** right-bowl placements (39 reached, 33 gripped, 20 presented); not a benchmark.
+- Latest learned-policy evaluation: **10/20 reached, 2/20 grasped, 0/20 sorted**, with no lifts, presentations or drops.
+- Balanced Nemotron: **45/84 (53.6%)** across four stages; chance and the largest-class baseline are **25%**. It gets 19/21 lifted-then-lost cases, but calls 18/21 touched-without-lift and 19/21 wrong-bowl cases lifted-then-lost.
 
 ## Turning-point timeline
 
@@ -281,3 +290,10 @@ The public score is a Tiger-backed simulator checkpoint. The current ACT run
 has no physical-stage success, so no learned-policy benchmark or
 Nemotron-versus-random policy comparison is claimed. The current browser smoke
 capture and screenshot paths remain in `status/M6.md`.
+
+## What is not done
+
+- The learned policy sorts 0/20 held-out one-brick scenes; its latest evaluation reaches 10/20 and grasps 2/20, but lifts none.
+- The camera-only sorter places 4/100 diagnostic bricks in the right bowl.
+- Nemotron does not reliably separate later stages: touched-without-lift is 3/21 and wrong-bowl is 2/21, versus 19/21 for lifted-then-lost.
+- No real-arm run has been performed.

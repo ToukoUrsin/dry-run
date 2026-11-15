@@ -4,7 +4,7 @@ Dry Run is an evidence-first MuJoCo reproduction of the Junction SO-101 brick-so
 
 ## Codex
 
-The Codex page snapshot records 298 attributed commits, five sessions, 9.73 elapsed goal-mode hours, 11,720 tracked code lines and 46 prompt files. The five streams owned simulation/expert work, inspection, page/telemetry, policy, and Nemotron/stations; their models, evidence and session paths are in [CODEX.md](CODEX.md) and [data/page/codex.json](data/page/codex.json). The exact boundary is stated there: the supervisor wrote prompts and Codex ported the two reference sorters.
+The Codex page snapshot records 308 attributed commits, five sessions, 9.98 elapsed goal-mode hours, 12,004 tracked code lines and 47 prompt files. The five streams owned simulation/expert work, inspection, page/telemetry, policy, and Nemotron/stations; their models, evidence and session paths are in [CODEX.md](CODEX.md) and [data/page/codex.json](data/page/codex.json). The exact boundary is stated there: the supervisor wrote prompts and Codex ported the two reference sorters.
 
 ## Nemotron
 

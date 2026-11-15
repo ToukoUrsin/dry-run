@@ -2,17 +2,31 @@
 from __future__ import annotations
 
 import numpy as np
+import mujoco
 
 from dryrun.camera_expert import CameraExpert
 from dryrun.env import StationEnv
 
 
+class _GuardQpos:
+    """Permit only the six measured arm coordinates from live qpos."""
+
+    def __init__(self, source, allowed):
+        self._source = source
+        self._allowed = {int(i) for i in allowed}
+
+    def __getitem__(self, key):
+        if not isinstance(key, (int, np.integer)) or int(key) not in self._allowed:
+            raise AssertionError(f"camera sorter read forbidden brick qpos index: data.qpos[{key!r}]")
+        return self._source[int(key)]
+
+
 class _GuardData:
     """Expose joint readings and time; fail on brick pose arrays."""
 
-    def __init__(self, source):
+    def __init__(self, source, allowed_qpos):
         self._source = source
-        self.qpos = source.qpos
+        self.qpos = _GuardQpos(source.qpos, allowed_qpos)
         self.time = source.time
 
     def __getattr__(self, name):
@@ -22,9 +36,9 @@ class _GuardData:
 
 
 class _GuardEnv:
-    def __init__(self, source):
+    def __init__(self, source, allowed_qpos):
         self.model = source.model
-        self.data = _GuardData(source.data)
+        self.data = _GuardData(source.data, allowed_qpos)
         self._events = []
         self._force_inspection = False
 
@@ -38,7 +52,9 @@ class _GuardEnv:
 def test_camera_expert_does_not_read_brick_pose_arrays():
     source = StationEnv(1000, tier="loose", render_size=32)
     try:
-        env = _GuardEnv(source)
+        arm_names = ("shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll", "gripper")
+        allowed = [source.model.jnt_qposadr[mujoco.mj_name2id(source.model, mujoco.mjtObj.mjOBJ_JOINT, name)] for name in arm_names]
+        env = _GuardEnv(source, allowed)
         expert = CameraExpert(env)
         obs = {
             "top": np.zeros((32, 32, 3), dtype=np.uint8),

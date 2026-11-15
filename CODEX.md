@@ -39,6 +39,20 @@ review output here when their proof runs finish. A `codex review` is required
 before the commit that includes those changes; the root session owns that
 final review because it sees all shared paths.
 
+## Features used and their proof
+
+| Feature | Session and model | Evidence |
+| --- | --- | --- |
+| Goal mode | `/root`, gpt-6-astra | `prompts/001-goal.md`; the objective and boundary are recorded in the goal log. |
+| Parallel sessions and delegation | all five paths above | `prompts/010-ultra-and-five-sessions.md`; the session ledger above records ownership. |
+| Ultra effort and Fast service tier | all five streams, gpt-6.1-sol and gpt-6-astra | `prompts/010-ultra-and-five-sessions.md`; no with/without timing comparison was recorded. |
+| Astra spatial reasoning | `/root/astra_geometry` and `/root/curriculum_astra`, gpt-6-astra | `prompts/003-astra-for-3d.md`; `status/M1.md`; `status/M5.md`. |
+| Nemotron visual analysis | `/root/analyst_impl`, gpt-6.1-sol plus NVIDIA Nemotron | `dryrun/nemotron.py`; `data/page/analyst.json`; `status/M5.md`. |
+| Browser and public smoke checks | `/root/page`, gpt-6.1-sol | `scripts/smoke_public.py`; page captures and console/error output are under `/bulk3/runs/dryrun/page-shots/`. |
+| Image generation | `/root/inspector`, gpt-6.1-sol | The image-generation tool was unavailable; deterministic seeded raster assets were used and recorded in `status/M2.md`. |
+| AGENTS rules and skills | `/root` and the named streams | `AGENTS.md`; `status/M5.md` records the hsec, telemetry and review boundaries used. |
+| Codex review | `/root`, gpt-6.1-sol | `/bulk3/runs/dryrun/codex-review-goal012-final.log`; the reviewed diff had no actionable findings, while sandbox/MCP inspection was unavailable. |
+
 2026-11-14 20:00 UTC — Main rollout API and tier benchmark (`gpt-6-astra`, ultra): published `dryrun.env.StationEnv` and `dryrun.rollout.run` with camera/state-only observations, exact 30 Hz substep accumulation, six-target actions, recorder cycle markers, inspector hook and the shared event vocabulary. Added fixed 80/70/50 loose/messy/pile benchmark partitioning and page replay/thumbnail contract in `docs/interfaces.md`. Smoke proof: `MUJOCO_GL=egl uv run python - <<'PY' ... StationEnv.reset/step ... PY` returned uint8 top/inspection frames and float32[6] joints. The loose benchmark number was withheld: the seeded multi-brick generator and closed-form reach gate were still being replaced, so no score from that run is evidence.
 
 2026-11-14 19:51 UTC — M5/Soren integration (`/root`): ran `codex review --uncommitted` before integration; Codex could not inspect because its MCP runner requested approval under `approval=never`. Manual gates `git diff --check` and `.venv/bin/python -m compileall -q dryrun web modal modal_live_defect.py` passed. Added camera-only diagnosis storage, equal curriculum hook, 36-sentence station gallery, bounded station queue/worker heartbeat, and `data/codex_log.jsonl`; proof is in `status/M5.md`.

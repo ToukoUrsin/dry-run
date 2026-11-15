@@ -12,7 +12,7 @@ WEB = ROOT / "web"
 if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 os.environ.setdefault("MUJOCO_GL", "egl")
 RUNS = Path("/bulk3/runs/dryrun")
-REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", str(RUNS / "_b2/replays/seed-7c")))
+REPLAY_DIR = Path(os.environ.get("DRYRUN_REPLAY_DIR", str(RUNS / "goal-page-audit-0312")))
 BENCHMARK_TIERS = Path(os.environ.get("DRYRUN_BENCHMARK_TIERS", str(RUNS / "benchmark/tier-summary-64c.json")))
 # The page's scene is exported from the compiled MuJoCo station model.  Keep a
 # small compatibility list for older deployments while allowing Fly to mount

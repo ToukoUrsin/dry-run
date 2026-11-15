@@ -41,7 +41,7 @@ REVIEW = {
         {"name": "learned-policy loop", "session_id": "01a1dd75-1f15-7d70-a814-44da7b471dbf", "findings": 6},
         {"name": "Tiger/web", "session_id": "01a1dd74-09d4-7913-8260-ad233e0760bf", "findings": 8},
     ],
-    "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks.",
+    "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 5 of 20 one-brick scenes and still sorts 0.",
 }
 SESSION_IDS = {
     "main": "01a1db37-cd82-7771-9d68-113fc0bb7cfc",

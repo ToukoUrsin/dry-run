@@ -251,11 +251,12 @@ function renderPageData(name,d){
   if(name==='policy'){
     const initialRun=d.run||d.runs?.[0]||{};
     const currentRun=d.runs?.at(-1)||initialRun;
-    const run=currentRun;
-    // Keep the story tied to the explicitly reviewed post-fix run. The last
-    // row is the older 200-scene canonical map, not the one-brick correction.
+    // These are explicit evidence IDs. The last row is the older 200-scene
+    // canonical map, not the one-brick correction or its training record.
     const fixedRun=d.runs?.find(x=>x.name==='onebrick-fixed-chunk30-policy-eval4500-20261115-1')||{};
-    const trainingRun=d.runs?.find(x=>x.name==='act-chunk30-overfit-continued-20261115-1')||fixedRun||currentRun;
+    const trainingRun=d.runs?.find(x=>x.name==='act-chunk30-overfit-final-20261115-1')||fixedRun||currentRun;
+    const earlierRun=d.runs?.find(x=>x.name==='act-crop224-final-canonical-200-20261115-1')||{};
+    const run=trainingRun;
     const checkpoints=Array.isArray(run.checkpoints)?run.checkpoints:[];
     const trainSteps=finiteNumber(d.training?.steps??trainingRun.steps??run.steps);
     const trainFrames=finiteNumber(d.training?.frames??trainingRun.frames??run.frames);
@@ -278,9 +279,11 @@ function renderPageData(name,d){
     const chart=points.length?`<div class="policy-chart" style="margin-top:28px"><h3 style="font-size:16px;color:#8b9096;font-weight:500">Closest approach to a brick</h3><svg viewBox="0 0 760 260" role="img" aria-label="Closest approach measured from the policy checkpoints in policy.json" style="width:100%;height:auto;display:block;background:#111419;border-radius:8px;padding:12px"><line x1="50" y1="220" x2="710" y2="220" stroke="#363a40"/><line x1="50" y1="35" x2="50" y2="220" stroke="#363a40"/><polyline points="${chartPoints}" fill="none" stroke="#a8e23a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>${chartDots}<text x="50" y="246" fill="#8b9096" font-size="12">0 steps</text><text x="710" y="246" fill="#8b9096" font-size="12" text-anchor="end">${chartStep} steps</text><text x="42" y="42" fill="#8b9096" font-size="12" text-anchor="end">${fmtNumber(maxMm,0)} mm</text><text x="42" y="220" fill="#8b9096" font-size="12" text-anchor="end">${fmtNumber(minMm,0)} mm</text></svg><p class="prose" style="margin-top:10px">${chartStart} → ${chartEnd} mm over ${chartStep} steps, from the checkpoints in policy.json.</p></div>`:'';
     const finalCheckpoint=checkpoints.at(-1)||{};const finalStages=finalCheckpoint.stages||{};const finalBricks=finiteNumber(finalCheckpoint.bricks)??0;const finalSuccess=finiteNumber(finalCheckpoint.successes??finalStages.right_bowl)??0;
     const latestEval=fixedRun.evaluation?.[0]||{};const reached=finiteNumber(latestEval.stages?.reached)??0;const currentBricks=finiteNumber(latestEval.bricks)??20;const currentSuccess=finiteNumber(latestEval.successes??latestEval.stages?.right_bowl)??0;
-    const policyStory=`Review found each action chunk was one action repeated and paired with the next frame. After the fix it reaches ${fmtInt(reached)} of ${fmtInt(currentBricks)} one-brick scenes, but still sorts ${fmtInt(currentSuccess)} of ${fmtInt(currentBricks)}.`;
-    const initialCheckpoint=initialRun.checkpoints?.at(-1)||{};const initialBricks=finiteNumber(initialCheckpoint.bricks)??400;const initialSuccess=finiteNumber(initialCheckpoint.successes??initialCheckpoint.stages?.right_bowl)??0;
-    const body=`<div class="page-grid"><article class="page-card"><h3>Earlier result</h3><p>${fmtInt(initialSuccess)} of ${fmtInt(initialBricks)} bricks sorted in the first run.</p></article><article class="page-card"><h3>Dataset</h3><p>${fmtInt(d.dataset?.episodes)} episodes · ${fmtInt(d.dataset?.frames)} frames · ${esc(d.dataset?.format||'LeRobot')}${imageSize?` · ${fmtInt(Array.isArray(imageSize)?imageSize[0]:imageSize)} px`:''}</p></article><article class="page-card"><h3>Training after the fix</h3><p>${fmtInt(trainFrames)} frames · ${fmtInt(trainSteps)} steps</p></article><article class="page-card"><h3>Inference</h3><p>${one.median_ms!=null?`${fmtNumber(one.median_ms)} ms median at one thread`:'recorded checkpoint'}</p></article></div>${chart}`;
+    const policyStory=`Review found each action chunk was one action repeated and paired with the next frame. After the fix it reaches ${fmtInt(reached)} of ${fmtInt(currentBricks)} one-brick scenes and still sorts ${fmtInt(currentSuccess)}.`;
+    const earlierEvals=Array.isArray(earlierRun.evaluation)?earlierRun.evaluation:[];
+    const initialBricks=earlierEvals.reduce((sum,x)=>sum+(finiteNumber(x.bricks)??0),0)||1309;
+    const initialSuccess=earlierEvals.reduce((sum,x)=>sum+(finiteNumber(x.successes)??finiteNumber(x.stages?.right_bowl)??0),0);
+    const body=`<div class="page-grid"><article class="page-card"><h3>Earlier result</h3><p>${fmtInt(initialSuccess)} of ${fmtInt(initialBricks)} bricks sorted on 200 held-out scenes.</p></article><article class="page-card"><h3>Dataset</h3><p>${fmtInt(d.dataset?.episodes)} episodes · ${fmtInt(d.dataset?.frames)} frames · ${esc(d.dataset?.format||'LeRobot')}${imageSize?` · ${fmtInt(Array.isArray(imageSize)?imageSize[0]:imageSize)} px`:''}</p></article><article class="page-card"><h3>Training after the fix</h3><p>${fmtInt(trainFrames)} frames · ${fmtInt(trainSteps)} steps</p></article><article class="page-card"><h3>Inference</h3><p>${one.median_ms!=null?`${fmtNumber(one.median_ms)} ms median at one thread`:'recorded checkpoint'}</p></article></div>${chart}`;
     wall.insertAdjacentHTML('beforeend',pageSection('policy','Learned policy',d,body,'',policyStory));return}
   if(name==='analyst'){
     const naturalizePanels=text=>String(text).replaceAll('before_grasp','before the grasp').replaceAll('end_closing','as the jaws close').replaceAll('end_cycle','at the end').replace(/\bpresentation\b(?!\s+frame)/g,'the presentation frame');

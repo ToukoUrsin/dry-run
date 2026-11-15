@@ -576,7 +576,7 @@
     },
     {
       "name": "codex review",
-      "evidence": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks.",
+      "evidence": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 5 of 20 one-brick scenes and still sorts 0.",
       "link": "status/codex-review-0415.md",
       "status": "completed_with_findings_and_fixes"
     },
@@ -4501,7 +4501,7 @@
           "findings": 8
         }
       ],
-      "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks."
+      "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 5 of 20 one-brick scenes and still sorts 0."
     },
     "fast_mode": {
       "used_on_sessions": [
@@ -4591,7 +4591,7 @@
         "findings": 8
       }
     ],
-    "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks."
+    "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 5 of 20 one-brick scenes and still sorts 0."
   },
   "fast_mode": {
     "used_on_sessions": [

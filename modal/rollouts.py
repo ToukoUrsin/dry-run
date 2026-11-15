@@ -221,6 +221,7 @@ class EpisodeRecorder:
 def rollout_seed(
     seed: int,
     tier: str = "loose",
+    count: int | None = None,
     max_steps: int = 3600,
     max_cycles: int | None = 1,
     run_id: str = "latest",
@@ -243,6 +244,7 @@ def rollout_seed(
         int(seed),
         "expert",
         tier=tier,
+        count=None if count is None else int(count),
         inspector=inspector,
         record=recorder,
         max_steps=int(max_steps),
@@ -298,6 +300,7 @@ def _commit() -> str:
 def main(
     seeds: str = "0,1,2",
     tier: str = "loose",
+    count: int = 0,
     max_steps: int = 3600,
     max_cycles: int = 1,
     run_id: str = "",
@@ -316,6 +319,7 @@ def main(
             values,
             kwargs={
                 "tier": tier,
+                "count": None if int(count) <= 0 else int(count),
                 "max_steps": int(max_steps),
                 "max_cycles": int(max_cycles) if max_cycles > 0 else None,
                 "run_id": run_id,
@@ -334,6 +338,7 @@ def main(
         "source_commit": _commit(),
         "run_id": run_id,
         "tier": tier,
+        "count": None if int(count) <= 0 else int(count),
         "max_steps": int(max_steps),
         "max_cycles": int(max_cycles) if max_cycles > 0 else None,
         "render_size": int(render_size),

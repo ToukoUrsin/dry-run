@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T05:13:20Z",
+  "updated_utc": "2026-11-15T05:19:56Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -426,8 +426,8 @@
   "modes": [
     {
       "name": "cameras_only",
-      "source": "Modal camera-only review ladder final quarantine/crop pass",
-      "commit": "b10f77835eb03f3313b936e356e8f190a4a6ea91",
+      "source": "Modal camera-only final horizon diagnostic",
+      "commit": "c8d937c260d6089eae3b13beba6eb3b248f175d8",
       "tier": "loose",
       "scenes": 20,
       "bricks_expected": 100,
@@ -446,28 +446,19 @@
       },
       "score": 0.04,
       "score_denominator": 100,
-      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_ik_quarantine.json",
-      "status": "diagnostic_only; env repair applied; 8 seeds hit max_steps; do not use as benchmark",
-      "summary": "Final quarantine/crop diagnostic: 4 of 100 reached the right bowl; raw stage counts are published, with seen/reached semantics and cap seeds recorded.",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_final_horizon3600.json",
+      "status": "diagnostic_only; 20 valid rows; intrinsic StationEnv tick cap ends rows before requested 3600; do not use as benchmark",
+      "summary": "Final horizon-3600 diagnostic: totals remained 4 of 100 in the right bowl; stage counts and the intrinsic tick cap are published.",
       "controller": "CameraExpert (camera-only; inspector verdicts at presentation)",
       "seed_range": [
         0,
         19
       ],
-      "max_steps": 2100,
+      "max_steps": 3600,
       "yaw_fix_commit": "233cc77",
       "yaw_artifact": "/bulk3/runs/dryrun/m2_rebuild/perception_eval_200.json",
-      "max_step_seeds": [
-        0,
-        5,
-        6,
-        9,
-        10,
-        11,
-        12,
-        17
-      ],
-      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --max-steps 2100 --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_fix_ik_quarantine.json",
+      "max_step_seeds": [],
+      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --max-steps 3600 --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_final_horizon3600.json",
       "focus_fix_commit": "789b965",
       "previous_yaw_sweep": {
         "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_yaw.json",
@@ -1188,7 +1179,22 @@
     "follow_bricks_artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_follow_bricks_053.json",
     "verdict_route_fix_commit": "3a7438c",
     "fixed_point_crop_commit": "685c85e",
-    "follow_bricks_finding": "Five printed chains are false rejects ending in the defective bowl after grasp/lift/present/verdict/drop. The 13 gripped-to-presented gap is mostly max-step truncation; camera and physical identifiers diverge, so unmatched verdicts previously defaulted every route to defective."
+    "follow_bricks_finding": "Five printed chains are false rejects ending in the defective bowl after grasp/lift/present/verdict/drop. The 13 gripped-to-presented gap is mostly max-step truncation; camera and physical identifiers diverge, so unmatched verdicts previously defaulted every route to defective.",
+    "final_horizon_artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_final_horizon3600.json",
+    "final_horizon_source_commit": "c8d937c260d6089eae3b13beba6eb3b248f175d8",
+    "final_horizon_command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --max-steps 3600 --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_final_horizon3600.json",
+    "final_horizon_stage_totals": {
+      "seen": 22,
+      "reached": 39,
+      "gripped": 33,
+      "presented": 20,
+      "right_bowl": 4,
+      "false_accepts": 0,
+      "false_rejects": 5
+    },
+    "final_horizon_honest_sentence": "The final rerun left totals unchanged: the 13-count gripped-to-presented gap is a reached-token proxy with miss/IK/unstable/cap terminations, and the five traced false rejects are camera-token/physical-body misassociations that all completed reach\u2192grasp\u2192lift\u2192present\u2192verdict\u2192drop into the defective bowl.",
+    "final_horizon_intrinsic_cap": "StationEnv uses (120 + 330*brick_count) ticks for loose scenes; stable rows ended at 1110\u20132430 steps and two unstable rows ended at 108, despite max_steps=3600.",
+    "final_horizon_presented_landing_finding": "The remaining 11 of 20 presented tokens have no bowl placement in env.result; their chains end in empty or uncertain grip bookkeeping, so this run cannot distinguish a table release from a brick still held."
   },
   "yaw_provenance": {
     "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_sweep_yaw_provenance.json",
@@ -1534,7 +1540,29 @@
       "fix": "fixed central crop at measured presentation point",
       "fix_commit": "685c85e",
       "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_final_followup.json",
-      "status": "rerun in progress"
+      "status": "completed; totals unchanged; superseded by final horizon diagnostic"
+    },
+    {
+      "stage": "review_final_horizon3600",
+      "fix": "extend requested camera sweep horizon to 3600 steps",
+      "fix_commit": "c8d937c260d6089eae3b13beba6eb3b248f175d8",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_final_horizon3600.json",
+      "source_commit": "c8d937c260d6089eae3b13beba6eb3b248f175d8",
+      "command": "modal run /bulk3/runs/dryrun/m2_rebuild/camera_sweep_modal.py --seeds 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19 --tier loose --max-steps 3600 --render-size 960 --out /bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_final_horizon3600.json",
+      "stage_totals": {
+        "seen": 22,
+        "reached": 39,
+        "gripped": 33,
+        "presented": 20,
+        "right_bowl": 4,
+        "false_accepts": 0,
+        "false_rejects": 5
+      },
+      "score": 0.04,
+      "score_denominator": 100,
+      "max_steps": 3600,
+      "max_step_seeds": [],
+      "status": "completed; totals unchanged; intrinsic StationEnv per-scene tick cap ended rows at 108\u20132430 steps; diagnostic_only"
     }
   ]
 }

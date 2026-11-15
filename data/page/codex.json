@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T03:13:32Z",
-  "commit": "965b186",
+  "updated_utc": "2026-11-15T03:13:45Z",
+  "commit": "3cffd42",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -12,10 +12,10 @@
     "total": 34.1,
     "basis": "tmux session lifetimes at the update timestamp; this is elapsed goal-mode session time, not claimed human labor."
   },
-  "commits_total": 273,
+  "commits_total": 274,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 11663,
+  "lines_of_code": 11667,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
   "supervisor_prompts": 33,
   "subagents_spawned": null,
@@ -29,7 +29,7 @@
       "fast_mode": true,
       "hours": 7.78,
       "hours_basis": "tmux session dryrun created 2026-11-14T18:00:08Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 139,
+      "commit_count": 140,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "5a6047d",
@@ -170,7 +170,8 @@
         "358d342",
         "cebe880",
         "1da65a0",
-        "233cc77"
+        "233cc77",
+        "3cffd42"
       ],
       "biggest_result": "Integrated the measured reference recipe, then moved the page evidence to seeded multi-brick scenes after the one-brick loose tier was withdrawn.",
       "worst_miss": "The first expert was slow/broken and the fixed-scene loose tier was withdrawn as rigged before the measured recipe replaced it.",
@@ -800,14 +801,14 @@
   "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T03:13:32Z",
+    "end_utc": "2026-11-15T03:13:45Z",
     "sessions": [
       {
         "name": "main",
         "model": "gpt-6-astra",
         "effort": "ultra",
         "owns": "simulator, expert, benchmark, replay",
-        "commit_count": 139,
+        "commit_count": 140,
         "commits": [
           "5a6047d",
           "efb74fd",
@@ -947,7 +948,8 @@
           "358d342",
           "cebe880",
           "1da65a0",
-          "233cc77"
+          "233cc77",
+          "3cffd42"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       },
@@ -2760,6 +2762,12 @@
         "sha": "965b186",
         "subject": "clarify README evidence sources and benchmark command",
         "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T03:13:36Z",
+        "sha": "3cffd42",
+        "subject": "refresh Codex night snapshot",
+        "session": "main"
       }
     ],
     "prompts": [
@@ -3118,10 +3126,10 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 273,
+      "commits": 274,
       "prompts": 45,
       "sessions": 5,
-      "lines_of_code": 11663,
+      "lines_of_code": 11667,
       "hours": 9.23
     },
     "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. Film-plan commits and their reverts are other. Counts are derived at every refresh.",

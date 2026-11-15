@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T01:16:03.267133+00:00",
+  "updated_utc": "2026-11-15T01:21:20.862510+00:00",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh real expert crops from 545 paired bricks: 251 defects detected, while the synthetic-only model rejected 294 good bricks.",
   "model": {

@@ -1,6 +1,6 @@
 {
   "schema": "dryrun.page.inspector.v1",
-  "updated_utc": "2026-11-15T03:16:21Z",
+  "updated_utc": "2026-11-15T03:24:17Z",
   "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
   "summary": "Fresh held-out real expert crops from 569 paired bricks: the real-crop PatchCore accepted all 328 good bricks and detected all 241 defective bricks.",
   "model": {
@@ -199,8 +199,8 @@
   "modes": [
     {
       "name": "cameras_only",
-      "source": "Modal camera-only stage sweep through public rollout API",
-      "commit": "0cb10d1db3352bd1380ec8dbb51e204fbd33b8d1",
+      "source": "Modal camera-only stage sweep after prompt-044 yaw fix",
+      "commit": "2b1024a1164a2d6e0191ea39871c276e417537f1",
       "tier": "loose",
       "scenes": 20,
       "bricks_expected": 100,
@@ -221,14 +221,17 @@
       },
       "score": 0.020618556701030927,
       "score_denominator": 97,
-      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20.json",
-      "status": "complete with one explicit Modal timeout (seed 14; no stage counts invented)",
-      "summary": "2 of 97 completed loose bricks reached the right bowl; seed 14 timed out and is reported separately.",
+      "artifact": "/bulk3/runs/dryrun/m2_rebuild/camera_stage_sweep_20_yaw.json",
+      "status": "complete_with_timeout; seed 14 explicitly timed out; yaw fix deployed",
+      "summary": "2 of 97 completed loose bricks reached the right bowl after the yaw fix; seed 14 timed out.",
       "controller": "CameraExpert (camera-only; inspector verdicts at presentation)",
       "seed_range": [
         0,
         19
-      ]
+      ],
+      "max_steps": 2100,
+      "yaw_fix_commit": "233cc77",
+      "yaw_artifact": "/bulk3/runs/dryrun/m2_rebuild/perception_eval_200.json"
     },
     {
       "name": "ground_truth",

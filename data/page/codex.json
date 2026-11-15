@@ -4295,12 +4295,12 @@
         "31e2ce0",
         "5d7c557",
         "724cb34",
-        "86bcfc7",
         "4b6252d",
         "205bca6",
         "eb81e98",
         "c846434",
-        "6471dbe"
+        "6471dbe",
+        "b0a704c"
       ],
       "status": "completed_with_findings_and_fixes",
       "source_file": "status/codex-review-0415.md",
@@ -4331,7 +4331,14 @@
           "findings": 8
         }
       ],
-      "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks."
+      "findings_by_run": {
+        "initial": 0,
+        "benchmark_seeds": 4,
+        "camera_sorter": 10,
+        "learned_policy_loop": 6,
+        "tiger_web": 8
+      },
+      "statement": "Five real review runs found 28 findings and mapped them to fix commits. The review found why the learned policy scored zero; the corrected policy and camera limitations remain labeled in their evidence."
     },
     "fast_mode": {
       "used_on_sessions": [
@@ -4385,12 +4392,12 @@
       "31e2ce0",
       "5d7c557",
       "724cb34",
-      "86bcfc7",
       "4b6252d",
       "205bca6",
       "eb81e98",
       "c846434",
-      "6471dbe"
+      "6471dbe",
+      "b0a704c"
     ],
     "status": "completed_with_findings_and_fixes",
     "source_file": "status/codex-review-0415.md",
@@ -4421,7 +4428,14 @@
         "findings": 8
       }
     ],
-    "statement": "codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks."
+    "findings_by_run": {
+      "initial": 0,
+      "benchmark_seeds": 4,
+      "camera_sorter": 10,
+      "learned_policy_loop": 6,
+      "tiger_web": 8
+    },
+    "statement": "Five real review runs found 28 findings and mapped them to fix commits. The review found why the learned policy scored zero; the corrected policy and camera limitations remain labeled in their evidence."
   },
   "fast_mode": {
     "used_on_sessions": [

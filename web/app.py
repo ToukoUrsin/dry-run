@@ -53,10 +53,128 @@ DOCUMENT_FILES = {
     "submission": ROOT / "SUBMISSION.md",
     "morning": ROOT / "MORNING.md",
 }
+STATUS_FILES = {
+    "codex-review-0415.md": ROOT / "status" / "codex-review-0415.md",
+}
 
 def _html_escape(value: str) -> str:
     import html
     return html.escape(str(value), quote=True)
+
+def _markdown_inline(value: str) -> str:
+    """Render the small, safe Markdown subset used by the evidence docs."""
+    import html
+    escaped = html.escape(value, quote=True)
+    code_tokens: list[str] = []
+
+    def stash_code(match: re.Match[str]) -> str:
+        code_tokens.append(f"<code>{match.group(1)}</code>")
+        return f"\x00CODE{len(code_tokens) - 1}\x00"
+
+    escaped = re.sub(r"`([^`]+)`", stash_code, escaped)
+
+    def link(match: re.Match[str]) -> str:
+        label, target = match.group(1), match.group(2).strip()
+        # Keep document links useful without allowing javascript/data URLs or
+        # exposing arbitrary local filesystem paths through href attributes.
+        if target.startswith(("https://", "http://", "/", "prompts/", "status/")):
+            href = target
+            if target.startswith("prompts/"):
+                href = "/" + target
+            elif target.startswith("status/"):
+                href = "/" + target
+            return f'<a href="{html.escape(href, quote=True)}">{label}</a>'
+        return label
+
+    escaped = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", link, escaped)
+    escaped = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", escaped)
+    escaped = re.sub(r"__([^_]+)__", r"<strong>\1</strong>", escaped)
+    escaped = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<em>\1</em>", escaped)
+    escaped = re.sub(r"(?<![\w_])_([^_]+)_(?![\w_])", r"<em>\1</em>", escaped)
+    for index, token in enumerate(code_tokens):
+        escaped = escaped.replace(f"\x00CODE{index}\x00", token)
+    return escaped
+
+def _markdown_to_html(markdown: str) -> str:
+    """Render headings, tables, links, lists and fenced code without a dependency."""
+    lines = markdown.replace("\r\n", "\n").split("\n")
+    output: list[str] = []
+    paragraph: list[str] = []
+    list_items: list[str] = []
+    table_rows: list[list[str]] = []
+    in_code = False
+    code_lines: list[str] = []
+
+    def flush_paragraph() -> None:
+        if paragraph:
+            text = " ".join(part.strip() for part in paragraph).strip()
+            if text:
+                output.append(f"<p>{_markdown_inline(text)}</p>")
+            paragraph.clear()
+
+    def flush_list() -> None:
+        if list_items:
+            output.append("<ul>" + "".join(f"<li>{item}</li>" for item in list_items) + "</ul>")
+            list_items.clear()
+
+    def flush_table() -> None:
+        if not table_rows:
+            return
+        header, *rows = table_rows
+        html_rows = ["<thead><tr>" + "".join(f"<th>{_markdown_inline(cell.strip())}</th>" for cell in header) + "</tr></thead>"]
+        if rows:
+            html_rows.append("<tbody>" + "".join("<tr>" + "".join(f"<td>{_markdown_inline(cell.strip())}</td>" for cell in row) + "</tr>" for row in rows) + "</tbody>")
+        output.append("<div class=\"doc-table-wrap\"><table>" + "".join(html_rows) + "</table></div>")
+        table_rows.clear()
+
+    def is_table_separator(text: str) -> bool:
+        cells = [cell.strip() for cell in text.strip().strip("|").split("|")]
+        return bool(cells) and all(re.fullmatch(r":?-{3,}:?", cell) for cell in cells)
+
+    for raw in lines:
+        line = raw.rstrip()
+        if line.startswith("```"):
+            flush_paragraph(); flush_list(); flush_table()
+            if in_code:
+                import html
+                output.append("<pre><code>" + html.escape("\n".join(code_lines), quote=False) + "</code></pre>")
+                code_lines.clear()
+                in_code = False
+            else:
+                in_code = True
+            continue
+        if in_code:
+            code_lines.append(line)
+            continue
+        if not line.strip():
+            flush_paragraph(); flush_list(); flush_table()
+            continue
+        heading = re.match(r"^(#{1,6})\s+(.+?)\s*#*$", line)
+        if heading:
+            flush_paragraph(); flush_list(); flush_table()
+            level = len(heading.group(1))
+            output.append(f"<h{level}>{_markdown_inline(heading.group(2))}</h{level}>")
+            continue
+        bullet = re.match(r"^\s*[-*+]\s+(.+)$", line)
+        if bullet:
+            flush_paragraph(); flush_table()
+            list_items.append(_markdown_inline(bullet.group(1)))
+            continue
+        if line.lstrip().startswith("|") and "|" in line.strip()[1:]:
+            flush_paragraph(); flush_list()
+            if is_table_separator(line):
+                continue
+            cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+            table_rows.append(cells)
+            continue
+        if table_rows:
+            flush_table()
+        paragraph.append(line)
+    if in_code:
+        import html
+        output.append("<pre><code>" + html.escape("\n".join(code_lines), quote=False) + "</code></pre>")
+    flush_paragraph(); flush_list(); flush_table()
+    return "".join(output)
 
 def document_page(slug: str, prompt_name: str | None = None) -> bytes | None:
     """Render a small readable evidence document without a markdown dependency."""
@@ -75,14 +193,22 @@ def document_page(slug: str, prompt_name: str | None = None) -> bytes | None:
         if prompt.parent != (ROOT / "prompts").resolve() or not prompt.is_file():
             return None
         title, body = prompt.name, f"<pre>{_html_escape(prompt.read_text())}</pre>"
+    elif slug == "status":
+        if not prompt_name or prompt_name not in STATUS_FILES:
+            return None
+        status = STATUS_FILES[prompt_name]
+        if not status.is_file():
+            return None
+        title, body = status.name, f"<pre>{_html_escape(status.read_text())}</pre>"
     else:
         path = DOCUMENT_FILES.get(slug)
         if path is None or not path.is_file():
             return None
-        title, body = path.name, f"<pre>{_html_escape(path.read_text())}</pre>"
+        title = path.name
+        body = _markdown_to_html(path.read_text()) if slug == "codex" else f"<pre>{_html_escape(path.read_text())}</pre>"
     nav = '<nav><a href="/">Page</a> · <a href="/codex">Codex log</a> · <a href="/prompts">Prompts</a> · <a href="/submission">Submission</a></nav>'
     return ("<!doctype html><meta charset=\"utf-8\"><title>" + _html_escape(title) +
-            " · Dry Run</title><style>body{max-width:960px;margin:40px auto;padding:0 20px;background:#07080a;color:#f4f5f6;font:15px/1.55 system-ui,sans-serif}a{color:#a8e23a}pre{white-space:pre-wrap;font:14px/1.6 ui-monospace,SFMono-Regular,monospace;background:#111419;padding:20px;border-radius:8px;overflow:auto}nav{margin-bottom:28px}</style>" +
+            " · Dry Run</title><style>body{max-width:960px;margin:40px auto;padding:0 20px;background:#07080a;color:#f4f5f6;font:15px/1.55 system-ui,sans-serif}a{color:#a8e23a}pre{white-space:pre-wrap;font:14px/1.6 ui-monospace,SFMono-Regular,monospace;background:#111419;padding:20px;border-radius:8px;overflow:auto}nav{margin-bottom:28px}h1,h2,h3{line-height:1.15;letter-spacing:-.02em}h1{font-size:36px}h2{font-size:25px;margin-top:38px}h3{font-size:19px;margin-top:28px}p{max-width:75ch}li{margin:5px 0}.doc-table-wrap{overflow-x:auto;margin:18px 0 24px}table{border-collapse:collapse;width:100%;font-size:14px}th,td{text-align:left;vertical-align:top;padding:9px 10px;border-bottom:1px solid #363a40}th{color:#a8e23a;font-weight:650}code{font:13px ui-monospace,SFMono-Regular,monospace;background:#111419;padding:2px 5px;border-radius:3px}</style>" +
             nav + f"<h1>{_html_escape(title)}</h1>" + body).encode()
 
 def commit() -> str:
@@ -496,6 +622,10 @@ class Handler(BaseHTTPRequestHandler):
             if prompt.parent != (ROOT / "prompts").resolve() or not prompt.is_file():
                 return self.send_json({"status": "unavailable", "message": "Prompt text is not attached."}, 404)
             return self.send_bytes(prompt.read_bytes(), "text/plain; charset=utf-8")
+        if path.startswith("/status/"):
+            name = path.rsplit("/", 1)[-1]
+            body = document_page("status", name)
+            return self.send_bytes(body, "text/html; charset=utf-8") if body else self.send_json({"status": "unavailable", "message": "Status document is not attached."}, 404)
         if path=="/api/score":
             payload = score_payload(snapshot())
             return self.send_json(payload, 200 if payload.get("status") in {None, "ok"} else 503)

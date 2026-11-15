@@ -36,7 +36,38 @@ image = (
 )
 
 
-@app.function(image=image, timeout=1800, cpu=4, gpu="T4", retries=2, volumes={"/runs": volume})
+def _stage_counts(events: list[dict]) -> dict[str, int]:
+    """Count unique bricks that reached each physical rollout stage."""
+
+    ids: dict[str, set[int]] = {
+        "reached": set(),
+        "grasped": set(),
+        "lifted": set(),
+        "presented": set(),
+        "dropped": set(),
+    }
+    names = {
+        "reach": "reached",
+        "grasp": "grasped",
+        "lift": "lifted",
+        "present": "presented",
+        "drop": "dropped",
+    }
+    for event in events or []:
+        if not isinstance(event, dict):
+            continue
+        stage = names.get(str(event.get("event")))
+        brick = event.get("brick")
+        if stage is None or brick is None:
+            continue
+        try:
+            ids[stage].add(int(brick))
+        except (TypeError, ValueError):
+            continue
+    return {stage: len(values) for stage, values in ids.items()}
+
+
+@app.function(image=image, timeout=1800, cpu=4, retries=2, volumes={"/runs": volume})
 def evaluate_seed(
     seed: int,
     tier: str = "loose",
@@ -58,6 +89,7 @@ def evaluate_seed(
     controller = ACTController(checkpoint, device="cuda" if torch.cuda.is_available() else "cpu")
     inspector = Inspector(inspector_model, threads=1)
     result = run(int(seed), controller, inspector=inspector, tier=tier, max_steps=int(max_steps))
+    stages = _stage_counts(result.get("events", []))
     row = {
         "format": "dryrun-policy-eval-row-v1",
         "source": "modal-map",
@@ -70,6 +102,10 @@ def evaluate_seed(
         "bricks": int(result.get("bricks", 0)),
         "successes": int(result.get("successes", 0)),
         "score": float(result.get("score", 0.0)),
+        "stages": {
+            **stages,
+            "right_bowl": int(result.get("successes", 0)),
+        },
     }
     store_key = f"{run_id}/{tier}/{int(seed):04d}"
     # Concurrent Volume commits are lossy fan-in. The checkpoint still comes

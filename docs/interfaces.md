@@ -22,10 +22,12 @@ accepts a PNG path or an `H x W x 3/4` NumPy drawing (RGBA alpha is preserved),
 places it on the visible face of a seeded brick at the inspection point, and
 returns the RGB `uint8[384,384,3]` frame to pass to `Inspector`.
 
-The rebuilt inspector shot uses `INSPECTION_PRESENT_POSE = [0.28, 0.0, 0.16]`
-metres and `INSPECTION_CAMERA_POSITION = [0.28, -0.10, 0.23]` metres: a
-0.122 m fixed camera distance, 34 degree field of view, and a 384x384 RGB
-frame. `render_inspection` and `render_inspection_frame` use the same camera
+The rebuilt inspector shot uses the prompt-020 brick centre
+`INSPECTION_PRESENT_POSE = [0.1715, -0.1009, 0.1300]` metres and
+`INSPECTION_CAMERA_POSITION = [0.1194, -0.1430, 0.2296]` metres: a fixed
+close camera with `xyaxes="0.6290 -0.7774 0 0.6449 0.5218 0.5584"`, 40 degree
+field of view, and a 384x384 RGB frame. `render_inspection` and
+`render_inspection_frame` use the same camera
 configuration; the rollout calls the latter after holding the brick at that
 pose. Both functions use a fixed brick crop: arm and bowl geometry remains in
 the physical rollout and top/free cameras, but is excluded from this crop so
@@ -87,7 +89,10 @@ diagnosis.
 
 `dryrun.stations.generate_and_check(...)` turns each plain sentence into MJCF,
 keeps every XML and rejection reason in its JSONL record, and optionally sends
-accepted stations through the shared `dryrun.render.rollout` expert API.
+accepted stations through the public `dryrun.rollout.run` expert API. The
+worker passes the checked XML as `station_path` together with the sentence, so
+the expert runs exactly the station that passed the load, intersection, IK and
+camera checks rather than regenerating a tier scene.
 
 The page's `POST /api/stations` accepts a sentence of at most 300 characters
 and inserts `station_requests`; it never treats the sentence as a command.
@@ -132,8 +137,28 @@ scored on the fixed held-out set.
 
 ## Analyst/session request
 
-Loose-tier scenes use the normal seeded sentence contract: `layout_bricks(seed, TIERS["loose"])` returns 3–8 bricks with seed-dependent positions, sizes, colours, defects and symmetry-equivalent yaw branches. The benchmark never edits generated XML or positions. `data/reach_map_polar.json` is the measured physics pick/lift map; only cells with at least 95% measured pick rate are eligible, and closed-form pad IK rejects cells outside a 5% joint-limit margin at pickup and presentation.
+Loose-tier scenes use the normal seeded sentence contract: `layout_bricks(seed, TIERS["loose"])` returns 3–7 bricks with seed-dependent positions, sizes, colours, defects and symmetry-equivalent yaw branches. The benchmark never edits generated XML or positions. The Prompt 021 reference expert plans clear grasps from live MuJoCo geometry with scratch-state IK.
 
 ## Main request after loose-tier review
 
-Loose is not valid when a benchmark edits an XML position or repeats one brick. The station owner must expose seed-driven 3–8 brick loose scenes, with both sizes and yaw, whose placements come from the measured polar reach map. Main will consume those specs unchanged; the benchmark must not patch positions. The closed-form SO-101 IK and numeric cross-check should define the accepted work-area cells and the present pose before new loose results are published.
+Loose is not valid when a benchmark edits an XML position or repeats one brick. The station owner exposes seed-driven 3–7 brick loose scenes, with both sizes and yaw, inside the measured polar envelope. Main consumes those specs unchanged; the benchmark must not patch positions.
+
+## Measured loose expert recipe (prompt 019)
+
+`dryrun.expert.MeasuredExpert` is the single reference expert used through `StationEnv.step`. Its TCP is `(0.0225, 0, -0.086)` in the gripper body; fixed cycle targets use the measured neutral, presentation, and bowl-drop poses. Events are physical `grasp`, `lift`, `present`, `drop`, `miss`, `slip`, `ik_fail`, and `unstable` rows with brick and simulator time.
+
+Loose scenes are 3–7 seeded bricks in radius `0.12–0.24 m`, azimuth `±0.85 rad` about `(0.0388, 0)`, with 78 mm/95 mm centre spacing and side bowls at `(-0.0093, ±0.2657)`. The expert only queues bricks with a clear geometry-and-IK grasp plan. The exact pad and contact values are in the vendored SO-101 XML and `status/M1.md`.
+
+## Modal mapped policy and demo records
+
+`modal/rollouts.py` fans expert seeds out with `rollout_seed.map`. Each task
+stores a `dryrun-demo-shards` Dict value keyed by `run_id/tier/seed`; successful
+cycle frames contain the public top and inspection images (JPEG), six-joint
+state, six-joint target action, verdict and event tail. The local entrypoint
+writes a manifest and JSONL rows under `/bulk3/runs/dryrun/m4/modal-map/`.
+`modal/merge_demos.py` is the single writer that converts those values into a
+LeRobot 0.7 dataset on the `dryrun-demos` volume. `modal/policy_eval.py` uses
+the same `.map` fan-out and writes one row per seed to the `dryrun-policy-rows`
+Dict, with `--download` materializing rows under the same `/bulk3` run
+directory. A bounded map is infrastructure evidence only; no short-horizon
+or archived expert result is a held-out benchmark score.

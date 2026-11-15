@@ -11,7 +11,7 @@ from lerobot.configs.types import PolicyFeature, FeatureType
 ROOT = Path("/bulk3/runs/dryrun/m4")
 
 
-def act_config() -> ACTConfig:
+def act_config(chunk_size: int = 4) -> ACTConfig:
     features = {
         "observation.images.top": PolicyFeature(FeatureType.VISUAL, (3, 64, 64)),
         "observation.images.inspection": PolicyFeature(FeatureType.VISUAL, (3, 64, 64)),
@@ -20,7 +20,7 @@ def act_config() -> ACTConfig:
     return ACTConfig(
         input_features=features,
         output_features={"action": PolicyFeature(FeatureType.ACTION, (6,))},
-        chunk_size=4, n_action_steps=1, use_vae=False,
+        chunk_size=int(chunk_size), n_action_steps=1, use_vae=False,
         pretrained_backbone_weights=None, dim_model=64, n_heads=4,
         n_encoder_layers=1, n_decoder_layers=1, dim_feedforward=128,
         n_vae_encoder_layers=1, optimizer_lr=2e-4, push_to_hub=False,
@@ -69,7 +69,8 @@ def train(dataset: str | Path, *, out: Path = ROOT, epochs: int = 2, batch_size:
 
 def load_policy(checkpoint: str | Path, device: str = "cpu"):
     blob = torch.load(checkpoint, map_location=device, weights_only=False)
-    policy = ACTPolicy(act_config()).to(device); policy.load_state_dict(blob["state_dict"]); policy.eval(); return policy
+    policy = ACTPolicy(act_config(int(blob.get("chunk_size", 4)))).to(device)
+    policy.load_state_dict(blob["state_dict"]); policy.eval(); return policy
 
 
 def main():

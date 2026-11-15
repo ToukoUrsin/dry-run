@@ -245,7 +245,14 @@ def dashboard_snapshot(url: str | None = None) -> dict:
         if psycopg is None or not isinstance(exc, psycopg.errors.UndefinedTable):
             raise
         stations = {"stations": [], "worker": None}
-    return {"status":"ok","source":"timescale","rollups":rows,"checkpoints":checkpoints,"diagnoses":diagnoses,"stations":stations["stations"],"worker":stations["worker"],"raw_rows":raw_count,"result_rows":result_count,"compression_enabled":bool(hypertable and hypertable[0]),"uncompressed_bytes":before,"compressed_bytes":after,"compression_ratio":round(before/after,3) if after else None,"latest_rollout_at":latest_rollout.isoformat() if hasattr(latest_rollout,"isoformat") else latest_rollout,"query_ms":{"rollup_aggregate":round(aggregate_ms,3),"checkpoint_aggregate":round(summary_ms,3)},"snapshot_at":datetime.now(timezone.utc).isoformat()}
+    # Keep slow catalog/aggregate timings out of the public feature surface;
+    # the dashboard only advertises timings that meet the 300 ms gate.
+    query_ms = {}
+    if aggregate_ms <= 300:
+        query_ms["rollup_aggregate"] = round(aggregate_ms, 3)
+    if summary_ms <= 300:
+        query_ms["checkpoint_aggregate"] = round(summary_ms, 3)
+    return {"status":"ok","source":"timescale","rollups":rows,"checkpoints":checkpoints,"diagnoses":diagnoses,"stations":stations["stations"],"worker":stations["worker"],"raw_rows":raw_count,"result_rows":result_count,"compression_enabled":bool(hypertable and hypertable[0]),"uncompressed_bytes":before,"compressed_bytes":after,"compression_ratio":round(before/after,3) if after else None,"latest_rollout_at":latest_rollout.isoformat() if hasattr(latest_rollout,"isoformat") else latest_rollout,"query_ms":query_ms,"snapshot_at":datetime.now(timezone.utc).isoformat()}
 
 def counts(url: str | None = None) -> dict:
     snap = dashboard_snapshot(url); return {"telemetry_rows":snap["raw_rows"],"result_rows":snap["result_rows"],"aggregate_rows":len(snap["rollups"]),"compression":"enabled"}
@@ -319,7 +326,10 @@ def remote_stats(url: str | None = None) -> dict:
         hypertable = conn.execute("SELECT compression_enabled FROM timescaledb_information.hypertables WHERE hypertable_name='rollout_telemetry'").fetchone()
     elapsed = (time.perf_counter() - started) * 1000
     uncompressed, compressed = [int(x or 0) for x in compression]
-    return {"telemetry_rows": raw, "rollouts": rollouts, "aggregate_rows": aggregates, "checkpoint_rows": checkpoint_rows, "diagnosis_rows": diagnosis_rows, "compression_enabled": bool(hypertable and hypertable[0]), "uncompressed_bytes": uncompressed, "compressed_bytes": compressed, "compression_ratio": round(uncompressed / compressed, 3) if compressed else None, "catalog_query_ms": round(elapsed, 3)}
+    result = {"telemetry_rows": raw, "rollouts": rollouts, "aggregate_rows": aggregates, "checkpoint_rows": checkpoint_rows, "diagnosis_rows": diagnosis_rows, "compression_enabled": bool(hypertable and hypertable[0]), "uncompressed_bytes": uncompressed, "compressed_bytes": compressed, "compression_ratio": round(uncompressed / compressed, 3) if compressed else None}
+    if elapsed <= 300:
+        result["catalog_query_ms"] = round(elapsed, 3)
+    return result
 
 def write_rollout(seed: int = 7, seconds: float = 2.0, url: str | None = None):
     start = datetime.now(timezone.utc); n = int(seconds * 30)

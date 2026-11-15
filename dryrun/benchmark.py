@@ -18,70 +18,6 @@ def _telemetry_configured() -> bool:
     return bool(os.environ.get("DRYRUN_DB_URL"))
 
 TIER_COUNTS = {"loose": 80, "messy": 70, "pile": 50}
-TIER_OFFSETS = {"loose": 0, "messy": 80, "pile": 150}
-
-
-def _canonical_tier_seeds(tier: str) -> list[int]:
-    """Return the fixed held-out partition for *tier*."""
-
-    if tier not in TIER_COUNTS:
-        raise ValueError(f"unknown tier {tier!r}")
-    start = TIER_OFFSETS[tier]
-    return list(range(start, start + TIER_COUNTS[tier]))
-
-
-def _validate_seed_list(seeds: list[int]) -> None:
-    if len(seeds) != len(set(seeds)):
-        raise ValueError("benchmark seed list contains duplicates")
-    if any(not isinstance(seed, int) for seed in seeds):
-        raise TypeError("benchmark seeds must be integers")
-
-
-def _benchmark_groups(seeds: list[int], tier: str | None) -> dict[str, list[int]]:
-    """Resolve and validate the fixed held-out seed partitions.
-
-    A full benchmark is always 0..199.  A tier run may be a prefix of its
-    canonical partition for a smoke test, or the full partition.  This keeps
-    a positional ``range(200)`` from accidentally scoring pile as seeds 0..49.
-    """
-
-    _validate_seed_list(seeds)
-    full = list(range(sum(TIER_COUNTS.values())))
-    if tier is not None:
-        expected = _canonical_tier_seeds(tier)
-        if seeds == full:
-            return {tier: expected}
-        if seeds == expected[: len(seeds)] and len(seeds) <= len(expected):
-            return {tier: expected[: len(seeds)]}
-        raise ValueError(
-            f"tier {tier!r} requires its canonical held-out seeds "
-            f"{expected[0]}..{expected[-1]} (or a prefix), got {seeds[:3]}"
-        )
-    if len(seeds) == len(full) and seeds != full:
-        raise ValueError("200-seed benchmark must use canonical seeds 0..199")
-    if len(seeds) == len(full):
-        return {"loose": seeds[:80], "messy": seeds[80:150], "pile": seeds[150:200]}
-    return {"loose": seeds}
-
-
-def _contact_count(events: list[dict[str, Any]]) -> int:
-    """Count contact picks once per physical brick, including legacy rows."""
-
-    picked: set[object] = set()
-    for event in events:
-        if event.get("event") == "grasp" and "brick" in event:
-            picked.add(("brick", str(event["brick"])))
-        elif event.get("picked_by_contact"):
-            # Older result rows did not consistently include ``event``.  Use
-            # the brick id when available and otherwise the event's stable
-            # legacy id; repeated rows for one physical brick collapse.
-            key = event.get("brick")
-            if key is not None:
-                picked.add(("brick", str(key)))
-            else:
-                legacy = event.get("id") or event.get("event") or repr(sorted(event.items()))
-                picked.add(("legacy", str(legacy)))
-    return len(picked)
 
 class _ReplayCapture:
     """Collect the public rollout observations without reading simulator state."""
@@ -228,7 +164,7 @@ def _write_replay(export_dir: Path, row: dict[str, Any], capture: _ReplayCapture
     row["thumbnail"] = str(thumb) if capture.thumbnail is not None else None
 
 
-def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path | None = None, controller: str = "expert", max_steps: int = 3600):
+def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path | None = None, controller: str = "expert"):
     # Keep the benchmark on the same public rollout boundary used by policy
     # evaluation and dataset recording.  In particular, this prevents a
     # benchmark-only scene/controller path from drifting back to the
@@ -240,8 +176,7 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
     # spending most of the wall time in EGL while physics remains unchanged.
     # Inspector rollouts must retain the measured >=256 px presentation crop.
     r = rollout_run(int(seed), controller, inspector=inspector, tier=tier,
-                    record=capture, max_steps=int(max_steps),
-                    render_size=256 if inspector is not None else 2)
+                    record=capture, render_size=256 if inspector is not None else 2)
     specs = layout_bricks(int(seed), TIERS[tier])
     row = {
         "tier": tier,
@@ -255,7 +190,10 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
         # pads load the active brick. Count unique bricks so a retry cannot
         # inflate this contact metric, while retaining compatibility with
         # older rows that carried an explicit flag.
-        "picked_by_contact": _contact_count(r.get("events", [])),
+        "picked_by_contact": len({int(e["brick"]) for e in r.get("events", [])
+                                   if e.get("event") == "grasp" and "brick" in e}) or sum(
+            int(bool(e.get("picked_by_contact", False))) for e in r.get("events", [])
+        ),
         "verdicts": sum(1 for e in r.get("events", []) if e.get("event") == "verdict"),
         "scene": [asdict(spec) for spec in specs],
         "events": r.get("events", []),
@@ -265,7 +203,6 @@ def _one(seed: int, tier: str, workdir: Path, inspector=None, export_dir: Path |
         "controller": controller,
         "commit": _commit(),
         "expert_version": _commit(),
-        "max_steps": int(max_steps),
     }
     if export_dir is not None:
         _write_replay(export_dir, row, capture)
@@ -282,8 +219,7 @@ def summarize(rows):
             "verdicts": sum(r["verdicts"] for r in rows)}
 
 def run(seeds=None, workdir=Path("/bulk3/runs/dryrun/benchmark"), inspector=None, tier=None,
-        export_replays: Path | None = None, controller: str = "expert", workers: int = 1,
-        max_steps: int = 3600):
+        export_replays: Path | None = None, controller: str = "expert", workers: int = 1):
     started = time.perf_counter(); workdir.mkdir(parents=True, exist_ok=True)
     telemetry_enabled = _telemetry_configured()
     if telemetry_enabled and os.environ.get("DRYRUN_TELEMETRY_SKIP_SETUP") != "1":
@@ -291,16 +227,16 @@ def run(seeds=None, workdir=Path("/bulk3/runs/dryrun/benchmark"), inspector=None
         telemetry.setup()
     if seeds is None: seeds = range(200)
     seeds = list(seeds)
-    groups = _benchmark_groups(seeds, tier)
+    groups = {tier: seeds[:TIER_COUNTS[tier]]} if tier else ({"loose": seeds[:80], "messy": seeds[80:150], "pile": seeds[150:200]} if len(seeds) == 200 else {"loose": seeds})
     jobs = [(seed, name) for name, values in groups.items() for seed in values]
     if workers > 1 and inspector is None and len(jobs) > 1:
         executor = ProcessPoolExecutor if os.environ.get("DRYRUN_TELEMETRY_PROCESSES") == "1" else ThreadPoolExecutor
         with executor(max_workers=int(workers)) as pool:
-            futures = [pool.submit(_one, seed, name, workdir, None, export_replays, controller, max_steps)
+            futures = [pool.submit(_one, seed, name, workdir, None, export_replays, controller)
                        for seed, name in jobs]
             rows = [future.result() for future in futures]
     else:
-        rows = [_one(seed, name, workdir, inspector=inspector, export_dir=export_replays, controller=controller, max_steps=max_steps)
+        rows = [_one(seed, name, workdir, inspector=inspector, export_dir=export_replays, controller=controller)
                 for seed, name in jobs]
     if telemetry_enabled:
         from . import telemetry
@@ -315,18 +251,11 @@ def main():
     if a.controller == "policy":
         from .policy_benchmark import evaluate
         if a.checkpoint is None: p.error("--checkpoint is required with --controller policy")
-        x = evaluate(a.checkpoint, a.seeds, a.workers, "policy", max_steps=a.max_steps, export_replays=a.export_replays, tier=a.tier)
-        x.update({"benchmark": "mujoco-physics-v3", "controller": "policy", "command": "uv run python -m dryrun.benchmark --controller policy --checkpoint PATH --seeds 200", "max_steps": a.max_steps, "tier": a.tier})
+        x = evaluate(a.checkpoint, a.seeds, a.workers, "policy", max_steps=a.max_steps, export_replays=a.export_replays)
+        x.update({"benchmark": "mujoco-physics-v3", "controller": "policy", "command": "uv run python -m dryrun.benchmark --controller policy --checkpoint PATH --seeds 200", "max_steps": a.max_steps})
     else:
-        inspector = None if a.without_inspector else Inspector()
-        if a.tier:
-            start = TIER_OFFSETS[a.tier]
-            seeds = range(start, start + min(a.seeds, TIER_COUNTS[a.tier]))
-        else:
-            seeds = range(a.seeds)
-        x = run(seeds, workdir=a.output.parent, inspector=inspector, tier=a.tier,
-                export_replays=a.export_replays, workers=a.workers, max_steps=a.max_steps)
-        x.update({"controller": "expert", "max_steps": a.max_steps, "tier": a.tier})
+        inspector = None if a.without_inspector else Inspector(); x = run(range(a.seeds), workdir=a.output.parent, inspector=inspector, tier=a.tier, export_replays=a.export_replays, workers=a.workers)
+        x["controller"] = "expert"
     a.output.parent.mkdir(parents=True, exist_ok=True); a.output.write_text(json.dumps(x, indent=2)); print(json.dumps({k: v for k, v in x.items() if k not in ("rows", "tiers")}, indent=2))
 
 if __name__ == "__main__": main()

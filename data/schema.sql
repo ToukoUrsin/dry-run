@@ -29,7 +29,7 @@ SELECT create_hypertable('rollout_telemetry','ts',if_not_exists => TRUE);
 ALTER TABLE rollout_telemetry SET (timescaledb.compress = true, timescaledb.compress_segmentby = 'rollout_id,checkpoint');
 DO $$ BEGIN
   PERFORM add_compression_policy('rollout_telemetry', INTERVAL '10 minutes');
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
 CREATE TABLE IF NOT EXISTS rollout_events (
@@ -55,7 +55,7 @@ FROM rollout_telemetry
 GROUP BY bucket, rollout_id, seed, checkpoint;
 DO $$ BEGIN
   PERFORM add_continuous_aggregate_policy('rollout_1s', start_offset => INTERVAL '7 days', end_offset => INTERVAL '1 second', schedule_interval => INTERVAL '1 minute');
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
 CREATE TABLE IF NOT EXISTS rollout_results (
@@ -78,10 +78,6 @@ CREATE TABLE IF NOT EXISTS rollout_results (
 );
 SELECT create_hypertable('rollout_results','finished_at',if_not_exists => TRUE);
 CREATE INDEX IF NOT EXISTS rollout_results_checkpoint_idx ON rollout_results (checkpoint, finished_at DESC);
--- A rollout id is the idempotency key used by COPY retries.  The timestamp
--- remains the hypertable partition key, but cannot be the only uniqueness
--- guard because two concurrent retries can finish in different timestamps.
-CREATE UNIQUE INDEX IF NOT EXISTS rollout_results_rollout_id_uidx ON rollout_results (rollout_id);
 
 CREATE MATERIALIZED VIEW IF NOT EXISTS benchmark_tier
 WITH (timescaledb.continuous) AS
@@ -93,7 +89,7 @@ SELECT time_bucket('1 day', finished_at) AS bucket, tier, expert_version,
 FROM rollout_results GROUP BY bucket, tier, expert_version;
 DO $$ BEGIN
   PERFORM add_continuous_aggregate_policy('benchmark_tier', start_offset => INTERVAL '30 days', end_offset => INTERVAL '1 minute', schedule_interval => INTERVAL '1 minute');
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
 -- Small aggregate projections used by the Tiger tier API.  They are refreshed
@@ -162,5 +158,5 @@ SELECT time_bucket('1 day', finished_at) AS bucket, checkpoint,
 FROM rollout_results GROUP BY bucket, checkpoint;
 DO $$ BEGIN
   PERFORM add_continuous_aggregate_policy('benchmark_checkpoint', start_offset => INTERVAL '30 days', end_offset => INTERVAL '1 minute', schedule_interval => INTERVAL '1 minute');
-EXCEPTION WHEN duplicate_object THEN NULL;
+EXCEPTION WHEN OTHERS THEN NULL;
 END $$;

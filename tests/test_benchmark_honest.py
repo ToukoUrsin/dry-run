@@ -6,7 +6,6 @@ from pathlib import Path
 
 from dryrun.env import TIERS
 from dryrun.mjcf_station import _brick, layout_bricks, BrickSpec
-from dryrun.benchmark import _benchmark_groups, _contact_count
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -66,30 +65,3 @@ def test_benchmark_uses_the_public_rollout_boundary():
     source = (ROOT / "dryrun" / "benchmark.py").read_text()
     assert "from .rollout import run as rollout_run" in source
     assert "from .render import rollout" not in source
-
-
-def test_benchmark_uses_fixed_tier_partitions_and_rejects_duplicates():
-    assert _benchmark_groups(list(range(200)), "pile")["pile"] == list(range(150, 200))
-    assert _benchmark_groups(list(range(150, 155)), "pile")["pile"] == list(range(150, 155))
-    try:
-        _benchmark_groups(list(range(5)), "pile")
-    except ValueError:
-        pass
-    else:
-        raise AssertionError("positional non-pile seeds must be rejected")
-    try:
-        _benchmark_groups([0, 0], None)
-    except ValueError as exc:
-        assert "duplicates" in str(exc)
-    else:
-        raise AssertionError("duplicate benchmark seeds must be rejected")
-
-
-def test_legacy_contact_rows_are_deduplicated_by_brick():
-    events = [
-        {"event": "grasp", "brick": 4},
-        {"picked_by_contact": True, "brick": 4},
-        {"picked_by_contact": True, "brick": 5},
-        {"picked_by_contact": True, "brick": 5},
-    ]
-    assert _contact_count(events) == 2

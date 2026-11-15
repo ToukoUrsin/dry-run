@@ -222,7 +222,7 @@ def run(seeds=None, workdir=Path("/bulk3/runs/dryrun/benchmark"), inspector=None
         export_replays: Path | None = None, controller: str = "expert", workers: int = 1):
     started = time.perf_counter(); workdir.mkdir(parents=True, exist_ok=True)
     telemetry_enabled = _telemetry_configured()
-    if telemetry_enabled:
+    if telemetry_enabled and os.environ.get("DRYRUN_TELEMETRY_SKIP_SETUP") != "1":
         from . import telemetry
         telemetry.setup()
     if seeds is None: seeds = range(200)

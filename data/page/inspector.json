@@ -1,0 +1,181 @@
+{
+  "schema": "dryrun.page.inspector.v1",
+  "updated_utc": "2026-11-15T01:16:03.267133+00:00",
+  "commit": "da3b8ce28feaa3b919247642eee074ab9701a710",
+  "summary": "Fresh real expert crops from 545 paired bricks: 251 defects detected, while the synthetic-only model rejected 294 good bricks.",
+  "model": {
+    "path": "/bulk3/runs/dryrun/m2_rebuild/models_prompt020_full/PatchCore/openvino/weights/openvino/dryrun_inspector_prompt020_full.xml",
+    "family": "PatchCore wide_resnet50_2",
+    "training_frames": 1600,
+    "training_source": "posed synthetic good renders at prompt-020 measured camera",
+    "threshold": 0.5057811737060547,
+    "openvino": "OpenVINO"
+  },
+  "test": {
+    "source": "real expert present frames",
+    "rollouts": 110,
+    "bricks": 545,
+    "frames": 1090,
+    "frames_per_brick": "two (present A and B)",
+    "confusion": {
+      "actual_good_pred_good": 0,
+      "actual_good_pred_defective": 294,
+      "actual_defective_pred_good": 0,
+      "actual_defective_pred_defective": 251
+    },
+    "false_accept_percent": 0.0,
+    "false_reject_percent": 100.0,
+    "held_out_defects": [
+      "chipped_stud",
+      "missing_stud"
+    ],
+    "recall_by_defect": [
+      {
+        "defect": "chipped_stud",
+        "n": 39,
+        "recall": 1.0,
+        "held_out": true
+      },
+      {
+        "defect": "discolouring",
+        "n": 47,
+        "recall": 1.0,
+        "held_out": false
+      },
+      {
+        "defect": "dot",
+        "n": 40,
+        "recall": 1.0,
+        "held_out": false
+      },
+      {
+        "defect": "missing_stud",
+        "n": 44,
+        "recall": 1.0,
+        "held_out": true
+      },
+      {
+        "defect": "scribble",
+        "n": 37,
+        "recall": 1.0,
+        "held_out": false
+      },
+      {
+        "defect": "sticker",
+        "n": 44,
+        "recall": 1.0,
+        "held_out": false
+      }
+    ],
+    "not_visible": {
+      "count": 0,
+      "defect_types": [],
+      "label": "not visible",
+      "reason": "The seeded loose generator contains only visible top-face marks; no under-pad or bottom-only defect was generated in this run."
+    }
+  },
+  "latency": {},
+  "examples": [
+    {
+      "image": "web/static/evidence/inspector/real-00.webp",
+      "seed": 12000,
+      "brick_body": 12,
+      "pose": "a",
+      "truth": "none",
+      "verdict": "defective",
+      "score": 0.6915009617805481,
+      "threshold": 0.5057811737060547,
+      "anomaly_map": "right half of image",
+      "source_frame": "/bulk3/runs/dryrun/m2_rebuild/real_frames_shortloop/seed-12000/present-brick-12-a.png"
+    },
+    {
+      "image": "web/static/evidence/inspector/real-01.webp",
+      "seed": 12003,
+      "brick_body": 16,
+      "pose": "a",
+      "truth": "scribble",
+      "verdict": "defective",
+      "score": 0.6730180382728577,
+      "threshold": 0.5057811737060547,
+      "anomaly_map": "right half of image",
+      "source_frame": "/bulk3/runs/dryrun/m2_rebuild/real_frames_shortloop/seed-12003/present-brick-16-a.png"
+    },
+    {
+      "image": "web/static/evidence/inspector/real-02.webp",
+      "seed": 12000,
+      "brick_body": 13,
+      "pose": "a",
+      "truth": "dot",
+      "verdict": "defective",
+      "score": 0.7419669032096863,
+      "threshold": 0.5057811737060547,
+      "anomaly_map": "right half of image",
+      "source_frame": "/bulk3/runs/dryrun/m2_rebuild/real_frames_shortloop/seed-12000/present-brick-13-a.png"
+    },
+    {
+      "image": "web/static/evidence/inspector/real-03.webp",
+      "seed": 12001,
+      "brick_body": 12,
+      "pose": "a",
+      "truth": "sticker",
+      "verdict": "defective",
+      "score": 0.9645504355430603,
+      "threshold": 0.5057811737060547,
+      "anomaly_map": "right half of image",
+      "source_frame": "/bulk3/runs/dryrun/m2_rebuild/real_frames_shortloop/seed-12001/present-brick-12-a.png"
+    },
+    {
+      "image": "web/static/evidence/inspector/real-04.webp",
+      "seed": 12000,
+      "brick_body": 14,
+      "pose": "a",
+      "truth": "discolouring",
+      "verdict": "defective",
+      "score": 0.6788772940635681,
+      "threshold": 0.5057811737060547,
+      "anomaly_map": "right half of image",
+      "source_frame": "/bulk3/runs/dryrun/m2_rebuild/real_frames_shortloop/seed-12000/present-brick-14-a.png"
+    },
+    {
+      "image": "web/static/evidence/inspector/real-05.webp",
+      "seed": 12003,
+      "brick_body": 17,
+      "pose": "a",
+      "truth": "chipped_stud",
+      "verdict": "defective",
+      "score": 0.803414523601532,
+      "threshold": 0.5057811737060547,
+      "anomaly_map": "right half of image",
+      "source_frame": "/bulk3/runs/dryrun/m2_rebuild/real_frames_shortloop/seed-12003/present-brick-17-a.png"
+    },
+    {
+      "image": "web/static/evidence/inspector/real-06.webp",
+      "seed": 12002,
+      "brick_body": 14,
+      "pose": "a",
+      "truth": "missing_stud",
+      "verdict": "defective",
+      "score": 0.8439554572105408,
+      "threshold": 0.5057811737060547,
+      "anomaly_map": "right half of image",
+      "source_frame": "/bulk3/runs/dryrun/m2_rebuild/real_frames_shortloop/seed-12002/present-brick-14-a.png"
+    },
+    {
+      "image": "web/static/evidence/inspector/real-07.webp",
+      "seed": 12000,
+      "brick_body": 12,
+      "pose": "b",
+      "truth": "none",
+      "verdict": "defective",
+      "score": 0.8243308067321777,
+      "threshold": 0.5057811737060547,
+      "anomaly_map": "right half of image",
+      "source_frame": "/bulk3/runs/dryrun/m2_rebuild/real_frames_shortloop/seed-12000/present-brick-12-b.png"
+    }
+  ],
+  "modes": [],
+  "earlier": {
+    "artifact": "/bulk3/runs/dryrun/m2_rebuild/evaluation_prompt020_freeze.json",
+    "summary": "Short-fit model on the current camera reached AUROC 0.9005 with 22.83% false rejects on a 700-frame synthetic test; it was not used as a benchmark."
+  }
+}

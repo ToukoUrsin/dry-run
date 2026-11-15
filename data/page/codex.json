@@ -1,0 +1,27 @@
+{
+  "updated_utc": "2026-11-15T01:16:43Z",
+  "commit": "87130ca",
+  "summary": "Five Codex sessions turned a rejected first pass into a measured replay page with 33 supervisor prompts recorded.",
+  "supervisor_prompts": 33,
+  "sessions": [
+    {"name": "geometry", "model": "gpt-6-astra", "effort": "ultra", "hours": 2.0, "commits": ["spatial validation"]},
+    {"name": "inspector", "model": "gpt-6.1-sol", "effort": "high", "hours": 2.0, "commits": ["98999806"]},
+    {"name": "policy", "model": "gpt-6.1-sol", "effort": "high", "hours": 2.0, "commits": ["8d7ed4e"]},
+    {"name": "analyst", "model": "gpt-6.1-sol", "effort": "high", "hours": 2.0, "commits": ["0d0b556"]},
+    {"name": "page", "model": "gpt-6.1-sol", "effort": "ultra", "hours": 5.0, "commits": ["87130ca"]}
+  ],
+  "features": [
+    {"name": "recorded body-pose replay", "evidence": "MuJoCo-exported GLB plus replay frames"},
+    {"name": "aggregate telemetry", "evidence": "Tiger Timescale snapshot and query timings"},
+    {"name": "failure gallery", "evidence": "300 saved Nemotron diagnosis rows"},
+    {"name": "sentence stations", "evidence": "36 checked station layouts"}
+  ],
+  "timeline": [
+    {"utc": "2026-11-14T18:05:00Z", "event": "first page pass rejected"},
+    {"utc": "2026-11-14T19:00:00Z", "event": "rollout API connected"},
+    {"utc": "2026-11-14T22:10:00Z", "event": "measured recipe landed"},
+    {"utc": "2026-11-14T23:22:00Z", "event": "first sorted brick and 382/382 loose result", "commit": "64c4919"},
+    {"utc": "2026-11-15T00:45:00Z", "event": "push and 3–12 scene contract", "commit": "0d0b556"}
+  ],
+  "boundary": "The grasp recipe and two reference experts were prototyped by the supervising agent outside Codex (prompts/019, 021, 027)."
+}

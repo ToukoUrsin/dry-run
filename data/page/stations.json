@@ -1,0 +1,14 @@
+{
+  "updated_utc": "2026-11-15T01:16:43Z",
+  "commit": "0d0b556",
+  "summary": "The sentence station batch accepted 32 of 36 layouts after intersection, reach, and camera checks.",
+  "attempted": 36,
+  "accepted": 32,
+  "rejected": 4,
+  "rejected_by_reason": {"rest_intersection": 4},
+  "items": [
+    {"seed": 9000, "sentence": "a loose grid of bricks, good and defective bowls behind the arm, inspection camera on the left", "checks": ["MJCF loaded", "no intersections", "reach", "camera coverage"]},
+    {"seed": 9001, "sentence": "a loose grid of bricks, good and defective bowls behind the arm, inspection camera on the right", "checks": ["MJCF loaded", "no intersections", "reach", "camera coverage"]},
+    {"seed": 9002, "sentence": "a loose grid of bricks, good and defective bowls behind the arm, inspection camera in front", "checks": ["MJCF loaded", "no intersections", "reach", "camera coverage"]}
+  ]
+}

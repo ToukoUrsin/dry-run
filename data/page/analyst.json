@@ -1,0 +1,17 @@
+{
+  "updated_utc": "2026-11-15T01:16:43Z",
+  "commit": "0d0b556",
+  "summary": "Nemotron analysed 300 recorded loose failures; stage accuracy was 9.0% and combined stage-plus-cause accuracy was 4.5%.",
+  "model": "NVIDIA Nemotron",
+  "failures_analysed": 300,
+  "frame_px": [448, 448],
+  "accuracy": {"stage": 0.09, "cause": 0.0, "combined": 0.045},
+  "examples": [
+    {"id": "pile-1000-00", "image": "/static/evidence/nemotron/pile-1000-00.webp", "simulator_stage": "no_clear_grasp"},
+    {"id": "pile-1000-01", "image": "/static/evidence/nemotron/pile-1000-01.webp", "simulator_stage": "no_clear_grasp"},
+    {"id": "pile-1000-02", "image": "/static/evidence/nemotron/pile-1000-02.webp", "simulator_stage": "no_clear_grasp"},
+    {"id": "pile-1001-00", "image": "/static/evidence/nemotron/pile-1001-00.webp", "simulator_stage": "no_clear_grasp"},
+    {"id": "pile-1001-01", "image": "/static/evidence/nemotron/pile-1001-01.webp", "simulator_stage": "no_clear_grasp"},
+    {"id": "pile-1001-02", "image": "/static/evidence/nemotron/pile-1001-02.webp", "simulator_stage": "no_clear_grasp"}
+  ]
+}

@@ -48,6 +48,42 @@ REACH_MAP_ARTIFACT = ROOT / "data" / "reach_map_polar.json"
 EVIDENCE_DIR = Path(os.environ.get("DRYRUN_EVIDENCE_DIR", str(RUNS / "page-assets/failure-previews")))
 PAGE_DATA_DIR = ROOT / "data" / "page"
 STATIC_DIR = WEB / "static"
+DOCUMENT_FILES = {
+    "codex": ROOT / "CODEX.md",
+    "submission": ROOT / "SUBMISSION.md",
+    "morning": ROOT / "MORNING.md",
+}
+
+def _html_escape(value: str) -> str:
+    import html
+    return html.escape(str(value), quote=True)
+
+def document_page(slug: str, prompt_name: str | None = None) -> bytes | None:
+    """Render a small readable evidence document without a markdown dependency."""
+    if slug == "prompts":
+        prompt_dir = ROOT / "prompts"
+        links = []
+        if prompt_dir.is_dir():
+            for prompt in sorted(prompt_dir.glob("*.md")):
+                name = prompt.name
+                links.append(f'<li><a href="/prompts/{_html_escape(name)}">{_html_escape(name)}</a></li>')
+        title, body = "Supervisor prompts", "<ul>" + "".join(links) + "</ul>"
+    elif slug == "prompt":
+        if not prompt_name or not re.fullmatch(r"[A-Za-z0-9_-]+\.md", prompt_name):
+            return None
+        prompt = (ROOT / "prompts" / prompt_name).resolve()
+        if prompt.parent != (ROOT / "prompts").resolve() or not prompt.is_file():
+            return None
+        title, body = prompt.name, f"<pre>{_html_escape(prompt.read_text())}</pre>"
+    else:
+        path = DOCUMENT_FILES.get(slug)
+        if path is None or not path.is_file():
+            return None
+        title, body = path.name, f"<pre>{_html_escape(path.read_text())}</pre>"
+    nav = '<nav><a href="/">Page</a> · <a href="/codex">Codex log</a> · <a href="/prompts">Prompts</a> · <a href="/submission">Submission</a></nav>'
+    return ("<!doctype html><meta charset=\"utf-8\"><title>" + _html_escape(title) +
+            " · Dry Run</title><style>body{max-width:960px;margin:40px auto;padding:0 20px;background:#07080a;color:#f4f5f6;font:15px/1.55 system-ui,sans-serif}a{color:#a8e23a}pre{white-space:pre-wrap;font:14px/1.6 ui-monospace,SFMono-Regular,monospace;background:#111419;padding:20px;border-radius:8px;overflow:auto}nav{margin-bottom:28px}</style>" +
+            nav + f"<h1>{_html_escape(title)}</h1>" + body).encode()
 
 def commit() -> str:
     value = os.environ.get("RELEASE_SHA")
@@ -426,6 +462,14 @@ class Handler(BaseHTTPRequestHandler):
     def send_json(self,obj,status=200): self.send_bytes(json.dumps(obj,separators=(",",":"),default=str).encode(),"application/json; charset=utf-8",status)
     def do_GET(self):
         parsed=urlparse(self.path); path=unquote(parsed.path)
+        if path in ("/codex", "/prompts", "/submission", "/morning"):
+            slug = path.strip("/")
+            body = document_page(slug)
+            return self.send_bytes(body, "text/html; charset=utf-8") if body else self.send_json({"status": "unavailable", "message": "Evidence document is not attached."}, 404)
+        if path.startswith("/prompts/"):
+            name = path.rsplit("/", 1)[-1]
+            body = document_page("prompt", name)
+            return self.send_bytes(body, "text/html; charset=utf-8") if body else self.send_json({"status": "unavailable", "message": "Prompt text is not attached."}, 404)
         if path.startswith("/api/page/"):
             name = path.rsplit("/", 1)[-1]
             payload = page_payload(name)

@@ -27,7 +27,7 @@ A single chat would have had to serialize the simulator, inspector, page, policy
 - **Live page broken:** the page gained desktop and phone smoke gates and explicit recorded/offline states (`prompts/034-live-page-broken.md`).
 - **Balanced Nemotron test withdrawn:** 63 of 84 sheets were rendered too small to judge; the 448 px subset is retained only as provenance (`prompts/062-balanced-nemotron-withdrawn.md`).
 
-Five real Codex review runs found 28 findings; ten named fix commits address them. codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9 of 20 bricks; the latest policy evaluation reaches 10 of 20 and grasps 2, but sorts 0 of 20 with no lifts, presentations or drops. The review sessions and exact counts are in [status/codex-review-0415.md](status/codex-review-0415.md) and the `review` object in [data/page/codex.json](data/page/codex.json).
+Five real Codex review runs found 28 findings; ten named fix commits address them. codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix, the learned policy reaches **5/20** one-brick scenes and still sorts **0/20**; the earlier canonical result sorted **0/1,309 bricks** across 200 held-out scenes. The review sessions and exact counts are in [status/codex-review-0415.md](status/codex-review-0415.md) and the `review` object in [data/page/codex.json](data/page/codex.json).
 
 Fast mode was measured rather than assumed: 28.53 seconds without Fast versus 22.42 seconds with it, 6.11 seconds sooner (21.4%) with identical output. Three main-session subagents handled Astra geometry, curriculum checks and the documentation audit; their paths are recorded in `data/page/codex.json`.
 
@@ -45,10 +45,10 @@ Fast mode was measured rather than assumed: 28.53 seconds without Fast versus 22
 
 ## Final numbers
 
-- Reference expert: **203/205 bricks (99.0%)** across 40 loose scenes.
+- Reference/pushing expert: **380/382 loose (99.5%)**, **451/494 touching (91.3%)**, and **259/386 pile (67.1%)**.
 - Real-crop inspector: **328/328 good** and **241/241 defective**, with 0 false rejects and 0 false accepts.
 - Camera-only diagnostic: **4/100** right-bowl placements (39 reached, 33 gripped, 20 presented); not a benchmark.
-- Latest learned-policy evaluation: **10/20 reached, 2/20 grasped, 0/20 sorted**, with no lifts, presentations or drops.
+- After the fix, the learned policy reaches **5/20** one-brick scenes and still sorts **0/20**; the earlier canonical result sorted **0/1,309 bricks** across 200 held-out scenes.
 - 448 px Nemotron diagnostic: **131/300 (43.7%)**. Since 295/300 failures are `no_clear_grasp`, always answering `no_clear_grasp` scores **98.3%**, above Nemotron.
 
 ## Turning-point timeline
@@ -125,7 +125,7 @@ final review because it sees all shared paths.
 | Models by job | Astra for geometry/spatial checks; Sol for build, page, inspector and policy; Nemotron for visual failure analysis | `prompts/003-astra-for-3d.md`; the five-session ledger; `data/page/analyst.json`. |
 | Browser and public smoke checks | `/root/page`, gpt-6.1-sol | `scripts/smoke_public.py`; page captures and console/error output are under `/bulk3/runs/dryrun/page-shots/`. |
 | AGENTS.md and secret/telemetry boundaries | `/root` and the named streams | `AGENTS.md`; `status/M5.md` records the hsec and telemetry boundaries used. |
-| Codex review | main, `gpt-6.1-sol` | Five real review runs found 28 findings; ten named fix commits address them. The learned-policy review found repeated-action chunks paired with the next frame; after the fix it reaches 9 of 20 bricks. `status/codex-review-0415.md` |
+| Codex review | main, `gpt-6.1-sol` | Five real review runs found 28 findings; ten named fix commits address them. The learned-policy review found repeated-action chunks paired with the next frame; the canonical policy row is 5/20 reached and 0/20 sorted. `status/codex-review-0415.md` |
 | Image generation | Codex desktop app, gpt-6.1-sol, codex-cli 0.169.0-alpha.11.1 | **WORKED:** built-in `image_gen` made `table-wood.png` and `defect-stickers.png` (1254x1254); proof `/bulk2/runs/dryrun/codex-features/imagegen/*.png`, `imagegen/mac-try.log`. Server cliproxy did not expose the tool and its sandbox failed (`imagegen/try1.log`), so earlier textures were code-generated. |
 | Sites | Codex desktop app, live APIs | **WORKED:** published owner-only results Site `https://dryrun-results.jarmo1.chatgpt.site` (`appgprj_6af9206a560c8191bc222fffa878783e`); corrected `/api/inspector` to `/api/page/inspector` after the stale synthetic result. Proof `sites/run.jsonl`, `run2.jsonl`, `site-index.html`, `site.png`. |
 | Documents | Codex desktop app | **WORKED with caveat:** wrote `dryrun-test-report.docx`; its stale inspector number and placeholder layout image were wrong, and LibreOffice render was killed. Real render: `docs/dryrun-test-report.pdf`, `page-1.png`; proof `docs/run.jsonl`, `run2.jsonl`. |
@@ -163,7 +163,7 @@ The ten fix commits named in the record are `2ccc9a6`, `31e2ce0`, `5d7c557`,
 `724cb34`, `86bcfc7`, `4b6252d`, `205bca6`, `eb81e98`, `c846434`, and
 `6471dbe`. Codex review found why the learned policy scored zero: every action
 chunk was one action repeated, paired with the next frame. After the fix it
-reaches 9 of 20 bricks. Full findings and handoffs are in
+The canonical policy row reaches 5 of 20 and sorts 0 of 20. Full findings and handoffs are in
 `status/codex-review-0415.md`, with the current policy evidence in
 `data/page/policy.json`.
 
@@ -294,7 +294,7 @@ capture and screenshot paths remain in `status/M6.md`.
 
 ## What is not done
 
-- The learned policy sorts 0/20 held-out one-brick scenes; its latest evaluation reaches 10/20 and grasps 2/20, but lifts none.
+- The learned policy reaches 5/20 held-out one-brick scenes and sorts 0/20; its earlier canonical 200-scene result sorted 0/1,309 bricks.
 - The camera-only sorter places 4/100 diagnostic bricks in the right bowl.
 - The balanced four-stage Nemotron test is withdrawn: 63 of 84 sheets were rendered too small to judge; no balanced accuracy is reported.
 - No real-arm run has been performed.

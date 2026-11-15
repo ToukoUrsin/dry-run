@@ -14,12 +14,12 @@ seeded multi-brick scenes.
 
 ## Final numbers
 
-- The reference expert is correct on **203/205 bricks (99.0%)** across 40 loose scenes.
+- Reference/pushing expert: **380/382 loose (99.5%)**, **451/494 touching (91.3%)**, and **259/386 pile (67.1%)**.
 - The real-crop inspector accepts **328/328 good** bricks and detects **241/241 defective** bricks, with 0 false rejects and 0 false accepts.
 - The final camera-only diagnostic puts **4/100** bricks in the right bowl (39 reached, 33 gripped, 20 presented); it is not a benchmark.
-- The latest learned-policy evaluation reaches **10/20** one-brick scenes and grasps **2/20**, but sorts **0/20**, with no lifts, presentations or drops.
+- After the fix, the learned policy reaches **5/20** one-brick scenes and still sorts **0/20**; the earlier canonical result sorted **0/1,309 bricks** across 200 held-out scenes.
 - The valid 448 px Nemotron diagnostic gets **131/300 (43.7%)**. Since 295/300 failures are `no_clear_grasp`, always answering `no_clear_grasp` scores **98.3%**, above Nemotron.
-- Five real Codex reviews found **28 findings** and mapped them to **10 fixes**. codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix it reaches 9/20; the latest policy evaluation reaches 10/20 and grasps 2/20, but still sorts 0/20.
+- Five real Codex reviews found **28 findings** and mapped them to **10 fixes**. codex review found why the learned policy scored zero: every action chunk was one action repeated, paired with the next frame. After the fix, the learned policy reaches **5/20** one-brick scenes and still sorts **0/20**; the earlier canonical result sorted **0/1,309 bricks** across 200 held-out scenes.
 
 The source of each number is the corresponding `data/page/*.json` file and
 its status record. The balanced four-stage test is withdrawn: 63 of its 84

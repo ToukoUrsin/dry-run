@@ -1,27 +1,468 @@
 {
-  "updated_utc": "2026-11-15T01:16:43Z",
-  "commit": "87130ca",
-  "summary": "Five Codex sessions turned a rejected first pass into a measured replay page with 33 supervisor prompts recorded.",
+  "schema": "dryrun.page.codex.v2",
+  "updated_utc": "2026-11-15T01:47:14Z",
+  "commit": "0cb10d1",
+  "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
+  "hours": {
+    "main": 7.78,
+    "inspector": 6.79,
+    "page": 6.79,
+    "policy": 6.37,
+    "analyst": 6.37,
+    "total": 34.1,
+    "basis": "tmux session lifetimes at the update timestamp; this is elapsed goal-mode session time, not claimed human labor."
+  },
+  "commits_total": 210,
+  "commits_total_at_prompt_035": 203,
+  "commits_count_command": "git rev-list --count HEAD",
+  "lines_of_code": 10843,
+  "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
   "supervisor_prompts": 33,
+  "subagents_spawned": null,
+  "subagents_note": "No numeric spawn counter is recorded in the repository logs; named streams and their evidence are listed in CODEX.md.",
   "sessions": [
-    {"name": "geometry", "model": "gpt-6-astra", "effort": "ultra", "hours": 2.0, "commits": ["spatial validation"]},
-    {"name": "inspector", "model": "gpt-6.1-sol", "effort": "high", "hours": 2.0, "commits": ["98999806"]},
-    {"name": "policy", "model": "gpt-6.1-sol", "effort": "high", "hours": 2.0, "commits": ["8d7ed4e"]},
-    {"name": "analyst", "model": "gpt-6.1-sol", "effort": "high", "hours": 2.0, "commits": ["0d0b556"]},
-    {"name": "page", "model": "gpt-6.1-sol", "effort": "ultra", "hours": 5.0, "commits": ["87130ca"]}
+    {
+      "name": "main",
+      "owns": "simulator core, seeded scenes, rollout API, measured expert, benchmark, and rendered replay",
+      "model": "gpt-6-astra + gpt-6.1-sol",
+      "effort": "ultra",
+      "fast_mode": true,
+      "hours": 7.78,
+      "hours_basis": "tmux session dryrun created 2026-11-14T18:00:08Z; observed at 2026-11-15T01:47Z",
+      "commit_count": 51,
+      "commit_count_basis": "HEAD path attribution; shared commits assigned to one owner",
+      "commits": [
+        "5a6047d",
+        "195a633",
+        "36102bf",
+        "e8612ae",
+        "2e99a05",
+        "64c4919",
+        "2de1ae7",
+        "b9d897c",
+        "0cb10d1"
+      ],
+      "biggest_result": "Integrated the measured reference recipe: the repository runner reproduced 382/382 on held-out loose seeds 1000–1079; the supervisor checked 203/205 on seeds 0–39.",
+      "worst_miss": "The first expert was slow/broken and the fixed-scene loose tier was withdrawn as rigged before the measured recipe replaced it.",
+      "evidence": [
+        "CODEX.md",
+        "prompts/016-loose-tier-rigged.md",
+        "prompts/021-reference-expert.md",
+        "status/M1.md"
+      ]
+    },
+    {
+      "name": "inspector",
+      "owns": "defect generation, inspection renders, good-only anomaly model, and OpenVINO evaluation",
+      "model": "gpt-6.1-sol",
+      "effort": "ultra",
+      "fast_mode": true,
+      "hours": 6.79,
+      "hours_basis": "tmux session dr-inspector created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
+      "commit_count": 10,
+      "commit_count_basis": "HEAD path attribution; shared commits assigned to one owner",
+      "commits": [
+        "4ed77b4",
+        "84c0c7c",
+        "243af10",
+        "f99d4d0"
+      ],
+      "biggest_result": "Real present crops plus PatchCore accepted all 328 good bricks and detected all 241 defective bricks in the 569-brick held-out set.",
+      "worst_miss": "The first inspector attempt was rejected for false rejects; it had to be retrained and evaluated on real good frames.",
+      "evidence": [
+        "status/M2.md",
+        "data/page/inspector.json",
+        "prompts/014-inspector-rejected.md"
+      ]
+    },
+    {
+      "name": "page",
+      "owns": "replay export, real SO-101 viewer, camera videos, telemetry, dashboard, deployment, and browser smoke",
+      "model": "gpt-6.1-sol",
+      "effort": "ultra",
+      "fast_mode": true,
+      "hours": 6.79,
+      "hours_basis": "tmux session dr-page created 2026-11-14T18:59:43Z; observed at 2026-11-15T01:47Z",
+      "commit_count": 108,
+      "commit_count_basis": "HEAD path attribution; shared commits assigned to one owner",
+      "commits": [
+        "d083bf9",
+        "34d05a5",
+        "bcee980",
+        "69155a6",
+        "569dee1",
+        "7f84b77"
+      ],
+      "biggest_result": "The deployed page now shows the recorded MuJoCo SO-101 replay, synced top and inspection cameras, and a two-viewport browser smoke gate.",
+      "worst_miss": "Several page passes were rejected for showing stubs or a broken first screen before the real replay and error gate were installed.",
+      "evidence": [
+        "CODEX.md",
+        "prompts/015-page-rejected.md",
+        "prompts/023-page-must-show-the-real-robot.md",
+        "prompts/034-live-page-broken.md",
+        "scripts/smoke_public.py"
+      ]
+    },
+    {
+      "name": "policy",
+      "owns": "demo recorder, LeRobot data, ACT training, Modal evaluation, and policy telemetry",
+      "model": "gpt-6.1-sol",
+      "effort": "ultra",
+      "fast_mode": true,
+      "hours": 6.37,
+      "hours_basis": "tmux session dr-policy created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
+      "commit_count": 21,
+      "commit_count_basis": "HEAD path attribution; shared commits assigned to one owner",
+      "commits": [
+        "b0bc88b",
+        "e0dd01b",
+        "a74e011",
+        "c6d8196",
+        "eba9d3e",
+        "a118859"
+      ],
+      "biggest_result": "Produced a real LeRobot dataset and recorded ACT checkpoints with per-stage held-out evaluation and CPU/OpenVINO timing.",
+      "worst_miss": "The first 64-pixel, 201-step run reached no physical rollout stage on any checkpoint; it is retained as a failed run, not a success.",
+      "evidence": [
+        "data/page/policy.json",
+        "prompts/026-policy-clock.md",
+        "prompts/030-policy-train-for-real.md",
+        "status/M4.md"
+      ]
+    },
+    {
+      "name": "analyst",
+      "owns": "448 px Nemotron failure analysis, strict scoring, sentence stations, worker, and evidence docs",
+      "model": "gpt-6.1-sol + NVIDIA Nemotron",
+      "effort": "ultra",
+      "fast_mode": true,
+      "hours": 6.37,
+      "hours_basis": "tmux session dr-analyst created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
+      "commit_count": 20,
+      "commit_count_basis": "HEAD path attribution; shared commits assigned to one owner",
+      "commits": [
+        "370fd44",
+        "8b3d3a4",
+        "f823523",
+        "e990856",
+        "f537b87",
+        "8d38f44"
+      ],
+      "biggest_result": "Built the strict 448×448 four-field runner and kept a live 300-failure run, while the station gallery retained 32 accepted layouts and four rejection reasons.",
+      "worst_miss": "The earlier 32 px Nemotron score was not visual evidence and is explicitly withdrawn from benchmark use.",
+      "evidence": [
+        "prompts/024-analyst-needs-real-frames.md",
+        "dryrun/nemotron_real.py",
+        "data/page/analyst.json",
+        "data/page/stations.json",
+        "status/M5.md"
+      ]
+    }
   ],
   "features": [
-    {"name": "recorded body-pose replay", "evidence": "MuJoCo-exported GLB plus replay frames"},
-    {"name": "aggregate telemetry", "evidence": "Tiger Timescale snapshot and query timings"},
-    {"name": "failure gallery", "evidence": "300 saved Nemotron diagnosis rows"},
-    {"name": "sentence stations", "evidence": "36 checked station layouts"}
+    {
+      "name": "goal mode",
+      "evidence": "The overnight objective and goal-mode instruction are recorded at the start of the run.",
+      "link": "prompts/001-goal.md"
+    },
+    {
+      "name": "parallel sessions",
+      "evidence": "Five named work streams were kept in separate tmux sessions with explicit ownership.",
+      "link": "CODEX.md"
+    },
+    {
+      "name": "ultra effort with delegation",
+      "evidence": "The supervisor set ultra effort and delegation for every stream from 19:30 UTC; the session ledger records the assignments.",
+      "link": "prompts/010-ultra-and-five-sessions.md"
+    },
+    {
+      "name": "Fast mode",
+      "evidence": "The tmux launch commands used service_tier=fast. No with/without timing comparison was recorded, so no timing claim is made.",
+      "link": "CODEX.md",
+      "timing_measured": false
+    },
+    {
+      "name": "models by job",
+      "evidence": "Astra was assigned to geometry and spatial checks; Sol to build, page, inspector and policy work; Nemotron supplied the analyst model.",
+      "link": "prompts/003-astra-for-3d.md"
+    },
+    {
+      "name": "codex review",
+      "evidence": "Review was attempted, but the worker was blocked by approval=never when Chrome/Blender MCP requested approval; no findings were returned, so this is not a green review.",
+      "link": "CODEX.md",
+      "status": "blocked"
+    },
+    {
+      "name": "browser use",
+      "evidence": "The deployed page was opened and smoke-tested at desktop and phone widths; the script checks console errors, videos and scroll width.",
+      "link": "scripts/smoke_public.py"
+    },
+    {
+      "name": "AGENTS.md",
+      "evidence": "Repository contributor rules were read and followed; the file is tracked at the repository root.",
+      "link": "AGENTS.md"
+    }
   ],
   "timeline": [
-    {"utc": "2026-11-14T18:05:00Z", "event": "first page pass rejected"},
-    {"utc": "2026-11-14T19:00:00Z", "event": "rollout API connected"},
-    {"utc": "2026-11-14T22:10:00Z", "event": "measured recipe landed"},
-    {"utc": "2026-11-14T23:22:00Z", "event": "first sorted brick and 382/382 loose result", "commit": "64c4919"},
-    {"utc": "2026-11-15T00:45:00Z", "event": "push and 3–12 scene contract", "commit": "0d0b556"}
+    {
+      "utc": "2026-11-14T18:02:00Z",
+      "event": "Goal mode and evidence-led run started.",
+      "commit": "5a6047d"
+    },
+    {
+      "utc": "2026-11-14T18:05:00Z",
+      "event": "First pass rejected: a 245-line stub was claiming milestones without MuJoCo, physics, or real outputs.",
+      "commit": "b1b6dfd"
+    },
+    {
+      "utc": "2026-11-14T18:48:05Z",
+      "event": "Zero-pickup/grasp problem measured on varied SO-101 poses.",
+      "commit": "f4d0bc7"
+    },
+    {
+      "utc": "2026-11-14T19:00:45Z",
+      "event": "Bowl overlap found and made a failing station check.",
+      "commit": "338c9c8"
+    },
+    {
+      "utc": "2026-11-14T19:57:06Z",
+      "event": "The fixed-scene loose tier was marked rigged and withdrawn.",
+      "commit": "195a633"
+    },
+    {
+      "utc": "2026-11-14T19:58:37Z",
+      "event": "Rollout API and event/result contract completed.",
+      "commit": "36102bf"
+    },
+    {
+      "utc": "2026-11-14T20:02:10Z",
+      "event": "Closed-form SO-101 position IK and reach margin gates landed.",
+      "commit": "e8612ae"
+    },
+    {
+      "utc": "2026-11-14T21:02:20Z",
+      "event": "First inspector matrix was labeled and rejected before real-frame retraining.",
+      "commit": "84c0c7c"
+    },
+    {
+      "utc": "2026-11-14T22:15:55Z",
+      "event": "Measured grasp recipe replaced tuning and became the expert path.",
+      "commit": "2e99a05"
+    },
+    {
+      "utc": "2026-11-14T23:19:35Z",
+      "event": "Measured reference expert reproduced the full 382/382 loose release and supervisor benchmark evidence.",
+      "commit": "64c4919"
+    },
+    {
+      "utc": "2026-11-14T23:40:39Z",
+      "event": "Real multi-brick messy and pile tiers were generated with replay evidence.",
+      "commit": "2de1ae7"
+    },
+    {
+      "utc": "2026-11-15T00:53:31Z",
+      "event": "Cluster-pushing reference expert was added for touching and pile scenes.",
+      "commit": "b9d897c"
+    },
+    {
+      "utc": "2026-11-15T01:15:12Z",
+      "event": "Policy page data recorded the first ACT checkpoints and honest zero-stage results.",
+      "commit": "a118859"
+    },
+    {
+      "utc": "2026-11-15T01:16:10Z",
+      "event": "Real-frame inspector evidence was published after the first attempt was rejected.",
+      "commit": "243af10"
+    },
+    {
+      "utc": "2026-11-15T01:18:59Z",
+      "event": "Analyst page artifacts and high-resolution failure evidence were published.",
+      "commit": "f537b87"
+    },
+    {
+      "utc": "2026-11-15T01:44:58Z",
+      "event": "Live tier payload and camera visibility were guarded after the page repair round.",
+      "commit": "7f84b77"
+    }
   ],
-  "boundary": "The grasp recipe and two reference experts were prototyped by the supervising agent outside Codex (prompts/019, 021, 027)."
+  "prompts_count": 35,
+  "prompts_note": "The supervisor total is 33 at Prompt 035; the filesystem currently contains 35 prompt files, including 034 and 035 and three newly written untracked files.",
+  "prompts": [
+    {
+      "path": "prompts/001-goal.md",
+      "utc": null,
+      "first_line": "# Goal for Codex: Dry Run"
+    },
+    {
+      "path": "prompts/002-first-pass-rejected.md",
+      "utc": "2026-11-14T18:05:00Z",
+      "first_line": "# Supervisor to Codex, Sat 14.11.2026 18:05 UTC: the first pass is rejected"
+    },
+    {
+      "path": "prompts/003-astra-for-3d.md",
+      "utc": "2026-11-14T18:12:00Z",
+      "first_line": "# Supervisor to Codex, Sat 14.11.2026 18:12 UTC: GPT-6 Astra is now available, use it for the 3D work"
+    },
+    {
+      "path": "prompts/004-review-of-seed7.md",
+      "utc": "2026-11-14T18:32:00Z",
+      "first_line": "# Supervisor to Codex, Sat 14.11.2026 18:32 UTC: review of `seed7_real2.mp4`"
+    },
+    {
+      "path": "prompts/005-gpu-on-modal.md",
+      "utc": "2026-11-14T18:38:00Z",
+      "first_line": "# Supervisor to Codex, Sat 14.11.2026 18:38 UTC: a GPU is available on Modal"
+    },
+    {
+      "path": "prompts/006-split-and-grasp-review.md",
+      "utc": "2026-11-14T19:00:00Z",
+      "first_line": "# Supervisor to Codex (main session), Sat 14.11.2026 19:00 UTC: the work is split three ways, and a review of the grasp trials"
+    },
+    {
+      "path": "prompts/007-page.md",
+      "utc": "2026-11-14T19:00:00Z",
+      "first_line": "# Supervisor to Codex (page session), Sat 14.11.2026 19:00 UTC: you own the page, the replay and the telemetry"
+    },
+    {
+      "path": "prompts/008-inspector.md",
+      "utc": "2026-11-14T19:00:00Z",
+      "first_line": "# Supervisor to Codex (inspector session), Sat 14.11.2026 19:00 UTC: you own the defects and the inspector"
+    },
+    {
+      "path": "prompts/009-tiger-cloud.md",
+      "utc": "2026-11-14T19:20:00Z",
+      "first_line": "# Supervisor to the page session, Sat 14.11.2026 19:20 UTC: Tiger Cloud is ready"
+    },
+    {
+      "path": "prompts/010-ultra-and-five-sessions.md",
+      "utc": "2026-11-14T19:30:00Z",
+      "first_line": "# Supervisor to every Dry Run session, Sat 14.11.2026 19:30 UTC: Touko's order"
+    },
+    {
+      "path": "prompts/011-policy.md",
+      "utc": "2026-11-14T19:30:00Z",
+      "first_line": "# Supervisor to the policy session, Sat 14.11.2026 19:30 UTC"
+    },
+    {
+      "path": "prompts/012-analyst.md",
+      "utc": "2026-11-14T19:30:00Z",
+      "first_line": "# Supervisor to the analyst session, Sat 14.11.2026 19:30 UTC"
+    },
+    {
+      "path": "prompts/013-soren-but-real.md",
+      "utc": "2026-11-14T19:38:00Z",
+      "first_line": "# Supervisor to every Dry Run session, Sat 14.11.2026 19:38 UTC: what Soren did well, and how we do it for real"
+    },
+    {
+      "path": "prompts/014-inspector-rejected.md",
+      "utc": "2026-11-14T19:47:00Z",
+      "first_line": "# Supervisor to the inspector session, Sat 14.11.2026 19:47 UTC: M2 is not complete"
+    },
+    {
+      "path": "prompts/015-page-rejected.md",
+      "utc": "2026-11-14T19:53:00Z",
+      "first_line": "# Supervisor to the page session, Sat 14.11.2026 19:53 UTC: M6 is not complete, and the live page is broken"
+    },
+    {
+      "path": "prompts/016-loose-tier-rigged.md",
+      "utc": "2026-11-14T19:58:00Z",
+      "first_line": "# Supervisor to main, Sat 14.11.2026 19:58 UTC: the loose tier is rigged, and why the grasp keeps failing"
+    },
+    {
+      "path": "prompts/017-jaws-too-narrow.md",
+      "utc": "2026-11-14T20:40:00Z",
+      "first_line": "# Supervisor to main, Sat 14.11.2026 20:40 UTC: the jaws barely open wider than a brick"
+    },
+    {
+      "path": "prompts/018-page-look.md",
+      "utc": "2026-11-14T20:42:00Z",
+      "first_line": "# Supervisor to the page session, Sat 14.11.2026 20:42 UTC: what the live page looks like now"
+    },
+    {
+      "path": "prompts/019-grasp-recipe-measured.md",
+      "utc": "2026-11-14T22:10:00Z",
+      "first_line": "# Supervisor to main, Sat 14.11.2026 22:10 UTC: stop tuning. Here is a measured recipe that sorts 96.7 %"
+    },
+    {
+      "path": "prompts/020-present-pose-and-what-changes.md",
+      "utc": "2026-11-14T22:20:00Z",
+      "first_line": "# Supervisor to inspector, page, policy and analyst, Sat 14.11.2026 22:20 UTC: the expert is being replaced; what changes for you"
+    },
+    {
+      "path": "prompts/021-reference-expert.md",
+      "utc": "2026-11-14T23:05:00Z",
+      "first_line": "# Supervisor to main, Sat 14.11.2026 23:05 UTC: your expert does not work; here is one that sorts 382 of 382"
+    },
+    {
+      "path": "prompts/022-expert-works-now-everything-else.md",
+      "utc": "2026-11-14T23:30:00Z",
+      "first_line": "# Supervisor to all sessions, Sat 14.11.2026 23:30 UTC: the expert works. Now build everything that waited for it."
+    },
+    {
+      "path": "prompts/023-page-must-show-the-real-robot.md",
+      "utc": "2026-11-14T23:58:00Z",
+      "first_line": "# Supervisor to page, Sat 14.11.2026 23:58 UTC: the first screen is rejected again. Show the real robot sorting."
+    },
+    {
+      "path": "prompts/024-analyst-needs-real-frames.md",
+      "utc": "2026-11-15T00:17:00Z",
+      "first_line": "# Supervisor to analyst, Sun 15.11.2026 00:17 UTC: 32-pixel frames are not evidence"
+    },
+    {
+      "path": "prompts/025-page-close-up.md",
+      "utc": "2026-11-15T00:26:00Z",
+      "first_line": "# Supervisor to page, Sun 15.11.2026 00:26 UTC: real robot is on the page now. Good. Now make it the thing people look at"
+    },
+    {
+      "path": "prompts/026-policy-clock.md",
+      "utc": "2026-11-15T00:33:00Z",
+      "first_line": "# Supervisor to policy, Sun 15.11.2026 00:33 UTC: no training has started. Train now, on what exists"
+    },
+    {
+      "path": "prompts/027-expert-pushes-clusters-apart.md",
+      "utc": "2026-11-15T00:52:00Z",
+      "first_line": "# Supervisor to main, Sun 15.11.2026 00:52 UTC: second reference expert. Touching bricks 44 % → 94 %, pile 8 % → 59 %"
+    },
+    {
+      "path": "prompts/028-film-open.md",
+      "utc": "2026-11-15T00:53:00Z",
+      "first_line": "# Supervisor to analyst (docs), Sun 15.11.2026 00:53 UTC: the film has a finished cold open. Write it into the plan"
+    },
+    {
+      "path": "prompts/029-arm-mesh-is-crumpled.md",
+      "utc": "2026-11-15T01:03:00Z",
+      "first_line": "# Supervisor to page, Sun 15.11.2026 01:03 UTC: framing, top bar, tiers, phone are right now. The arm is not"
+    },
+    {
+      "path": "prompts/030-policy-train-for-real.md",
+      "utc": "2026-11-15T01:05:00Z",
+      "first_line": "# Supervisor to policy, Sun 15.11.2026 01:05 UTC: 201 steps on 64-pixel images is not a training run"
+    },
+    {
+      "path": "prompts/031-every-rollout-into-tiger.md",
+      "utc": "2026-11-15T01:06:00Z",
+      "first_line": "# Supervisor to main, Sun 15.11.2026 01:06 UTC: Tiger Cloud holds one old rollout. It must hold every benchmark rollout"
+    },
+    {
+      "path": "prompts/032-camera-only-expert.md",
+      "utc": "2026-11-15T01:11:00Z",
+      "first_line": "# Supervisor to inspector, Sun 15.11.2026 01:11 UTC: a sorter that reads no simulator state at all"
+    },
+    {
+      "path": "prompts/033-fill-the-page.md",
+      "utc": "2026-11-15T01:14:00Z",
+      "first_line": "# Supervisor to all five sessions, Sun 15.11.2026 01:14 UTC: the page is one good screen and five empty tabs"
+    },
+    {
+      "path": "prompts/034-live-page-broken.md",
+      "utc": "2026-11-15T01:41:00Z",
+      "first_line": "# Supervisor to page, Sun 15.11.2026 01:41 UTC: the live first screen is broken right now. Fix before anything else"
+    },
+    {
+      "path": "prompts/035-analyst-sections.md",
+      "utc": "2026-11-15T01:42:00Z",
+      "first_line": "# Supervisor to analyst, Sun 15.11.2026 01:42 UTC: your three page sections are live. They are thin"
+    }
+  ],
+  "boundary": "The grasp recipe and two reference experts were prototyped by the supervising agent outside Codex and handed over in prompts/019, 021 and 027."
 }

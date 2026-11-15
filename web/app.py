@@ -392,6 +392,14 @@ class Handler(BaseHTTPRequestHandler):
             name = path.rsplit("/", 1)[-1]
             payload = page_payload(name)
             return self.send_json(payload or {"status": "unavailable", "message": "This page section has no committed result yet."}, 200 if payload else 404)
+        if path.startswith("/api/prompts/"):
+            name = path.rsplit("/", 1)[-1]
+            if not re.fullmatch(r"[A-Za-z0-9_-]+\.md", name):
+                return self.send_json({"error": "invalid prompt path"}, 400)
+            prompt = (ROOT / "prompts" / name).resolve()
+            if prompt.parent != (ROOT / "prompts").resolve() or not prompt.is_file():
+                return self.send_json({"status": "unavailable", "message": "Prompt text is not attached."}, 404)
+            return self.send_bytes(prompt.read_bytes(), "text/plain; charset=utf-8")
         if path=="/api/score": return self.send_json(score_payload(snapshot()))
         if path=="/api/benchmark-tiers": return self.send_json(benchmark_tiers())
         if path=="/api/codex": return self.send_json(codex_payload())

@@ -83,24 +83,30 @@ def record_rollout(samples: Iterable[Mapping], events: Iterable[Mapping], outcom
             for row in sample_rows:
                 q = (list(row.get("qpos", row.get("joint", [0] * 6))) + [0] * 6)[:6]
                 target = (list(row.get("targets", row.get("action", [0] * 6))) + [0] * 6)[:6]
-                sample_values.append((_timestamp(row.get("ts")), rid, seed, checkpoint, tier, expert_version, *[float(x) for x in q], float(row.get("gripper", q[5])), *[float(x) for x in target], float(row.get("gripper_effort", abs(target[5] - q[5]))), row.get("event"), json.dumps(row.get("event_data")) if row.get("event_data") is not None else None, None))
+                sample_values.append((_timestamp(row.get("ts")), rid, seed, checkpoint, tier, expert_version, *[float(x) for x in q], float(row.get("gripper", q[5])), *[float(x) for x in target], float(row.get("gripper_effort", abs(target[5] - q[5]))), row.get("event"), Jsonb(row.get("event_data")) if row.get("event_data") is not None else None, None))
             if sample_values:
-                cur.executemany("""INSERT INTO rollout_telemetry
+                # COPY keeps one network stream per completed episode while
+                # preserving every 30 Hz row in the hypertable.
+                with cur.copy("""COPY rollout_telemetry
                     (ts,rollout_id,seed,checkpoint,tier,expert_version,q0,q1,q2,q3,q4,q5,gripper,target0,target1,target2,target3,target4,target5,gripper_effort,event,event_data,outcome)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""", sample_values)
+                    FROM STDIN""") as copy:
+                    for values in sample_values:
+                        copy.write_row(values)
             event_values = []
             for event in event_rows:
                 q = (list(event.get("qpos", [0] * 6)) + [0] * 6)[:6]
-                event_values.append((_timestamp(event.get("ts")), rid, seed, tier, expert_version, event.get("name", "event"), json.dumps(dict(event))))
+                event_values.append((_timestamp(event.get("ts")), rid, seed, tier, expert_version, event.get("name", "event"), Jsonb(dict(event))))
             if event_values:
-                cur.executemany("""INSERT INTO rollout_events
+                with cur.copy("""COPY rollout_events
                     (ts,rollout_id,seed,tier,expert_version,event,event_data)
-                    VALUES (%s,%s,%s,%s,%s,%s,%s)""", event_values)
+                    FROM STDIN""") as copy:
+                    for values in event_values:
+                        copy.write_row(values)
             cur.execute("""INSERT INTO rollout_results
                 (finished_at,rollout_id,seed,checkpoint,tier,expert_version,bricks,correct,drops,false_accepts,false_rejects,pushes,cycle_time_s,failure_reason,outcome)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                 ON CONFLICT DO NOTHING""",
-                (datetime.now(timezone.utc), rid, seed, checkpoint, tier, expert_version, int(out.get("bricks", 0)), int(out.get("correct", out.get("successes", 0))), int(out.get("drops", 0)), int(out.get("false_accepts", 0)), int(out.get("false_rejects", 0)), int(out.get("pushes", 0)), out.get("cycle_time_s"), out.get("failure_reason"), json.dumps(out)))
+                (datetime.now(timezone.utc), rid, seed, checkpoint, tier, expert_version, int(out.get("bricks", 0)), int(out.get("correct", out.get("successes", 0))), int(out.get("drops", 0)), int(out.get("false_accepts", 0)), int(out.get("false_rejects", 0)), int(out.get("pushes", 0)), out.get("cycle_time_s"), out.get("failure_reason"), Jsonb(out)))
         conn.commit()
     return rid
 

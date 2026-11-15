@@ -1,7 +1,7 @@
 {
   "schema": "dryrun.page.codex.v2",
-  "updated_utc": "2026-11-15T04:19:56Z",
-  "commit": "95ccda4",
+  "updated_utc": "2026-11-15T04:20:41Z",
+  "commit": "cb31cc6",
   "summary": "Five Codex sessions used goal mode, parallel ownership, ultra effort and Fast mode to turn a rejected stub into an evidence-linked MuJoCo replay page. Withdrawn runs remain labeled as withdrawn.",
   "hours": {
     "main": 7.78,
@@ -12,12 +12,12 @@
     "total": 34.1,
     "basis": "tmux session lifetimes at the update timestamp; this is elapsed goal-mode session time, not claimed human labor."
   },
-  "commits_total": 324,
+  "commits_total": 326,
   "commits_total_at_prompt_035": 203,
   "commits_count_command": "git log --reverse --since 2026-11-14T18:00:00Z",
-  "lines_of_code": 12163,
+  "lines_of_code": 12165,
   "lines_count_command": "git ls-files '*.py' '*.js' '*.html' '*.css' | xargs wc -l",
-  "supervisor_prompts": 51,
+  "supervisor_prompts": 52,
   "subagents_spawned": null,
   "subagents_note": "No numeric spawn counter is recorded in the repository logs; named streams and their evidence are listed in CODEX.md.",
   "sessions": [
@@ -407,7 +407,7 @@
       "fast_mode": true,
       "hours": 6.37,
       "hours_basis": "tmux session dr-analyst created 2026-11-14T19:25:21Z; observed at 2026-11-15T01:47Z",
-      "commit_count": 34,
+      "commit_count": 36,
       "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other",
       "commits": [
         "d48b31d",
@@ -443,7 +443,9 @@
         "68183b7",
         "36ceeaa",
         "78d4a69",
-        "6800e7d"
+        "6800e7d",
+        "f050fcc",
+        "cb31cc6"
       ],
       "biggest_result": "Built the strict 448×448 four-field runner and kept a live 300-failure run, while the station gallery retained 32 accepted layouts and four rejection reasons.",
       "worst_miss": "The earlier 32 px Nemotron score was not visual evidence and is explicitly withdrawn from benchmark use.",
@@ -584,7 +586,7 @@
       "commit": "7f84b77"
     }
   ],
-  "prompts_count": 51,
+  "prompts_count": 52,
   "prompts_note": "Count is generated from prompts/*.md by scripts/night_data.py at each refresh.",
   "prompts": [
     {
@@ -892,12 +894,18 @@
       "file": "prompts/051-page-after-filming.md",
       "title": "fixes for one deploy after filming Build and",
       "to": "page"
+    },
+    {
+      "t": "2026-11-15T04:20:00Z",
+      "file": "prompts/052-review-in-pieces.md",
+      "title": "the review ran but one pass over 27",
+      "to": "main"
     }
   ],
   "boundary": "Everything outside `prompts/` was written by Codex. The supervisor wrote the prompts, and two reference sorters under `prompts/021-reference` and `prompts/027-reference`, which Codex ported into `dryrun/expert.py`.",
   "night": {
     "start_utc": "2026-11-14T18:00:00Z",
-    "end_utc": "2026-11-15T04:19:56Z",
+    "end_utc": "2026-11-15T04:20:41Z",
     "sessions": [
       {
         "name": "main",
@@ -1231,7 +1239,7 @@
         "effort": "ultra",
         "owns": "Nemotron, stations, evidence docs",
         "external_model": "NVIDIA Nemotron",
-        "commit_count": 34,
+        "commit_count": 36,
         "commits": [
           "d48b31d",
           "4f37d18",
@@ -1266,7 +1274,9 @@
           "68183b7",
           "36ceeaa",
           "78d4a69",
-          "6800e7d"
+          "6800e7d",
+          "f050fcc",
+          "cb31cc6"
         ],
         "commit_count_basis": "git log --name-only path attribution at this snapshot; film-plan commits and reverts are other"
       }
@@ -3215,6 +3225,18 @@
         "sha": "95ccda4",
         "subject": "page: attach evidence documents",
         "session": "page"
+      },
+      {
+        "t": "2026-11-15T04:20:08Z",
+        "sha": "f050fcc",
+        "subject": "publish judge consistency metadata",
+        "session": "analyst"
+      },
+      {
+        "t": "2026-11-15T04:20:36Z",
+        "sha": "cb31cc6",
+        "subject": "correct judge-facing evidence and attribution",
+        "session": "analyst"
       }
     ],
     "prompts": [
@@ -3523,6 +3545,12 @@
         "file": "prompts/051-page-after-filming.md",
         "title": "fixes for one deploy after filming Build and",
         "to": "page"
+      },
+      {
+        "t": "2026-11-15T04:20:00Z",
+        "file": "prompts/052-review-in-pieces.md",
+        "title": "the review ran but one pass over 27",
+        "to": "main"
       }
     ],
     "rejections": [
@@ -3609,11 +3637,11 @@
     ],
     "scores_note": "The fixed-scene loose tier was withdrawn as rigged; its historical scores are omitted from this benchmark series.",
     "totals": {
-      "commits": 324,
-      "prompts": 51,
+      "commits": 326,
+      "prompts": 52,
       "sessions": 5,
-      "lines_of_code": 12163,
-      "hours": 10.33
+      "lines_of_code": 12165,
+      "hours": 10.34
     },
     "attribution": "Each commit is assigned from git diff-tree --name-only: web to page; inspector paths and data/page/inspector.json to inspector; modal and policy paths to policy; analyst, stations, Nemotron and docs to analyst; the rest to main. The only non-Codex commits are film-plan 44555a4 and 3a8ad76 plus their reverts 606c23e and 9e4bc77; all other commits carry one git author and are lane-assigned by touched files. Counts are derived at every refresh.",
     "git_log_command": "git log --reverse --since 2026-11-14T18:00:00Z",

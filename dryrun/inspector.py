@@ -70,5 +70,32 @@ class Inspector:
             raise RuntimeError(f"unexpected anomaly_map shape: {np.asarray(outputs[self.heatmap_output]).shape}")
         amap = cv2.resize(amap.astype(np.float32), (w, h), interpolation=cv2.INTER_LINEAR)
         lo, hi = float(amap.min()), float(amap.max()); heat = np.zeros_like(amap, dtype=np.uint8) if hi <= lo else np.uint8(np.clip((amap - lo) * 255 / (hi - lo), 0, 255))
-        return {"score": score, "threshold": self.threshold, "verdict": "defective" if score >= self.threshold else "good", "heatmap": heat}
+        # StationEnv can emit its physical ``present`` event as soon as a
+        # held brick first enters the presentation envelope.  That frame is
+        # before pose A/B and contains only a small, distant brick; it must
+        # not decide the bowl.  Use the fixed-camera border colour to measure
+        # the largest foreground component.  The calibrated full present
+        # crop occupies materially more than this, while the pre-present
+        # frame is about 10% of the image.  Return an explicit invalid verdict
+        # so rollout keeps the event auditable without letting it override the
+        # later full-frame decisions.
+        border = np.concatenate((
+            frame[: max(1, h // 32)].reshape(-1, 3),
+            frame[-max(1, h // 32):].reshape(-1, 3),
+            frame[:, : max(1, w // 32)].reshape(-1, 3),
+            frame[:, -max(1, w // 32):].reshape(-1, 3),
+        ), axis=0)
+        background = np.median(border, axis=0)
+        foreground = (np.linalg.norm(frame - background, axis=2) > (80.0 / 255.0)).astype(np.uint8)
+        nlabels, _, stats, _ = cv2.connectedComponentsWithStats(foreground, 8)
+        bbox_fraction = 0.0
+        if nlabels > 1:
+            largest = stats[1:][np.argmax(stats[1:, cv2.CC_STAT_AREA])]
+            bbox_fraction = float(largest[cv2.CC_STAT_WIDTH] * largest[cv2.CC_STAT_HEIGHT]) / float(h * w)
+        if bbox_fraction < 0.13:
+            return {"score": score, "threshold": self.threshold, "verdict": "invalid", "heatmap": heat,
+                    "frame_valid": False, "reason": "underfilled_pre_present",
+                    "foreground_bbox_fraction": bbox_fraction}
+        return {"score": score, "threshold": self.threshold, "verdict": "defective" if score >= self.threshold else "good", "heatmap": heat,
+                "frame_valid": True, "foreground_bbox_fraction": bbox_fraction}
     __call__ = inspect

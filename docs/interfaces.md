@@ -260,3 +260,12 @@ the same `.map` fan-out and writes one row per seed to the `dryrun-policy-rows`
 Dict, with `--download` materializing rows under the same `/bulk3` run
 directory. A bounded map is infrastructure evidence only; no short-horizon
 or archived expert result is a held-out benchmark score.
+
+Scene-batch curriculum records use one JSON object per line with the fields
+`_eval_seed`, `source` (`nemotron` or `random`), `tier`, `brick_count`,
+`positions` (metre XY anchors), `spacing`, `yaw_spread` (radians), and
+`lighting`. Nemotron and random rows are paired by the same `_eval_seed` and
+must have equal row counts. `modal/scene_batch_compare.py` expands the anchors
+into the requested seeded station geometry, trains one ACT copy per source
+from the same starting checkpoint, and holds out the last half of each paired
+list for policy scoring.

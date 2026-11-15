@@ -76,6 +76,7 @@ def _scene(model: mujoco.MjModel, *, look: str = "lab") -> dict[str, Any]:
         meshes.append({"name": name, "file": name + ".stl" if name else None})
     visual = {
         "table_texture": "junction_wood" if look == "junction" else None,
+        "table_texture_path": "/static/evidence/tiers/junction-wood.webp" if look == "junction" else None,
         "good_bowl_hex": "#00b1bd" if look == "junction" else "#14913f",
         "defective_bowl_hex": "#e8642c" if look == "junction" else "#bf1f1f",
     }

@@ -370,7 +370,8 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     cam_local = cam - cam_mount
     axes = "0.6290 -0.7774 0 0.6449 0.5218 0.5584"
     if look == "junction":
-        table_asset = '<texture name="junction_wood" type="2d" builtin="checker" width="16" height="16" rgb1="0.56 0.32 0.17" rgb2="0.72 0.46 0.27"/><material name="table_mat" texture="junction_wood" texrepeat="3 3" rgba="0.72 0.46 0.27 1"/>'
+        wood_texture = _xml_escape(str((ROOT / "web/static/evidence/tiers/junction-wood.png").resolve()))
+        table_asset = f'<texture name="junction_wood" type="2d" file="{wood_texture}"/><material name="table_mat" texture="junction_wood" texrepeat="3 3" rgba="0.72 0.46 0.27 1"/>'
         good_asset = '<material name="good_bowl" rgba="0.0 0.6941176 0.7411765 1"/>'
         bad_asset = '<material name="bad_bowl" rgba="0.9098039 0.3921569 0.172549 1"/>'
         visual = '<visual><headlight diffuse="0.9 0.9 0.9" ambient="0.42 0.42 0.42" specular="0.12 0.12 0.12"/><global offwidth="960" offheight="720"/></visual>'

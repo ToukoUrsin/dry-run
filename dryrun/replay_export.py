@@ -232,6 +232,12 @@ def export(
                     })
                     inspector_status = "written"
             steps += 1
+            # A completed reference expert can remain in a neutral target
+            # state while StationEnv's generic tick limit is still open.
+            # Stop at the expert's explicit terminal phase so replay export
+            # has the same cycle boundary as public rollout.run.
+            if done or getattr(getattr(env, "_planner", None), "phase", None) == "done":
+                break
 
         recorder.sample(obs, force=True)
         result = env.result()

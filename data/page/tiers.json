@@ -1,5 +1,5 @@
 {
-  "updated_utc": "2026-11-15T02:17:00Z",
+  "updated_utc": "2026-11-15T02:39:00Z",
   "commit": "b9d897c",
   "summary": "The pushing expert measures 99.48% on loose (380/382), 91.30% on touching (451/494), and 67.10% on pile (259/386); touching and pile use physical pushes.",
   "versions": [
@@ -220,13 +220,20 @@
   ],
   "replays": [
     {
-      "id": "loose-1001",
+      "id": "loose-1000-junction",
       "tier": "loose",
-      "seed": 1001,
+      "seed": 1000,
+      "look": "junction",
       "score": 1.0,
-      "bricks": 3,
+      "bricks": 6,
       "pushes": 0,
-      "commit": "40bef5f"
+      "commit": "bcee980",
+      "expert_version": "reference",
+      "artifact_dir": "/bulk3/runs/dryrun/film/junction-replay-seed1000-fixed12",
+      "replay": "replay.json.gz",
+      "top_video": "top-view.mp4",
+      "comparison_film": "/bulk3/runs/dryrun/film/real_vs_sim.mp4",
+      "sim_still": "/static/evidence/tiers/sim_top_junction.webp"
     },
     {
       "id": "touching-1001",
@@ -256,5 +263,19 @@
       "top_video": "top-view.mp4",
       "inspection_video": "inspection-camera.mp4"
     }
-  ]
+  ],
+  "real_station": {
+    "look": "junction",
+    "real_still": "/bulk3/runs/dryrun/film/real_top.webp",
+    "sim_still": "/static/evidence/tiers/sim_top_junction.webp",
+    "comparison_film": "/bulk3/runs/dryrun/film/real_vs_sim.mp4",
+    "real_clip": "/bulk3/runs/dryrun/film/real_station_100_112.mp4",
+    "sim_clip": "/bulk3/runs/dryrun/film/sim_top_junction.mp4",
+    "labels": [
+      "The real station at Junction",
+      "Dry Run, simulated"
+    ],
+    "canvas": "1920x1080",
+    "pane": "960x720"
+  }
 }

@@ -371,17 +371,24 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     axes = "0.6290 -0.7774 0 0.6449 0.5218 0.5584"
     if look == "junction":
         wood_texture = _xml_escape(str((ROOT / "web/static/evidence/tiers/junction-wood.png").resolve()))
-        table_asset = f'<texture name="junction_wood" type="2d" file="{wood_texture}"/><material name="table_mat" texture="junction_wood" texrepeat="3 3" rgba="0.72 0.46 0.27 1"/>'
-        good_asset = '<material name="good_bowl" rgba="0.0 0.6941176 0.7411765 1"/>'
-        bad_asset = '<material name="bad_bowl" rgba="0.9098039 0.3921569 0.172549 1"/>'
-        visual = '<visual><headlight diffuse="0.9 0.9 0.9" ambient="0.42 0.42 0.42" specular="0.12 0.12 0.12"/><global offwidth="960" offheight="720"/></visual>'
-        light = '<light name="key" pos="0.15 -0.55 1.7" dir="-0.1 0.2 -1" directional="true" castshadow="true" diffuse="1 0.93 0.82" specular="0.25 0.25 0.25"/>'
+        # The Junction webcam reads as pale grey-beige plywood.  Keep the
+        # table material deliberately neutral and use a soft, low-energy light
+        # so the real orange and teal bowl colours survive the render.
+        table_asset = f'<texture name="junction_wood" type="2d" file="{wood_texture}"/><material name="table_mat" texture="junction_wood" texrepeat="2 2" rgba="0.817 0.797 0.754 1"/>'
+        good_asset = '<material name="good_bowl" rgba="0.0 0.667 0.707 1"/>'
+        bad_asset = '<material name="bad_bowl" rgba="0.84 0.3921569 0.172549 1"/>'
+        visual = '<visual><headlight diffuse="0.40 0.40 0.40" ambient="0.18 0.18 0.18" specular="0.02 0.02 0.02"/><global offwidth="960" offheight="720"/></visual>'
+        light = '<light name="key" pos="0.15 -0.55 1.7" dir="-0.1 0.2 -1" directional="true" castshadow="true" diffuse="0.45 0.45 0.45" specular="0 0 0"/>'
+        support_asset_line = '<material name="station_mat" rgba="0.18 0.21 0.24 1"/>\n    '
+        support_material = 'station_mat'
     else:
         table_asset = '<material name="table_mat" rgba="0.18 0.21 0.24 1"/>'
         good_asset = '<material name="good_bowl" rgba="0.08 0.55 0.25 1"/>'
         bad_asset = '<material name="bad_bowl" rgba="0.75 0.12 0.12 1"/>'
         visual = '<visual><headlight diffuse="0.8 0.8 0.8" ambient="0.35 0.35 0.35" specular="0.1 0.1 0.1"/><global offwidth="960" offheight="720"/></visual>'
         light = '<light name="key" pos="0.25 -0.45 1.5" dir="-0.2 0.3 -1" directional="true" castshadow="true"/>'
+        support_asset_line = ''
+        support_material = 'table_mat'
     pieces = [f'''<?xml version="1.0" encoding="UTF-8"?>
 <mujoco model="dryrun_station_seed_{seed}">
   <compiler angle="radian" autolimits="true"/>
@@ -392,7 +399,7 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     {table_asset}
     {good_asset}
     {bad_asset}
-    <material name="brick_red" rgba="0.75 0.08 0.04 1"/><material name="brick_blue" rgba="0.05 0.25 0.8 1"/>
+    {support_asset_line}<material name="brick_red" rgba="0.75 0.08 0.04 1"/><material name="brick_blue" rgba="0.05 0.25 0.8 1"/>
     <material name="brick_yellow" rgba="0.95 0.65 0.04 1"/><material name="brick_green" rgba="0.1 0.65 0.2 1"/>
     <material name="sticker" rgba="0.95 0.95 0.95 1"/><material name="defect_black" rgba="0.03 0.03 0.03 1"/><material name="discolour" rgba="0.20 0.08 0.05 1"/>
   </asset>
@@ -400,13 +407,13 @@ def station_xml(seed: int = 7, sentence: str = "good and defective bowls on the 
     {light}
   <geom name="table" type="box" pos="0.15 0 -0.045" size="0.62 0.48 0.045" material="table_mat" friction="0.5 0.1 0.02" solref="0.0002 1" solimp="0.99 0.999 0.001"/>
     {'<geom name="pile_disc" type="cylinder" pos="0.2188 0 0.001" size="0.05 0.001" material="table_mat" friction="0.8 0.1 0.02"/>' if opts["layout"] == "pile" else ''}
-    <geom name="table_edge" type="box" pos="0.15 0.47 0.04" size="0.62 0.025 0.08" material="table_mat"/>
+    <geom name="table_edge" type="box" pos="0.15 0.47 0.04" size="0.62 0.025 0.08" material="{support_material}"/>
     {_bowl("good_bowl", *good, "good_bowl")}
     {_bowl("defective_bowl", *bad, "bad_bowl")}
     <!-- Rigid camera mounts: the camera is a physical station component, not a floating site. -->
-    <body name="top_camera_mount" pos="-0.40 0.35 1.20"><geom type="box" size="0.025 0.025 0.60" pos="0 0 -0.60" material="table_mat"/><geom type="box" size="0.58 0.025 0.025" pos="0.29 -0.175 0" material="table_mat"/><camera name="top_view" pos="0.55 -0.35 0" xyaxes="1 0 0 0 1 0"/>
+    <body name="top_camera_mount" pos="-0.40 0.35 1.20"><geom type="box" size="0.025 0.025 0.60" pos="0 0 -0.60" material="{support_material}"/><geom type="box" size="0.58 0.025 0.025" pos="0.29 -0.175 0" material="{support_material}"/><camera name="top_view" pos="0.55 -0.35 0" xyaxes="1 0 0 0 1 0"/>
     </body>
-    <body name="inspection_camera_mount" pos="{cam_mount[0]:.4f} {cam_mount[1]:.4f} {cam_mount[2]:.4f}"><geom type="box" size="0.018 0.018 0.17" pos="0 0 -0.17" material="table_mat" contype="0" conaffinity="0"/><geom type="box" size="0.06 0.06 0.018" pos="0 0 -0.34" material="table_mat" contype="0" conaffinity="0"/><geom type="box" size="0.018 0.018 0.38" pos="0.25 -0.25 -0.34" material="table_mat" contype="0" conaffinity="0"/><camera name="inspection_view" pos="{cam_local[0]:.4f} {cam_local[1]:.4f} {cam_local[2]:.4f}" fovy="40" xyaxes="{axes}"/></body>
+    <body name="inspection_camera_mount" pos="{cam_mount[0]:.4f} {cam_mount[1]:.4f} {cam_mount[2]:.4f}"><geom type="box" size="0.018 0.018 0.17" pos="0 0 -0.17" material="{support_material}" contype="0" conaffinity="0"/><geom type="box" size="0.06 0.06 0.018" pos="0 0 -0.34" material="{support_material}" contype="0" conaffinity="0"/><geom type="box" size="0.018 0.018 0.38" pos="0.25 -0.25 -0.34" material="{support_material}" contype="0" conaffinity="0"/><camera name="inspection_view" pos="{cam_local[0]:.4f} {cam_local[1]:.4f} {cam_local[2]:.4f}" fovy="40" xyaxes="{axes}"/></body>
     <camera name="free_view" pos="0.95 -1.15 0.85" xyaxes="0.76 0.65 0 -0.27 0.32 0.91"/>
     {''.join(_brick(b) for b in bricks)}
   </worldbody>

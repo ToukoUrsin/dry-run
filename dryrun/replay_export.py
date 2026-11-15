@@ -95,7 +95,7 @@ def _scene(model: mujoco.MjModel, *, look: str = "lab") -> dict[str, Any]:
 class Recorder:
     """Capture public observations plus the live MuJoCo pose."""
 
-    def __init__(self, env: StationEnv, out: Path, width: int = 240, height: int = 320):
+    def __init__(self, env: StationEnv, out: Path, width: int = 240, height: int = 320, top_width: int | None = None, top_height: int | None = None):
         self.env = env
         self.model = env.model
         self.data = env.data
@@ -106,9 +106,10 @@ class Recorder:
         self._seen_events: set[tuple[Any, ...]] = set()
         self._last_tick = -1
         self._render_count = 0
+        top_width = int(top_width or width); top_height = int(top_height or height)
         self._renderers = {
             "free_view": mujoco.Renderer(self.model, width, height),
-            "top_view": mujoco.Renderer(self.model, width, height),
+            "top_view": mujoco.Renderer(self.model, top_height, top_width),
             "inspection_view": mujoco.Renderer(self.model, width, height),
         }
         self._writers = {
@@ -203,7 +204,7 @@ def export(
     # Keep the public inspection crop at the measured 256 px contract; the
     # video writers remain compact for the page.
     env = StationEnv(int(seed), tier=tier, count=count, render_size=256, look=look)
-    recorder = Recorder(env, out)
+    recorder = Recorder(env, out, top_width=960 if look == "junction" else None, top_height=720 if look == "junction" else None)
     commit = _commit()
     inspector_status = "not configured"
     try:
